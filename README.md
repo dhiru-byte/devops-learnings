@@ -23,3 +23,5 @@
 [AWS-Kubeadm-terraform](https://github.com/graykode/aws-kubeadm-terraform)
 
 [Devops HardWay](https://github.com/AdminTurnedDevOps/DevOps-The-Hard-Way-AWS)
+
+[Pipeline Examples](https://github.com/jenkinsci/pipeline-examples)
