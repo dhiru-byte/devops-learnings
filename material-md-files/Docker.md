@@ -1,9 +1,6 @@
 ### Docker
 --------------------------------------------------------------------------------------
 
-[Dockerlabs](https://github.com/collabnix/dockerlabs)
-
-
 <details>
 <summary>What is Docker & it's feature ?.</code></summary><br><b>
 
