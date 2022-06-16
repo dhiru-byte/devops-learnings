@@ -1,10 +1,6 @@
 
 ### Kubernetes
 
-[CKA](https://github.com/walidshaari/Kubernetes-Certified-Administrator)
-
-[CKAD](https://github.com/dgkanatsios/CKAD-exercises)
-
 <details>
 <summary> Pod Security Standards.</summary><br><b>
 
