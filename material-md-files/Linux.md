@@ -11,7 +11,6 @@ Mac bash_profile file
 `export PS1="Dhirendra @\d \T $" ` & ` export PS1=”\u@\d \T $” `
 </b></details>
 
-
 <details>
 <summary>What Happens When You Type google.com Or Any Other URL In Your Browser And Press Enter ? .</code></summary><br><b>
 
