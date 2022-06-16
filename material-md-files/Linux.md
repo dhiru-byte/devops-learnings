@@ -98,7 +98,7 @@ The modern Internet is not based on OSI, but on the simpler TCP/IP model. Howeve
 
   * All --> People --> Seem --> To --> Need--> Data --> Processing "Application to physical"
 <p align="center">
-<img src="/images/OSI_Model3.jpg" width="500" height="450" /> 
+<img src="./images/OSI_Model3.jpg" width="500" height="450" /> 
 </p>
 
 <p align="center">
