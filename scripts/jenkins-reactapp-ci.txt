@@ -1,0 +1,90 @@
+//CD
+import java.text.SimpleDateFormat
+def dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm")
+rel_tag = dateFormat.format(new Date())
+def ssh_url = "git@github.com:tajawal/alm-react.git"
+def image = "953698017382.dkr.ecr.eu-west-1.amazonaws.com/alm-react"
+
+
+def dockerRegistryLogin() {
+    def login_command = ""
+        login_command = sh(returnStdout: true,
+            script: "aws ecr get-login --no-include-email --region eu-west-1 | sed -e 's|-e none||g'"
+        )
+    sh "sudo ${login_command}"
+}
+
+// def notifyviaMail(String buildStatus = 'SUCCESS') {
+//     def decodedJobName = env.JOB_NAME.replaceAll("%2F", "/")
+//     emailext attachLog: true, body: "${decodedJobName} - Build # ${env.BUILD_NUMBER} - ${buildStatus}: \nCheck console output at ${env.BUILD_URL} to view the results in Attachments \n \n Thank you.", subject: "${decodedJobName}- Report", to: 'oncorps@srijan.net, eng.info@oncorps.io'
+// }
+
+def notifyviaSlack(){
+    echo "notifying in Slack"
+}
+
+node {
+    try{
+        stage("PreBuild"){
+            try{
+                dockerRegistryLogin()
+                def s = env.ref
+                git_branch = s.tokenize("/")[-1]
+                git branch: "${git_branch}", credentialsId: "gitaccess", url: "${ssh_url}"
+            }
+            catch(error){
+                    echo "Unable to clone the repo"
+                    throw error
+                    currentBuild.result = "FAILURE"
+            }
+        }
+        stage("Build"){
+            try{
+                sh "sudo docker pull 953698017382.dkr.ecr.eu-west-1.amazonaws.com/node:10"
+                if ( "${git_branch}" == "dev"){
+                        docker_image = "${image}:dev-${BUILD_NUMBER}-${rel_tag}"
+                } else if ( "${git_branch}" == "stage"){
+                    docker_image = "${image}:stage-${BUILD_NUMBER}-${rel_tag}"
+                } else if ( "${git_branch}" == "master"){
+                    docker_image = "${image}:master-${BUILD_NUMBER}-${rel_tag}"
+                } else{
+                    docker_image = "${image}:dev-${BUILD_NUMBER}-${rel_tag}"
+                }
+                if ( "${git_branch}" == "dev" || "${git_branch}" == "stage" || "${git_branch}" == "master"){
+                    withCredentials([string(credentialsId: 'pat', variable: 'pat')]) {
+                     sh 'echo "//registry.npmjs.org/:_authToken=${pat}" > .npmrc'   
+                    }
+                    sh "sudo docker build -t ${docker_image} ."
+                }
+            }
+            catch(error){
+                echo "Unable Build Docker image"
+                throw error
+                currentBuild.result = "FAILURE"
+            }
+
+        }
+        stage("Push"){
+            try{
+                if ( "${git_branch}" == "dev" || "${git_branch}" == "stage" || "${git_branch}" == "master"){
+                    sh "sudo docker push ${docker_image}"
+                }
+                currentBuild.result = "SUCCESS"
+            }
+            catch(error){
+                echo "Unable push docker image"
+                throw error
+                currentBuild.result = "FAILURE"
+            }
+
+        }
+    }
+    catch(error){
+        currentBuild.result = "FAILURE"
+        throw error
+    }
+    finally{
+        // notifyviaMail(currentBuild.result)
+        //notifyviaSlack()
+    }
+}

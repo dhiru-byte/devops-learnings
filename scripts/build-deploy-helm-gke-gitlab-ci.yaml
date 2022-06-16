@@ -1,0 +1,149 @@
+---
+
+include:
+  - 'https://gitlab.com/ci-reuse/build/docker/.include.yml'
+
+variables:
+  YAMLLINT_INPUT: ".gitlab-ci.yml"
+  CI_PROJECT_NAME: "${CI_PROJECT_NAME}"
+  HELM_PATH: "deployment/charts/${CI_PROJECT_NAME}"
+  PROJECT_ID: ${GCP_PROJECT_ID}
+  PROJECT_NAME: '${CI_PROJECT_NAME}'
+
+dockerfile:
+  tags:
+    - "web"
+
+helm:
+  tags:
+    - "web"
+
+markdown:
+  tags:
+    - "web"
+
+container:
+  tags:
+    - "dind-docker"
+
+
+stages:
+  - lint
+  - gradle
+  - build
+  - sonarqube
+  - dev-deploy
+  - delete-deploy-dev
+  - deploy_proxy
+  - remote_design_api
+
+
+################################
+# gradle build for dev
+################################
+build:gradle:
+  stage: gradle
+  tags:
+    - "web"
+  environment:
+    name: dev
+  image: gradle:jdk11
+  script:
+    - "gradle clean build"
+    - "gradle jacocoTestReport"
+
+  artifacts:
+    reports:
+      junit:
+        - build/test-results/test/TEST-*.xml
+    paths:
+      - build/libs/*.jar
+      - build/jacocoHtml
+    expire_in: 1 week
+
+
+################################
+# environment: dev
+################################
+deploy_dev:
+  extends: .helm_deploy
+  stage: dev-deploy
+  tags:
+    - "web"
+  environment:
+    name: new-cluster
+  variables:
+    K8_CLUSTER_NAME: ${K8_CLUSTER_NAME}
+    K8_CLUSTER_REGION: ${K8_CLUSTER_REGION}
+    K8_NAMESPACE: promise-engine-pe
+    HELM_RELEASE_NAME: ${CI_PROJECT_NAME}
+    HELM_OPTS: --set-string image.pullSecret.registry=${CI_REGISTRY}
+      --set-string image.pullSecret.username=${DEPLOY_TOKEN}
+      --set-string image.pullSecret.password=${DEPLOY_PASSWORD}
+      --set appLabel=${CI_PROJECT_NAME}
+      --values deployment/charts/config/values-${CI_ENVIRONMENT_NAME}-peru.yaml
+  when: manual
+
+################
+delete-deployment-dev:
+  extends: .helm_deploy
+  stage: delete-deploy-dev
+  tags:
+    - "web"
+  environment:
+    name: new-cluster
+  when: manual
+  script:
+    - helm uninstall ${CI_PROJECT_NAME} -n namespace
+
+###########################################################
+
+Variables Build:
+  stage: variable-proxy
+  before_script:
+    - TARGET_ENDPOINTS="$(cat ./resources/apiGovernanceMap.json | tr "\n" " ")"
+    - >
+      case "${CI_COMMIT_REF_NAME}" in
+      develop) export ENVIRONMENT="DEV"
+      esac
+  script:
+    - echo "TARGET_ENDPOINTS=${TARGET_ENDPOINTS}" >> variables
+    - echo "ENVIRONMENT=${ENVIRONMENT}" >> variables
+    - cat variables
+  artifacts:
+    paths:
+      - variables
+    expire_in: 300 sec
+    untracked: true
+  when: manual
+  tags:
+    - web
+
+Update Proxy:
+  stage: deploy_proxy
+  image: clmdevops/node10-apigee:v1.0.0
+  script:
+    - |
+      echo ${TOKEN_PROJECT_IMPL}
+      echo ${CI_PROJECT_ID}
+      echo ${CI_COMMIT_REF_NAME}
+  tags:
+    - web-docker
+
+Remote Design API:
+  stage: remote_design_api
+  variables:
+    PROJECT_ID: $CI_PROJECT_ID
+    PIPELINE_ID: $CI_PIPELINE_ID
+    MICROSERVICE: $CI_PROJECT_PATH
+    TOKEN_PROJECT_IMPL: $TOKEN_PROJECT_IMPL
+    NAME_JOB: "Variables Build"
+    ACTION: "UPDATE_PROXY"
+    VARIABLE: variables
+  trigger:
+    project: repository-url
+    branch: master
+    strategy: depend
+  needs:
+    - job: Update Proxy
+  when: manual

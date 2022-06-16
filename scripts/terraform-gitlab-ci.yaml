@@ -1,0 +1,117 @@
+---
+before_script:
+  - terraform init -input=false -backend-config=environment/${CI_ENVIRONMENT_NAME}/gcs-bucket.tfvars
+
+.validate_template: &validate_definition
+  script:
+    - terraform validate -var-file=environment/${CI_ENVIRONMENT_NAME}/variables.tfvars
+
+.plan_template: &plan_definition
+  script:
+    - terraform plan -out=$CI_ENVIRONMENT_NAME-plan.tfplan -var-file=environment/${CI_ENVIRONMENT_NAME}/variables.tfvars -input=false
+    - cp -r ~/.helm/repository/ helm_repository
+  artifacts:
+    paths:
+      - $CI_ENVIRONMENT_NAME-plan.tfplan
+      - helm_repository
+
+.apply_template: &apply_definition
+  script:
+    - mkdir ~/.helm
+    - cp -r helm_repository ~/.helm/repository
+    - terraform apply -input=false $CI_ENVIRONMENT_NAME-plan.tfplan
+  when: manual
+
+variables:
+  TF_IN_AUTOMATION: "true"
+  GOOGLE_CREDENTIALS: ${GCP_ACCOUNT_CREDENTIALS}
+  TF_VAR_environment: ${CI_ENVIRONMENT_NAME}
+  GOOGLE_APPLICATION_CREDENTIALS: account.json
+  GCP_SERVICE_ACCOUNT_FILE: account.json
+  GCP_AUTH_KIND: serviceaccount
+
+.pre_setup_template: &pre_setup
+  image: devth/helm:v2.15.1
+  before_script:
+    - echo ${GCP_ACCOUNT_CREDENTIALS} > account.json
+    - gcloud auth activate-service-account --key-file=account.json --project=${GCP_PROJECT_ID}
+  script:
+    - gsutil ls -b gs://${GCP_PROJECT_ID} || (gcloud services enable storage-api.googleapis.com && gsutil mb gs://${GCP_PROJECT_ID} && gsutil versioning set on gs://${GCP_PROJECT_ID} )
+    - gcloud services list | grep -q cloudresourcemanager.googleapis.com || gcloud services enable cloudresourcemanager.googleapis.com --project=${GCP_PROJECT_ID}
+image:
+  name: hashicorp/terraform:0.12.28
+  entrypoint:
+    - '/usr/bin/env'
+    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+stages:
+  - pre-setup
+  - validate
+  - build
+  - deploy
+
+################################
+# environment: dev
+################################
+pre_setup_dev:
+  stage: pre-setup
+  environment:
+    name: dev
+  <<: *pre_setup
+  #only:
+  #  - master
+
+validate_dev:
+  stage: validate
+  environment:
+    name: dev
+  <<: *validate_definition
+
+plan_dev:
+  stage: build
+  environment:
+    name: dev
+  <<: *plan_definition
+
+apply_dev:
+  stage: deploy
+  environment:
+    name: dev
+  <<: *apply_definition
+  dependencies:
+    - plan_dev
+  only:
+    - master
+
+################################
+# environment: stage
+################################
+pre_setup_stage:
+  stage: pre-setup
+  environment:
+    name: staging
+  <<: *pre_setup
+#  only:
+#    - master
+
+validate_stage:
+  stage: validate
+  environment:
+    name: staging
+  <<: *validate_definition
+
+plan_stage:
+  stage: build
+  environment:
+    name: staging
+  <<: *plan_definition
+
+apply_stage:
+  stage: deploy
+  environment:
+    name: staging
+  <<: *apply_definition
+  dependencies:
+    - plan_stage
+  only:
+    - master
