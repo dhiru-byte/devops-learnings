@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgsql-terraform
+  labels:
+    app: postgres
+spec:
+  serviceName: "postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:12
+        envFrom:
+        - configMapRef:
+            name: pgsql-terraform-configmap
+        ports:
+        - containerPort: 5432
+          name: postgresdb
+        volumeMounts:
+        - name: pgsql-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: pgsql-data
+        persistentVolumeClaim:
+          claimName: pgsql-nfs-pvc
+          #claimName: postgres-pvc  
+

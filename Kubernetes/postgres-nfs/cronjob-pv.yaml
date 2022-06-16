@@ -1,0 +1,49 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pg-backup-pv
+  labels:
+    app: postgres
+    #type: local
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: "/var/data/pgsqldumpdata"
+    server: #nfs-server-running-ip
+
+---
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pg-backup-pvc
+  labels:
+    app: postgres
+spec:
+  capacity:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+      
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgsql-cronjob-cm
+data:
+  #PGHOST: 'nodeip'
+  PGPORT: '31186'
+  PGDATABASE: 'awesomedb'
+  PGUSER: 'amazinguser'
+  PGPASSWORD: 'perfectpassword'
+      
+      
+      

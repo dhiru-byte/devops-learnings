@@ -1,0 +1,36 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: minio-pv
+  labels:
+    app: minio
+    #type: local
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    #path: "/var/data" 
+    path: "/var/data/minio"
+    server: #nfs-server-running-ip   
+
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: minio-pvc
+  labels:
+    app: minio
+spec:
+  capacity:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi    
+
+

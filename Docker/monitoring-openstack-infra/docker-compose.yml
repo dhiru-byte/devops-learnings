@@ -1,0 +1,61 @@
+version: "3"
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+
+services:
+    prometheus:
+        image: prom/prometheus:v2.20.0
+        container_name: prometheus
+        privileged: true
+        volumes:
+            - prometheus_data:/prometheus 
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml
+            - ./alert.rules:/etc/prometheus/alert.rules
+        command:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - '--storage.tsdb.path=/prometheus'
+        ports:
+            - "9090:9090"
+        restart: unless-stopped    
+        links:
+            - "alertmanager:alertmanager"
+        labels:
+          org.label-schema.group: "monitoring"    
+
+    grafana:
+        image: grafana/grafana:7.1.1
+        container_name: grafana
+        ports:
+            - "3000:3000"
+        volumes:
+            - grafana_data:/var/lib/grafana
+            - ./datasource.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+        restart: unless-stopped    
+        environment:
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+        labels:
+          org.label-schema.group: "monitoring"      
+
+    alertmanager:
+        image: prom/alertmanager:v0.21.0
+        container_name: alertmanager
+        privileged: true
+        volumes:
+            - ./alertmanager.yml:/alertmanager.yml
+        command:
+            - "--config.file=/alertmanager.yml"
+            - "--storage.path=/alertmanager" 
+            - "--web.external-url=http://10.93.1.72:9093"
+        restart: unless-stopped    
+        ports:
+            - "9093:9093"
+        labels:
+          org.label-schema.group: "monitoring"      
+
+#node-exporter:
+#   image: prom/node-exporter
+#   ports:
+#       - '9100:9100'
