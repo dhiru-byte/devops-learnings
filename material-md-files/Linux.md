@@ -49,9 +49,8 @@ In an operating system software performs each of the function:
 <details>
 <summary>Features of OS ?.</code></summary><br><b>
 
-* Protected and supervisor mode.
-
-* Allows disk access and file systems Device drivers Networking Security.
+- Protected and supervisor mode.
+- Allows disk access and file systems Device drivers Networking Security.
 
 * Program Execution.
 
