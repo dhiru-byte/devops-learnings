@@ -12,6 +12,18 @@ Mac bash_profile file
 </b></details>
 
 <details>
+<summary>What is Operating System ?.</code></summary><br><b>
+
+Operating system is an interface between user and the computer hardware. The hardware of the computer cannot understand the human readable language as it works on binaries i.e. 0's and 1's. Also it is very tough for humans to understand the binary language, in such case we need an interface which can translate human language to hardware and vice-versa for effective communication. 
+
+* <b> Types of Operating System:</b>  
+  * Single User - Single Tasking Operating System  
+  * Single User - Multitasking Operating System  
+  * Multi User - Multitasking Operating System  
+</b></details>
+
+
+<details>
 <summary>Functions of OS ?.</code></summary><br><b>
 
  OS functions may include managing memory, files, processes, I/O system & devices, security, etc.
@@ -50,6 +62,152 @@ In an operating system software performs each of the function:
 - Error Detection and handling.
 - Resource allocation.
 - Information and Resource Protection.
+
+</b></details>
+
+<details>
+<summary>What is Linux?.</code></summary><br><b>
+
+Linux is an operating system based on UNIX and was first introduced by Linus Torvalds. It is based on the Linux Kernel and can run on different hardware platforms manufactured by Intel, MIPS, HP, IBM, SPARC, and Motorola. Another popular element in Linux is its mascot, a penguin figure named Tux.
+</b></details>
+
+<details>
+<summary>Linux Architecture.</code></summary><br><b>
+
+* The architecture of UNIX can be divided into Four levels of functionality, as shown in Figure .  
+<p align="center">
+<img src="./images/LinuxArchitecture.jpg" width="500" height="450" /> 
+</p>
+
+#### Hardware  
+Hardware consists of all physical devices attached to the System.   
+<b>Example:-</b> Hard disk drive, RAM, Motherboard, CPU etc.
+
+#### Kernel 
+The kernel is the central component of a computer operating systems. The only job performed by the kernel is to the manage the communication between the software and the hardware. A Kernel is at the nucleus of a computer. It makes the communication between the hardware and software possible. While the Kernel is the innermost part of an operating system, a shell is the outermost one.
+
+#### Different types of the kernel are:  
+
+- `Monolithic Kernel` : A monolithic kernel is a single code or block of the program. It provides all the required services offered by the operating system. It is a simplistic design which creates a distinct communication layer between the hardware and software.
+
+- `Micro kernels`  : Microkernel manages all system resources. In this type of kernel, services are implemented in different address space. The user services are stored in user address space, and kernel services are stored under kernel address space. So, it helps to reduce the size of both the kernel and operating system.
+
+- `Hybrid kernels `
+- `Exo kernels  `
+
+#### Features of Kernel
+- `Low-level scheduling of processes`
+- `Inter-process communication`
+- `Process synchronization`
+- `Context switching`
+
+#### Shell  
+Shell is the interface which takes input from users and sends instructions to the Kernel, Also takes the output from Kernel and send the result back to output user and starting applications.  
+  * Types of shells are classified into four:
+    * `Korn shell`
+    * `Bourne shell`
+    * `C shell`
+
+#### Utilities  
+Utilities provides the functionalities of an operating system to the users. 
+
+</b></details>
+
+
+<details>
+<summary>What is OSI model & it's Layers?.</code></summary><br><b>
+
+The Open Systems Interconnection (OSI) model describes seven layers that computer systems use to communicate over a network. It was the first standard model for network communications, adopted by all major computer and telecommunication companies in the early 1980s.
+
+The modern Internet is not based on OSI, but on the simpler TCP/IP model. However, the OSI 7-layer model is still widely used, as it helps visualize and communicate how networks operate, and helps isolate and troubleshoot networking problems.
+
+  * All --> People --> Seem --> To --> Need--> Data --> Processing "Application to physical"
+<p align="center">
+<img src="./images/OSI_Model3.jpg" width="500" height="450" /> 
+</p>
+
+<p align="center">
+<img src="./images/OSI_Model2.jpg" width="500" height="450" /> 
+</p>
+
+</b></details>
+<details>
+<summary>Linux File System Hierarchy.</code></summary><br><b>
+
+|Path     | Description        |
+|:-----: |:---      |
+| / |It is parent directory for all other directories.(root directory)|
+| /root | It is home directory for root user and it provides working environment for root user|
+| /home | It is home directory for other users and it provide working environment for other users|
+| /boot |It contains bootable files for Linux. Like `GRUB (GRand Unified Boot loader)  boot.ini, ntldr` |
+| /etc | It contains all configuration files. Like `User info /etc/passwd` |
+| /usr | By default softwares are installed in /usr directory|
+| /opt | It is optional directory for /usr and it contains third party softwares. |
+| /bin | It contains commands used by all users(Binary files)|   
+| /sbin | It contains commands used by only Super User (root) |
+| /dev | It contains device file like `hard disk /dev/hda` |
+| /proc |  It contain process files and data are not permanent, they keep changing like `information of CPU /proc/cpuinfo` |
+| /var |It is containing variable data like `mails, log files` |   
+| /mnt |It is default mount point for any partition. It is empty by default |
+| /media |It contains all of removable media like `CD-ROM, pen drive` |
+| /lib | It contains library files which are used by OS. Library files in Linux are shared object files|
+
+</b></details>
+
+<details>
+<summary>What is the difference between UNIX and LINUX?.</code></summary><br><b>
+
+Unix originally began as a propriety operating system from Bell Laboratories, which later on spawned into different commercial versions. On the other hand, Linux is free, open source and intended as a non-propriety operating system for the masses.
+</b></details>
+
+<details>
+<summary>What is BASH?.</code></summary><br><b>
+
+BASH is short for Bourne Again SHell, was written by Steve Bourne as a replacement to the original Bourne Shell(represented by /bin/sh). It combines all the features from the original version of Bourne Shell, plus additional functions to make it easier and more convenient to use. It has since been adapted as the default shell for most systems running Linux.
+</b></details>
+
+<details>
+<summary> What is LILO?.</code></summary><br><b>
+
+LILO is a boot loader for Linux. It is used mainly to load the Linux operating system into main memory so that it can begin its operations.
+</b></details>
+
+<details>
+<summary> What is a swap space?.</code></summary><br><b>
+
+Swap space is a certain amount of space used by Linux to temporarily hold some programs that are running concurrently. This happens when RAM does not have enough memory to hold all programs that are executing.
+</b></details>
+<details>
+<summary> What is the basic difference between BASH and DOS?.</code></summary><br><b>
+
+The key differences between the BASH and DOS console lie in 3 areas:
+
+* BASH commands are case sensitive while DOS commands are not;
+
+* Under BASH, / character is a directory separator and \ acts as an escape character. Under DOS, / serves as a command argument delimiter and \ is the directory separator
+
+* DOS follows a convention in naming files, which is 8 character file name followed by a dot and 3 characters for the extension. BASH follows no such convention.
+</b></details>
+
+<details>
+<summary> What is the importance of the GNU project?.</code></summary><br><b>
+
+This so-called Free software movement allows several advantages, such as the freedom to run programs for any purpose and freedom to study and modify a program to your needs. It also allows you to redistribute copies of software to other people, as well as the freedom to improve software and have it released for the public.
+</b></details>
+
+<details>
+<summary> Describe the root account.</code></summary><br><b>
+
+The root account is like a systems administrator account and allows you full control of the system.
+Here you can create and maintain user accounts, assigning different permissions for each account.
+It is the default account every time you install Linux.
+</b></details>
+
+
+<details>
+<summary> What is CLI?.</code></summary><br><b>
+
+CLI is short for Command Line Interface. This interface allows the user to type declarative commands to instruct the computer to perform operations. CLI offers greater flexibility. However, other users who are already accustomed to using GUI find it difficult to remember commands including attributes that come with it.
 
 </b></details>
 
@@ -118,177 +276,10 @@ The column headings in the process list are as follows:
 [Detail](https://www.howtogeek.com/668986/how-to-use-the-linux-top-command-and-understand-its-output/)
 </b></details>
 
-
-<details>
-<summary>What is Operating System ?.</code></summary><br><b>
-
-Operating system is an interface between user and the computer hardware. The hardware of the computer cannot understand the human readable language as it works on binaries i.e. 0's and 1's. Also it is very tough for humans to understand the binary language, in such case we need an interface which can translate human language to hardware and vice-versa for effective communication. 
-
-* <b> Types of Operating System:</b>  
-  * Single User - Single Tasking Operating System  
-  * Single User - Multitasking Operating System  
-  * Multi User - Multitasking Operating System  
-</b></details>
-
-<details>
-<summary>What is OSI model & it's Layers?.</code></summary><br><b>
-
-The Open Systems Interconnection (OSI) model describes seven layers that computer systems use to communicate over a network. It was the first standard model for network communications, adopted by all major computer and telecommunication companies in the early 1980s.
-
-The modern Internet is not based on OSI, but on the simpler TCP/IP model. However, the OSI 7-layer model is still widely used, as it helps visualize and communicate how networks operate, and helps isolate and troubleshoot networking problems.
-
-  * All --> People --> Seem --> To --> Need--> Data --> Processing "Application to physical"
-<p align="center">
-<img src="./images/OSI_Model3.jpg" width="500" height="450" /> 
-</p>
-
-<p align="center">
-<img src="./images/OSI_Model2.jpg" width="500" height="450" /> 
-</p>
-
-</b></details>
-<details>
-<summary>Linux File System Hierarchy.</code></summary><br><b>
-
-|Path     | Description        |
-|:-----: |:---      |
-| / |It is parent directory for all other directories.(root directory)|
-| /root | It is home directory for root user and it provides working environment for root user|
-| /home | It is home directory for other users and it provide working environment for other users|
-| /boot |It contains bootable files for Linux. Like `GRUB (GRand Unified Boot loader)  boot.ini, ntldr` |
-| /etc | It contains all configuration files. Like `User info /etc/passwd` |
-| /usr | By default softwares are installed in /usr directory|
-| /opt | It is optional directory for /usr and it contains third party softwares. |
-| /bin | It contains commands used by all users(Binary files)|   
-| /sbin | It contains commands used by only Super User (root) |
-| /dev | It contains device file like `hard disk /dev/hda` |
-| /proc |  It contain process files and data are not permanent, they keep changing like `information of CPU /proc/cpuinfo` |
-| /var |It is containing variable data like `mails, log files` |   
-| /mnt |It is default mount point for any partition. It is empty by default |
-| /media |It contains all of removable media like `CD-ROM, pen drive` |
-| /lib | It contains library files which are used by OS. Library files in Linux are shared object files|
-
-</b></details>
-
-
-<details>
-<summary>Linux Architecture.</code></summary><br><b>
-
-* The architecture of UNIX can be divided into Four levels of functionality, as shown in Figure .  
-<p align="center">
-<img src="./images/LinuxArchitecture.jpg" width="500" height="450" /> 
-</p>
-
-#### Hardware  
-Hardware consists of all physical devices attached to the System.   
-<b>Example:-</b> Hard disk drive, RAM, Motherboard, CPU etc.
-
-#### Kernel 
-The kernel is the central component of a computer operating systems. The only job performed by the kernel is to the manage the communication between the software and the hardware. A Kernel is at the nucleus of a computer. It makes the communication between the hardware and software possible. While the Kernel is the innermost part of an operating system, a shell is the outermost one.
-
-#### Different types of the kernel are:  
-
-- `Monolithic Kernel` : A monolithic kernel is a single code or block of the program. It provides all the required services offered by the operating system. It is a simplistic design which creates a distinct communication layer between the hardware and software.
-
-- `Micro kernels`  : Microkernel manages all system resources. In this type of kernel, services are implemented in different address space. The user services are stored in user address space, and kernel services are stored under kernel address space. So, it helps to reduce the size of both the kernel and operating system.
-
-- `Hybrid kernels `
-- `Exo kernels  `
-
-#### Features of Kernel
-- `Low-level scheduling of processes`
-- `Inter-process communication`
-- `Process synchronization`
-- `Context switching`
-
-#### Shell  
-Shell is the interface which takes input from users and sends instructions to the Kernel, Also takes the output from Kernel and send the result back to output user and starting applications.  
-  * Types of shells are classified into four:
-    * `Korn shell`
-    * `Bourne shell`
-    * `C shell`
-
-#### Utilities  
-Utilities provides the functionalities of an operating system to the users. 
-
-</b></details>
-
-<details>
-<summary>What is Linux?.</code></summary><br><b>
-
-Linux is an operating system based on UNIX and was first introduced by Linus Torvalds. It is based on the Linux Kernel and can run on different hardware platforms manufactured by Intel, MIPS, HP, IBM, SPARC, and Motorola. Another popular element in Linux is its mascot, a penguin figure named Tux.
-</b></details>
-
-<details>
-<summary>What is the difference between UNIX and LINUX?.</code></summary><br><b>
-
-Unix originally began as a propriety operating system from Bell Laboratories, which later on spawned into different commercial versions. On the other hand, Linux is free, open source and intended as a non-propriety operating system for the masses.
-</b></details>
-
-<details>
-<summary>What is BASH?.</code></summary><br><b>
-
-BASH is short for Bourne Again SHell, was written by Steve Bourne as a replacement to the original Bourne Shell(represented by /bin/sh). It combines all the features from the original version of Bourne Shell, plus additional functions to make it easier and more convenient to use. It has since been adapted as the default shell for most systems running Linux.
-</b></details>
-
-
-<details>
-<summary> What is LILO?.</code></summary><br><b>
-
-LILO is a boot loader for Linux. It is used mainly to load the Linux operating system into main memory so that it can begin its operations.
-</b></details>
-
-<details>
-<summary> What is a swap space?.</code></summary><br><b>
-
-Swap space is a certain amount of space used by Linux to temporarily hold some programs that are running concurrently. This happens when RAM does not have enough memory to hold all programs that are executing.
-</b></details>
-
-
-<details>
-<summary> What are the basic components of Linux?.</code></summary><br><b>
-
-Just like any other typical operating system, Linux has all of these components: kernel, shells and GUIs, system utilities, and an application program. What makes Linux advantageous over other operating system is that every aspect comes with additional features and all codes for these are downloadable for free.
-</b></details>
-
 <details>
 <summary> Does it help for a Linux system to have multiple desktop environments installed?.</code></summary><br><b>
 
 In general, one desktop environment, like KDE or Gnome, is good enough to operate without issues. It’s all a matter of preference for the user, although the system allows switching from one environment to another. Some programs will work in one environment and not work on the other, so it could also be considered a factor in selecting which environment to use.
-</b></details>
-
-<details>
-<summary> What is the basic difference between BASH and DOS?.</code></summary><br><b>
-
-The key differences between the BASH and DOS console lie in 3 areas:
-
-* BASH commands are case sensitive while DOS commands are not;
-
-* Under BASH, / character is a directory separator and \ acts as an escape character. Under DOS, / serves as a command argument delimiter and \ is the directory separator
-
-* DOS follows a convention in naming files, which is 8 character file name followed by a dot and 3 characters for the extension. BASH follows no such convention.
-</b></details>
-
-<details>
-<summary> What is the importance of the GNU project?.</code></summary><br><b>
-
-This so-called Free software movement allows several advantages, such as the freedom to run programs for any purpose and freedom to study and modify a program to your needs. It also allows you to redistribute copies of software to other people, as well as the freedom to improve software and have it released for the public.
-</b></details>
-
-<details>
-<summary> Describe the root account.</code></summary><br><b>
-
-The root account is like a systems administrator account and allows you full control of the system.
-Here you can create and maintain user accounts, assigning different permissions for each account.
-It is the default account every time you install Linux.
-</b></details>
-
-
-<details>
-<summary> What is CLI?.</code></summary><br><b>
-
-CLI is short for Command Line Interface. This interface allows the user to type declarative commands to instruct the computer to perform operations. CLI offers greater flexibility. However, other users who are already accustomed to using GUI find it difficult to remember commands including attributes that come with it.
-
 </b></details>
 
 <details>
@@ -300,7 +291,6 @@ There are 3 modes under vi:
 * ` Ex mode `    – this is the mode wherein you interact with vi with instructions to process a file.
 
 </b></details>
-
 
 <details>
 <summary> How can you find out how much memory Linux is using?.</code></summary><br><b>
