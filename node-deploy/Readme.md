@@ -44,6 +44,7 @@ spec:
 
 ### For Memory
 
+```yaml
 apiVersion: autoscaling/v2beta2 
 kind: HorizontalPodAutoscaler
 metadata:
@@ -61,4 +62,5 @@ spec:
       name: memory 
       target:
         type: Utilization 
-        averageValue: 10Mi 
+        averageValue: 10Mi
+```        
