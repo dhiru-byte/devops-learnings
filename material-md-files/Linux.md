@@ -179,11 +179,11 @@ The modern Internet is not based on OSI, but on the simpler TCP/IP model. Howeve
 <img src="./images/LinuxArchitecture.jpg" width="500" height="450" /> 
 </p>
 
-* <b> Hardware </b>   
+#### Hardware  
 Hardware consists of all physical devices attached to the System.   
 <b>Example:-</b> Hard disk drive, RAM, Motherboard, CPU etc.
 
-* <b> Kernel </b>  
+#### Kernel 
 The kernel is the central component of a computer operating systems. The only job performed by the kernel is to the manage the communication between the software and the hardware. A Kernel is at the nucleus of a computer. It makes the communication between the hardware and software possible. While the Kernel is the innermost part of an operating system, a shell is the outermost one.
 
 #### Different types of the kernel are:  
@@ -201,14 +201,14 @@ The kernel is the central component of a computer operating systems. The only jo
 - `Process synchronization`
 - `Context switching`
 
-* <b> Shell </b>  
+#### Shell  
 Shell is the interface which takes input from users and sends instructions to the Kernel, Also takes the output from Kernel and send the result back to output user and starting applications.  
   * Types of shells are classified into four:
-    * Korn shell
-    * Bourne shell
-    * C shell
+    * `Korn shell`
+    * `Bourne shell`
+    * `C shell`
 
-* <b> Utilities </b>  
+#### Utilities  
 Utilities provides the functionalities of an operating system to the users. 
 
 </b></details>
