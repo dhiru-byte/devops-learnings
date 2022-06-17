@@ -21,8 +21,10 @@ spec:
           resources:
             limits:
               cpu: 500m
+              memory: 1Gi
             requests:
-              cpu: 200m    
+              cpu: 200m
+              memory: 0.5Gi
       imagePullSecrets:
         - name: dockerhub-cred  
 
