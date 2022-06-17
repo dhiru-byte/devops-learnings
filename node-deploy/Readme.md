@@ -8,6 +8,11 @@
 
 ### Deploy to Kubernetes
 
+` minikube start --nodes 2 -p multinode-demo ` : to start minikube with 2 nodes.
+
+` minikube addons enable metrics-server ` : to enable metrics server in minikube.
+
+
 Deploy the node app by applying `deployment.yaml`
 
  `kubectl apply -f deployment.yaml` .
