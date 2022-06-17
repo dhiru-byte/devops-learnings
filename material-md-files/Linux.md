@@ -17,7 +17,7 @@ Mac bash_profile file
  OS functions may include managing memory, files, processes, I/O system & devices, security, etc.
 
 <p align="center">
-<img src="./images/OS_functions.jpg" width="600" height="450" /> 
+<img src="./images/OS_functions.jpg" width="700" height="400" /> 
 </p>
 
 In an operating system software performs each of the function:
