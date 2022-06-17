@@ -16,6 +16,19 @@ Deploy the node app by applying `deployment.yaml`
 
  `kubectl apply -f deployment.yaml `
 
+
+### To have higher priority than Daemonset, you need to create PriorityClass and use that for node app.
+
+```yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000
+globalDefault: false
+description: "This priority class should be used for XYZ service pods only."
+```
+
 ### Create  Secret for pulling images from private repo in Kubernetes.
 
 ` kubectl create secret generic dockerhub-cred --from-file=.dockerconfigjson=/home/ubuntu/.docker/config.json --type=kubernetes.io/dockerconfigjson `
