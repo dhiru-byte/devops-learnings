@@ -601,6 +601,22 @@ In most priority scheduling algorithms, the problem of starvation arises. The re
 
 </b></details>
 
+
+<details>
+<summary> Difference Between Deadlock & Starvation ?.</code></summary><br><b>
+
+1. Deadlock happens when every process holds a resource and waits for another process to hold another resource. In contrast, starvation happens when a low priority program requests a system resource but cannot run because a higher priority program has been employing that resource for a long time.
+
+2. In a deadlock, none of the processes can proceed to execution; instead, each process is blocked while waiting for resources to be acquired by another process. On the other hand, starvation is a situation in which higher-priority processes have an infinite ability to acquire resources. Moreover, lower-priority processes are prevented from getting resources, resulting in their indefinite blocking.
+
+3. Deadlock happens when four conditions exist simultaneously: mutual exclusion, hold and wait, no preemption, and circular wait. In contrast, starvation happens when process priorities are enforced while distributing resources or when resource management is unmanaged.
+
+4. In a deadlock situation, the process blocks resources. In contrast, high-priority processes continue to use the requested resources in starvation.
+
+5. Deadlock is also known as circular wait, whereas starvation is known as a Lived lock.
+
+</b></details>
+
 <details>
 <summary> What is Zombie Process in Linux?.</code></summary><br><b>
 
