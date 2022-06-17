@@ -12,6 +12,18 @@ Mac bash_profile file
 </b></details>
 
 <details>
+<summary>What are the functions of OS ?.</code></summary><br><b>
+
+ OS functions may include managing memory, files, processes, I/O system & devices, security, etc.
+
+<p align="center">
+<img src="./images/OS_functions.jpg" width="500" height="450" /> 
+</p>
+
+</b></details>
+
+
+<details>
 <summary>What Happens When You Type google.com Or Any Other URL In Your Browser And Press Enter ? .</code></summary><br><b>
 
 A webpage is basically a text file formatted a certain way so that your browser (ie. Chrome, Firefox, Safari, etc) can understand it; this format is called HyperText Markup Language (HTML). These files are located in computers that provide the service of storing said files and wait for someone to need them to deliver them. They are called servers because they serve the content that they hold to whoever needs it.
