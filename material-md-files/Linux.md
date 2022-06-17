@@ -292,32 +292,6 @@ There are 3 modes under vi:
 
 </b></details>
 
-<details>
-<summary> How can you find out how much memory Linux is using?.</code></summary><br><b>
-
-` cat /proc/meminfo ` : total memory Linux has available to use.
-
-` free -b `: gives the size in bytes.
-
-` free -k `: gives the size in kilobytes.
-
-` free -m `: gives the size in megabytes.
-
-` free -g `: gives the size in gigabytes.
-
-` top `    : lists the physical memory information in a clear way.
-
-` vmstat ` : vmstat (virtual memory stats) with -s switch lists the memory in detail.
-
- ` htop`
-
-</b></details>
-
-<details>
-<summary>  find out  CPU Info Linux is using?.</code></summary><br><b>
-
-` cat /proc/cpuinfo `
-</b></details>
 
 
 <details>
@@ -590,6 +564,19 @@ Symbolic Representation :
 [In Detail](https://www.redhat.com/sysadmin/suid-sgid-sticky-bit)
 </b></details>
 
+<details>
+<summary> What is Deadlock in Linux?.</code></summary><br><b>
+
+- `Deadlock` happens when every process holds a resource and waits for another process to hold another resource. In other words, a deadlock occurs when multiple processes in the CPU compete for the limited number of resources available in the CPU. In this context, each process keeps a resource and waits for another process to obtain a resource.
+
+#### 4 conditions may occur the condition of deadlock. 
+
+- `Mutual Exclusion` : Only one process can utilize a resource at a time; if another process requests the same resource, it must wait until the process that is utilizing it releases it.
+- `Hold and Wait` : A process should be holding a resource when waiting for the acquirer of another process's resource.
+- `No preemption` : The process holding the resources may not be preempted, and the process holding the resources should freely release the resource after it has finished its job.
+- `Circular Wait` : In a circular form, the process must wait for resources. Let's suppose there are three processes: P0, P1, and P2. P0 must wait for the resource held by P1; P1 must wait for process P2 to acquire the resource held by P2, and P2 must wait for P0 to acquire the process.
+
+</b></details>
 
 <details>
 <summary> What is Zombie Process in Linux?.</code></summary><br><b>
@@ -655,6 +642,32 @@ On a dual-core system this would mean:
 * The CPUs were overloaded by 135% on average; 1.35 processes were waiting for CPU time. (3.35) over the last 15 minutes.
 </b></details>
 
+<details>
+<summary> How can you find out how much memory Linux is using?.</code></summary><br><b>
+
+` cat /proc/meminfo ` : total memory Linux has available to use.
+
+` free -b `: gives the size in bytes.
+
+` free -k `: gives the size in kilobytes.
+
+` free -m `: gives the size in megabytes.
+
+` free -g `: gives the size in gigabytes.
+
+` top `    : lists the physical memory information in a clear way.
+
+` vmstat ` : vmstat (virtual memory stats) with -s switch lists the memory in detail.
+
+ ` htop`
+
+</b></details>
+
+<details>
+<summary>  find out  CPU Info Linux is using?.</code></summary><br><b>
+
+` cat /proc/cpuinfo `
+</b></details>
 
 <details>
 <summary> Command to calculate the size of a folder?.</code></summary><br><b>
