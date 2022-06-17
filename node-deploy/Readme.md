@@ -62,5 +62,5 @@ spec:
       name: memory 
       target:
         type: Utilization 
-        averageValue: 10Mi
+        averageValue: 60Mi
 ```        
