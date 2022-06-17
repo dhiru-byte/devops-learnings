@@ -19,6 +19,46 @@ Deploy the node app by applying `deployment.yaml`
 
 ### Create HPA(Horizontal Pod Autoscaler) for autoscaling the deployment using metrics like CPU or Memory.
 
+### for CPU
 ` kubectl autoscale deployment node-deploy --cpu-percent=50 --min=5 --max=8 `
 
+OR
 
+```yaml
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: node-cpu-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: node-deploy
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+```
+
+
+
+
+### For Memory
+
+apiVersion: autoscaling/v2beta2 
+kind: HorizontalPodAutoscaler
+metadata:
+  name: node-memory-hpa 
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1 
+    kind: Deployment 
+    name: node-deploy
+  minReplicas: 1 
+  maxReplicas: 10 
+  metrics: 
+  - type: Resource
+    resource:
+      name: memory 
+      target:
+        type: Utilization 
+        averageValue: 10Mi 
