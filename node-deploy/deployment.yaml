@@ -27,4 +27,3 @@ spec:
               memory: 0.5Gi
       imagePullSecrets:
         - name: dockerhub-cred  
-
