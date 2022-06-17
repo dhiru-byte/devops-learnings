@@ -34,8 +34,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: node-deploy
-  minReplicas: 1
-  maxReplicas: 10
+  minReplicas: 5
+  maxReplicas: 8
   targetCPUUtilizationPercentage: 50
 ```
 
@@ -54,8 +54,8 @@ spec:
     apiVersion: apps/v1 
     kind: Deployment 
     name: node-deploy
-  minReplicas: 1 
-  maxReplicas: 10 
+  minReplicas: 5
+  maxReplicas: 8 
   metrics: 
   - type: Resource
     resource:
