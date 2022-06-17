@@ -12,12 +12,12 @@ Mac bash_profile file
 </b></details>
 
 <details>
-<summary>What are the functions of OS ?.</code></summary><br><b>
+<summary>Functions of OS ?.</code></summary><br><b>
 
  OS functions may include managing memory, files, processes, I/O system & devices, security, etc.
 
 <p align="center">
-<img src="./images/OS_functions.jpg" width="700" height="400" /> 
+<img src="./images/OS_functions.jpg" width="800" height="300" /> 
 </p>
 
 In an operating system software performs each of the function:
