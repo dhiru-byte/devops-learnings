@@ -195,6 +195,12 @@ The kernel is the central component of a computer operating systems. The only jo
 - `Hybrid kernels `
 - `Exo kernels  `
 
+#### Features of Kernel
+- `Low-level scheduling of processes`
+- `Inter-process communication`
+- `Process synchronization`
+- `Context switching`
+
 * <b> Shell </b>  
 Shell is the interface which takes input from users and sends instructions to the Kernel, Also takes the output from Kernel and send the result back to output user and starting applications.  
   * Types of shells are classified into four:
@@ -238,11 +244,6 @@ LILO is a boot loader for Linux. It is used mainly to load the Linux operating s
 Swap space is a certain amount of space used by Linux to temporarily hold some programs that are running concurrently. This happens when RAM does not have enough memory to hold all programs that are executing.
 </b></details>
 
-<details>
-<summary> What is the advantage of open source?.</code></summary><br><b>
-
-Open source allows you to distribute your software, including source codes freely to anyone who is interested. People would then be able to add features and even debug and correct errors that are in the source code. They can even make it run better and then redistribute these enhanced source code freely again. This eventually benefits everyone in the community.
-</b></details>
 
 <details>
 <summary> What are the basic components of Linux?.</code></summary><br><b>
