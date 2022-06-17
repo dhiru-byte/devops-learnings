@@ -2,26 +2,24 @@
 
 * `Dockerfile` to containerized the nodejs app.
 
-* ` docker build -t dhirendrabyte/node-server:latest . ` : build the image from dockerfile usign this command.
+* ` docker build -t dhirendrabyte/node-server:latest . `  build the image from dockerfile usign this command.
 
-* ` docker push dhirendrabyte/node-server:latest ` : push the image to registry.
+* ` docker push dhirendrabyte/node-server:latest ` push the image to registry.
 
 ### Deploy to Kubernetes
 
-` minikube start --nodes 2 -p multinode-demo ` : to start minikube with 2 nodes.
+` minikube start --nodes 2 -p multinode-demo `  to start minikube with 2 nodes.
 
-` minikube addons enable metrics-server ` : to enable metrics server in minikube.
-
+` minikube addons enable metrics-server `  to enable metrics server in minikube.
 
 Deploy the node app by applying `deployment.yaml`
 
- `kubectl apply -f deployment.yaml` .
+ `kubectl apply -f deployment.yaml `
 
 ### Create  Secret for pulling images from private repo in Kubernetes.
 
 ` kubectl create secret generic regcred --from-file=.dockerconfigjson=/home/ubuntu/.docker/config.json --type=kubernetes.io/dockerconfigjson `
-
-
+S
 ### Create HPA(Horizontal Pod Autoscaler) for autoscaling the deployment using metrics like CPU or Memory.
 
 ### for CPU
