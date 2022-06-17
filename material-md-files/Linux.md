@@ -46,6 +46,28 @@ In an operating system software performs each of the function:
 
 </b></details>
 
+<details>
+<summary>Features of OS ?.</code></summary><br><b>
+
+* Protected and supervisor mode.
+
+* Allows disk access and file systems Device drivers Networking Security.
+
+* Program Execution.
+
+* Memory management Virtual Memory Multitasking.
+
+* Handling I/O operations.
+
+* Manipulation of the file system.
+
+* Error Detection and handling.
+
+* Resource allocation.
+
+* Information and Resource Protection.
+
+</b></details>
 
 <details>
 <summary>What Happens When You Type google.com Or Any Other URL In Your Browser And Press Enter ? .</code></summary><br><b>
