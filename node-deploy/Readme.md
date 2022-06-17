@@ -18,8 +18,8 @@ Deploy the node app by applying `deployment.yaml`
 
 ### Create  Secret for pulling images from private repo in Kubernetes.
 
-` kubectl create secret generic regcred --from-file=.dockerconfigjson=/home/ubuntu/.docker/config.json --type=kubernetes.io/dockerconfigjson `
-S
+` kubectl create secret generic dockerhub-cred --from-file=.dockerconfigjson=/home/ubuntu/.docker/config.json --type=kubernetes.io/dockerconfigjson `
+
 ### Create HPA(Horizontal Pod Autoscaler) for autoscaling the deployment using metrics like CPU or Memory.
 
 ### for CPU
