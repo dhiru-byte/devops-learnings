@@ -184,12 +184,16 @@ Hardware consists of all physical devices attached to the System.
 <b>Example:-</b> Hard disk drive, RAM, Motherboard, CPU etc.
 
 * <b> Kernel </b>  
-kernel is the core component for any (Linux) operating system which directly interacts with the hardware. it schedules tasks, manages resources, and controls security.  
-  * Different types of the kernel are:  
-    * Monolithic Kernel  
-    * Hybrid kernels  
-    * Exo kernels  
-    * Micro kernels  
+The kernel is the central component of a computer operating systems. The only job performed by the kernel is to the manage the communication between the software and the hardware. A Kernel is at the nucleus of a computer. It makes the communication between the hardware and software possible. While the Kernel is the innermost part of an operating system, a shell is the outermost one.
+
+#### Different types of the kernel are:  
+
+- `Monolithic Kernel` : A monolithic kernel is a single code or block of the program. It provides all the required services offered by the operating system. It is a simplistic design which creates a distinct communication layer between the hardware and software.
+
+- `Micro kernels`  : Microkernel manages all system resources. In this type of kernel, services are implemented in different address space. The user services are stored in user address space, and kernel services are stored under kernel address space. So, it helps to reduce the size of both the kernel and operating system.
+
+- `Hybrid kernels `
+- `Exo kernels  `
 
 * <b> Shell </b>  
 Shell is the interface which takes input from users and sends instructions to the Kernel, Also takes the output from Kernel and send the result back to output user and starting applications.  
@@ -221,11 +225,6 @@ Unix originally began as a propriety operating system from Bell Laboratories, wh
 BASH is short for Bourne Again SHell, was written by Steve Bourne as a replacement to the original Bourne Shell(represented by /bin/sh). It combines all the features from the original version of Bourne Shell, plus additional functions to make it easier and more convenient to use. It has since been adapted as the default shell for most systems running Linux.
 </b></details>
 
-<details>
-<summary>What is Linux Kernel?.</code></summary><br><b>
-
-The Linux Kernel is a low-level systems software whose main role is to manage hardware resources for the user. It is also used to provide an interface for user-level interaction.
-</b></details>
 
 <details>
 <summary> What is LILO?.</code></summary><br><b>
