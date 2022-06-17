@@ -1,6 +1,6 @@
 ### Preparation Material
 
-[Linux](material-md-files/Linux.md) //  [Docker](material-md-files/Docker.md)  //  [Kubernetes](material-md-files/Kubernetes.md)   //  [Terraform](material-md-files/Terraform.md)
+[Linux](material-md-files/Linux.md) //  [Linux Commands](material-md-files/Linux_commands.md)    //   [Docker](material-md-files/Docker.md)  //  [Kubernetes](material-md-files/Kubernetes.md)   //  [Terraform](material-md-files/Terraform.md)
 
 [AWS](material-md-files/AWS.md) //  [AWS-Kubeadm-terraform](https://github.com/graykode/aws-kubeadm-terraform)
 
