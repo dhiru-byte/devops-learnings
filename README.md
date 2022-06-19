@@ -8,8 +8,6 @@
 
 [AWS](material-md-files/AWS.md) /  [AWS-Kubeadm-terraform](https://github.com/graykode/aws-kubeadm-terraform) / [Terraform](material-md-files/Terraform.md)
 
-[Interview](material-md-files/Interview_Q_N_A.md)
-
-[Devops-exercises](https://github.com/bregman-arie/devops-exercises)  / [Devops HardWay](https://github.com/AdminTurnedDevOps/DevOps-The-Hard-Way-AWS)
+[Interview](material-md-files/Interview_Q_N_A.md) / [Devops-exercises](https://github.com/bregman-arie/devops-exercises)  / [Devops HardWay](https://github.com/AdminTurnedDevOps/DevOps-The-Hard-Way-AWS)
 
 [Pipeline Examples](https://github.com/jenkinsci/pipeline-examples) / [Aerial ScreenSaver](https://github.com/JohnCoates/Aerial) / [DataScienceCheatsheet](https://github.com/georgearun/Data-Science--Cheat-Sheet)
