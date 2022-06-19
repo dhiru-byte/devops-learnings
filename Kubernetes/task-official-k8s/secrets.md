@@ -13,8 +13,9 @@ the object on the API server.
 kubectl create secret generic db-user-pass \
   --from-file=./username.txt \
   --from-file=./password.txt
+```
 
-  The default key name is the filename. You can optionally set the key name using
+* The default key name is the filename. You can optionally set the key name using
 `--from-file=[key=]source`. For example:
 
 ```shell
@@ -62,4 +63,50 @@ stringData:
 
 ```shell
 kubectl apply -f ./secret.yaml
+```
+
+
+### Managing Secrets using Kustomize
+
+You can generate a Secret by defining a secretGenerator in a kustomization.yaml file that references other existing files. For example, the following kustomization file references the ./username.txt and the ./password.txt files:
+
+```yaml
+secretGenerator:
+- name: db-user-pass
+  files:
+  - username.txt
+  - password.txt
+```
+
+You can also define the `secretGenerator` in the `kustomization.yaml`
+file by providing some literals.
+For example, the following `kustomization.yaml` file contains two literals
+for `username` and `password` respectively:
+
+```yaml
+secretGenerator:
+- name: db-user-pass
+  literals:
+  - username=admin
+  - password=1f2d1e2e67df
+```
+
+You can also define the `secretGenerator` in the `kustomization.yaml`
+file by providing `.env` files.
+For example, the following `kustomization.yaml` file pulls in data from
+`.env.secret` file:
+
+```yaml
+secretGenerator:
+- name: db-user-pass
+  envs:
+  - .env.secret
+```
+
+* Note that in all cases, you don't need to base64 encode the values.
+
+## Create the Secret
+
+```shell
+kubectl apply -k .
 ```
