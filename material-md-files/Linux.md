@@ -680,3 +680,17 @@ On a dual-core system this would mean:
 
 * The CPUs were overloaded by 135% on average; 1.35 processes were waiting for CPU time. (3.35) over the last 15 minutes.
 </b></details>
+
+
+<details>
+<summary> Difference Between Array, List & Map ?.</code></summary><br><b>
+
+- `Array` : It is used to store multiple items of the same data type at contiguous memory locations. 
+            Array can manage arithmetic operations.
+            This makes it easier to calculate the position of each element by simply adding an offset to a base value, i.e., the memory location of the first element of the array (generally denoted by the name of the array).
+
+- `List` : It is used to collect items that usually consist of elements of multiple data types.
+           List cannot manage arithmetic operations. List preserves the insertion order, it allows positional access and insertion of elements.
+
+- `Map` : It is an associative container that stores elements in a mapped fashion. Each element has a key value and a mapped value. No two mapped values can have equal key values.
+</b></details>
