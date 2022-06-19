@@ -12,8 +12,4 @@
 
 [Devops-exercises](https://github.com/bregman-arie/devops-exercises)  / [Devops HardWay](https://github.com/AdminTurnedDevOps/DevOps-The-Hard-Way-AWS)
 
-[Pipeline Examples](https://github.com/jenkinsci/pipeline-examples)
-
-[Aerial ScreenSaver](https://github.com/JohnCoates/Aerial)
-
-[DataScienceCheatsheet](https://github.com/georgearun/Data-Science--Cheat-Sheet)
+[Pipeline Examples](https://github.com/jenkinsci/pipeline-examples) / [Aerial ScreenSaver](https://github.com/JohnCoates/Aerial) / [DataScienceCheatsheet](https://github.com/georgearun/Data-Science--Cheat-Sheet)
