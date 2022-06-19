@@ -693,4 +693,5 @@ On a dual-core system this would mean:
            List cannot manage arithmetic operations. List preserves the insertion order, it allows positional access and insertion of elements.
 
 - `Map` : It is an associative container that stores elements in a mapped fashion. Each element has a key value and a mapped value. No two mapped values can have equal key values.
+
 </b></details>
