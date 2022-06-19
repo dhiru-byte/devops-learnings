@@ -2,6 +2,18 @@
 ### Kubernetes
 
 <details>
+<summary> Type of controller in Kubernetes.</summary><br><b>
+
+- `ReplicaSet` - It creates a stable set of pods, all running the same workload. You will almost never create this directly.
+- `Deployment` - It maintains a ReplicaSet with the desired configuration, with some additional configuration for managing updates and rollbacks.
+- `StatefulSet` - It is used to manage stateful applications with persistent storage. Pod names are persistent and are retained when rescheduled (app-0, app-1). Storage stays associated with replacement pods, and volumes persist when pods are deleted.
+- `Job` - A Job creates one or more short-lived Pods and expects them to successfully terminate.
+- `CronJob` - A CronJob creates Jobs on a schedule.
+- `DaemonSet` - It ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. Common for system processes like CNI, Monitor agents, proxies, etc.
+
+</b></details>
+
+<details>
 <summary> Pod Security Standards.</summary><br><b>
 
 <!-- overview -->
