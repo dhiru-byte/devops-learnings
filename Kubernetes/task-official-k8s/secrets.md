@@ -105,7 +105,7 @@ secretGenerator:
 
 * Note that in all cases, you don't need to base64 encode the values.
 
-## Create the Secret
+### Create the Secret
 
 ```shell
 kubectl apply -k .
