@@ -110,3 +110,93 @@ secretGenerator:
 ```shell
 kubectl apply -k .
 ```
+
+#### Create a Pod that has access to the secret data through a Volume.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-test-pod
+spec:
+  containers:
+    - name: test-container
+      image: nginx
+      volumeMounts:
+        # name must match the volume name below
+        - name: secret-volume
+          mountPath: /etc/secret-volume
+  # The secret data is exposed to Containers in the Pod through a Volume.
+  volumes:
+    - name: secret-volume
+      secret:
+        secretName: test-secret
+```
+
+#### Define container environment variables using Secret data.
+
+```yaml
+apiVersion: v1   
+kind: Pod   
+metadata:   
+  name: env-single-secret   
+spec:   
+  containers:   
+  - name: envars-test-container   
+    image: nginx   
+    env:   
+    - name: SECRET_USERNAME   
+      valueFrom: 
+        secretKeyRef:  
+          name: backend-user
+          key: backend-username
+```
+#### Define container environment variables with data from multiple Secrets.
+
+```shell
+` kubectl create secret generic backend-user --from-literal=backend-username='backend-admin' `
+` kubectl create secret generic db-user --from-literal=db-username='db-admin' `
+```
+
+```yaml
+apiVersion: v1   
+kind: Pod   
+metadata:   
+  name: envvars-multiple-secrets   
+spec:   
+  containers:   
+  - name: envars-test-container   
+    image: nginx   
+    env:   
+    - name: BACKEND_USERNAME   
+      valueFrom:   
+        secretKeyRef:   
+          name: backend-user   
+          key: backend-username   
+    - name: DB_USERNAME   
+      valueFrom:   
+        secretKeyRef:   
+          name: db-user   
+          key: db-username
+```
+
+#### Configure all key-value pairs in a Secret as container environment variables.
+
+```shell
+` kubectl create secret generic test-secret --from-literal=username='my-app' --from-literal=password='39528$vdg7Jb' `
+```
+
+```yaml
+apiVersion: v1
+    
+kind: Pod    
+metadata:    
+  name: envfrom-secret    
+spec:    
+  containers:    
+  - name: envars-test-container    
+    image: nginx    
+    envFrom:    
+    - secretRef:    
+        name: test-secret    
+```
