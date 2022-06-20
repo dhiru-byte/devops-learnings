@@ -154,8 +154,8 @@ spec:
 #### Define container environment variables with data from multiple Secrets.
 
 ```shell
-` kubectl create secret generic backend-user --from-literal=backend-username='backend-admin' `
-` kubectl create secret generic db-user --from-literal=db-username='db-admin' `
+kubectl create secret generic backend-user --from-literal=backend-username='backend-admin' 
+kubectl create secret generic db-user --from-literal=db-username='db-admin' 
 ```
 
 ```yaml
@@ -183,7 +183,7 @@ spec:
 #### Configure all key-value pairs in a Secret as container environment variables.
 
 ```shell
-` kubectl create secret generic test-secret --from-literal=username='my-app' --from-literal=password='39528$vdg7Jb' `
+kubectl create secret generic test-secret --from-literal=username='my-app' --from-literal=password='39528$vdg7Jb'
 ```
 
 ```yaml
