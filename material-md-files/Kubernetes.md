@@ -9,8 +9,17 @@
 </b></details>
 
 <details>
-<summary>  Kube-proxy.</summary><br><b>
+<summary>  Kubectl proxy & Kube-proxy.</summary><br><b>
 
+#### kubectl proxy
+- runs on a user's desktop or in a pod
+- proxies from a localhost address to the Kubernetes apiserver
+- client to proxy uses HTTP
+- proxy to apiserver uses HTTPS
+- locates apiserver
+- adds authentication headers
+
+#### kube proxy
 - runs on each node
 - proxies UDP and TCP
 - does not understand HTTP
