@@ -9,6 +9,17 @@
 </b></details>
 
 <details>
+<summary>  Kube-proxy.</summary><br><b>
+
+- runs on each node
+- proxies UDP and TCP
+- does not understand HTTP
+- provides load balancing
+- is only used to reach services
+
+</b></details>
+
+<details>
 <summary> How different types of fields are merged.</summary><br><b>
 
 Merging depends on the type of the field. There are several types of fields:
