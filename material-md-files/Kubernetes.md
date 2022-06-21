@@ -2,6 +2,13 @@
 ### Kubernetes
 
 <details>
+<summary> What is Headless Service.</summary><br><b>
+
+- When there is no need of load balancing or single-service IP addresses.We create a headless service which is used for creating a service grouping. That does not allocate an IP address or forward traffic.So you can do this by explicitly setting ClusterIP to “None” in the mainfest file, which means no cluster IP is allocated.
+
+</b></details>
+
+<details>
 <summary> How different types of fields are merged.</summary><br><b>
 
 Merging depends on the type of the field. There are several types of fields:
@@ -15,6 +22,8 @@ Merging depends on the type of the field. There are several types of fields:
 When kubectl apply updates a map or list field, it typically does not replace the entire field, but instead updates the individual subelements. For instance, when merging the spec on a Deployment, the entire spec is not replaced. Instead the subfields of spec, such as replicas, are compared and merged.
 
 </b></details>
+
+
 <details>
 <summary> Type of controller in Kubernetes.</summary><br><b>
 
