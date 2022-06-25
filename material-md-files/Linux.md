@@ -359,7 +359,7 @@ Properties of Thread
 
 
 <details>
-<summary> Differences Among A, CNAME, ALIAS, and URL records.</code></summary><br><b>
+<summary> Differences Among A, CNAME, ALIAS, SRV Record and URL records.</code></summary><br><b>
 
 These are the main differences:
 
@@ -380,6 +380,8 @@ i.e.
      github.map.fastly.net.  A       185.31.17.133
 
 * The ALIAS record maps a name to another name, but can coexist with other records on that name.
+
+* The DNS "service" (SRV) record specifies a host and port for specific services such as voice over IP (VoIP), instant messaging, and so on. Most other DNS records only specify a server or an IP address, but SRV records include a port at that IP address as well. Some Internet protocols require the use of SRV records in order to function.
 
 * The URL record redirects the name to the target name using the HTTP 301 status code.
 
