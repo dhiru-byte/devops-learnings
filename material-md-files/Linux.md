@@ -573,7 +573,19 @@ Symbolic Representation :
 <img src="./images/etc_passwd_file.jpg" width="800" height="300" /> 
 </p>
 
-[Usermod](https://linuxize.com/post/usermod-command-in-linux/)
+</b></details>
+
+<details>
+<summary>  What is Traceroute & how does it works?.</code></summary><br><b>
+
+- A traceroute provides a map of how data on the internet travels from your computer to its destination.
+
+- A traceroute works by sending Internet Control Message Protocol (ICMP) packets, and every router involved in transferring the data gets these packets. The ICMP packets provide information about whether the routers used in the transmission are able to effectively transfer the data.
+
+- Running traceroute is helpful for figuring out the routing hops data has to go through, as well as response delays as it travels across nodes, which are what send the data toward its destination. Traceroute also enables you to locate points of failure.
+
+- `Ping vs Traceroute` : The primary difference between ping and traceroute is that while ping simply tells you if a server is reachable and the time it takes to transmit and receive data, traceroute details the precise route, router by router, as well as the time it took for each hop.
+
 </b></details>
 
 <details>
