@@ -567,6 +567,14 @@ Symbolic Representation :
 </b></details>
 
 <details>
+<summary>  Understanding the /etc/passwd File in Linux?.</code></summary><br><b>
+
+<p align="center">
+<img src="./images/etc_passwd_file.jpg" width="500" height="450" /> 
+</p>
+</b></details>
+
+<details>
 <summary> What is Deadlock in Linux?.</code></summary><br><b>
 
 - `Deadlock` happens when every process holds a resource and waits for another process to hold another resource. In other words, a deadlock occurs when multiple processes in the CPU compete for the limited number of resources available in the CPU. In this context, each process keeps a resource and waits for another process to obtain a resource.
