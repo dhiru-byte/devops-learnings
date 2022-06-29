@@ -572,6 +572,14 @@ Symbolic Representation :
 <p align="center">
 <img src="./images/etc_passwd_file.jpg" width="500" height="450" /> 
 </p>
+
+[Usermod](https://linuxize.com/post/usermod-command-in-linux/)
+</b></details>
+
+<details>
+<summary>  Usermod command in Linux?.</code></summary><br><b>
+Usermod command is used to add a user to a group, change a user shell, login name, home directory, and more.
+[Usermod](https://linuxize.com/post/usermod-command-in-linux/)
 </b></details>
 
 <details>
