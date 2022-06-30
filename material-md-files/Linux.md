@@ -576,17 +576,16 @@ Symbolic Representation :
 </b></details>
 
 <details>
-<summary> /etc/host File in Linux?.</code></summary><br><b>
+<summary> /etc/hosts File in Linux?.</code></summary><br><b>
 
 - The mapping of some hostnames to IP addresses .
 
 ```shell
-IPAddress     Hostname    		Alias
-127.0.0.1	    localhost	 	    deep.openna.com
-208.164.186.1	deep.openna.com	deep
-208.164.186.2	mail.openna.com	mail
+IPAddress   Hostname
+127.0.0.1	  localhost
+127.0.0.1	  ubuntu0
+192.168.49.2 hello-world.info
 ```
-
 </b></details>
 
 <details>
