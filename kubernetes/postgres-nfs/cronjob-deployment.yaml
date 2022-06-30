@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: pgsql-dump
+spec:
+  schedule: "5 */1 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: pgsql-backup
+            image: dhirujackal/postgresql7:12.3.1
+            envFrom:
+            - configMapRef:
+                name: pgsql-cronjob-cm 
+            volumeMounts:
+            - mountPath: "/pg_backup"
+              name: backup-volume
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: pg-backup-pvc 

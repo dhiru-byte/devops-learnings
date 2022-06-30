@@ -1,0 +1,80 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+
+# #### PVC
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: task-pv-claim
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+
+
+
+# ### POD
+# ---
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: task-pv-pod
+# spec:
+#   volumes:
+#     - name: task-pv-storage
+#       persistentVolumeClaim:
+#         claimName: task-pv-claim
+#   containers:
+#     - name: task-pv-container
+#       image: nginx
+#       ports:
+#         - containerPort: 80
+#           name: "http-server"
+#       volumeMounts:
+#         - mountPath: "/usr/share/nginx/html"
+#           name: task-pv-storage
+
+
+
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: test
+# spec:
+#   containers:
+#     - name: test
+#       image: nginx
+#       volumeMounts:
+#         # a mount for site-data
+#         - name: config
+#           mountPath: /usr/share/nginx/html
+#           subPath: html
+#         # another mount for nginx config
+#         - name: config
+#           mountPath: /etc/nginx/nginx.conf
+#           subPath: nginx.conf
+#   volumes:
+#     - name: config
+#       persistentVolumeClaim:
+#         claimName: test-nfs-claim
+
+
+#### Access control 
+########## Storage configured with a group ID (GID) allows writing only by Pods using the same GID. Mismatched or missing GIDs cause permission denied errors. To reduce the need for coordination with users, an administrator can annotate a PersistentVolume with a GID. Then the GID is automatically added to any Pod that uses the PersistentVolume.Use the pv.beta.kubernetes.io/gid annotation as follows:
