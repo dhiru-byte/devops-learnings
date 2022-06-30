@@ -576,6 +576,17 @@ Symbolic Representation :
 </b></details>
 
 <details>
+<summary> /etc/resolv.conf File in Linux?.</code></summary><br><b>
+
+- The /etc/resolv.conf is resolver configuration file for Linux and UNIX like operating systems.
+- It is used to configure dns name servers.
+- The file /etc/resolv.conf file contains information that is read by the resolver routines the first time they are invoked by a process.
+- The file is designed to be human readable and contains a list of keywords with values that provide various types of resolver information.
+- You need to update this file with your own caching dns server or ISPs caching dns server that you want to use the resolver should query.
+
+</b></details>
+
+<details>
 <summary>  What is Traceroute & how does it works?.</code></summary><br><b>
 
 - A traceroute provides a map of how data on the internet travels from your computer to its destination.
