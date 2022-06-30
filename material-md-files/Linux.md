@@ -581,9 +581,10 @@ Symbolic Representation :
 - The mapping of some hostnames to IP addresses .
 
 ```shell
-IPAddress   Hostname
-127.0.0.1	  localhost
-127.0.0.1	  ubuntu0
+IPAddress  Hostname
+127.0.0.1	 localhost
+127.0.0.1	 ubuntu0
+
 192.168.49.2 hello-world.info
 ```
 </b></details>
