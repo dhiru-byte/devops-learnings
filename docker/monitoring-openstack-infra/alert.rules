@@ -1,0 +1,262 @@
+groups:
+
+- name: Disk-usage
+  rules:
+  - alert: 'Low data disk space'
+    expr: ceil(((node_filesystem_size_bytes{mountpoint!="/boot"} - node_filesystem_free_bytes{mountpoint!="/boot"}) / node_filesystem_size_bytes{mountpoint!="/boot"} * 100)) > 90
+    labels:
+      severity: 'info'
+    annotations:
+      title: "Disk Usage"
+      description: 'Partition : {{$labels.mountpoint}}'
+      summary: "Disk usage is `{{humanize $value}}%`"
+      host: "{{$labels.instance}}"
+
+
+- name: Memory-usage
+  rules:
+  - alert: 'High memory usage'
+    expr: ceil((((node_memory_MemTotal_bytes - node_memory_MemFree_bytes - node_memory_Buffers_bytes - node_memory_Cached_bytes) / node_memory_MemTotal_bytes) * 100)) > 80
+    labels:
+      severity: 'info'
+    annotations:
+      title: "Memory Usage"
+      description: 'Memory usage threshold set to `80%`.'
+      summary: "Memory usage is `{{humanize $value}}%`"
+      host: "{{$labels.instance}}"
+
+- name: Node-Down
+  rules:
+  # Alert for any instance that is unreachable for >5 minutes.
+  - alert: 'InstanceDown'
+    expr: up == 0
+    for: 5m
+    labels:
+      severity: info
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+
+
+- name: API-High-Request-Latency
+  rules:
+  # Alert for any instance that has a median request latency >1s.
+  - alert: 'APIHighRequestLatency'
+    expr: api_http_request_latencies_second{quantile="0.5"} > 1
+    for: 10m
+    labels:
+      severity: info
+    annotations:
+      summary: "High request latency on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has a median request latency above 1s (current value: {{ $value }}s)"
+
+- name: Network-Interface-br-eno1
+  rules:
+  - expr: node_network_address_assign_type{interface="eno1"}
+    record: node_network_address_assign_type
+  - expr: node_network_carrier{interface="eno1"}
+    record: node_network_carrier
+  - expr: node_network_carrier_changes_total{interface="eno1"}
+    record: node_network_carrier_changes
+  - expr: node_network_carrier_down_changes_total{interface="eno1"}
+    record: node_network_carrier_down_changes
+  - expr: node_network_carrier_up_changes_total{interface="eno1"}
+    record: node_network_carrier_up_changes
+  - expr: node_network_device_id{interface="eno1"}
+    record: node_network_device_id
+  - expr: node_network_dormant{interface="eno1"}
+    record: node_network_dormant
+  - expr: node_network_flags{interface="eno1"}
+    record: node_network_flags
+  - expr: node_network_iface_id{interface="eno1"}
+    record: node_network_iface_id
+  - expr: node_network_iface_link{interface="eno1"}
+    record: node_network_iface_link
+  - expr: node_network_iface_link_mode{interface="eno1"}
+    record: node_network_iface_link_mode
+  - expr: node_network_mtu_bytes{interface="eno1"}
+    record: node_network_mtu_bytes
+  - expr: node_network_name_assign_type{interface="eno1"}
+    record: node_network_name_assign_type
+  - expr: node_network_net_dev_group{interface="eno1"}
+    record: node_network_net_dev_group
+  - expr: node_network_protocol_type{interface="eno1"}
+    record: node_network_protocol_type
+  - expr: node_network_receive_bytes_total{device="eno1"}
+    record: node_network_receive_bytes
+  - expr: node_network_receive_compressed_total{device="eno1"}
+    record: node_network_receive_compressed
+  - expr: node_network_receive_drop_total{device="eno1"}
+    record: node_network_receive_drop
+  - expr: node_network_receive_errs_total{device="eno1"}
+    record: node_network_receive_errs
+  - expr: node_network_receive_fifo_total{device="eno1"}
+    record: node_network_receive_fifo
+  - expr: node_network_receive_frame_total{device="eno1"}
+    record: node_network_receive_frame
+  - expr: node_network_receive_multicast_total{device="eno1"}
+    record: node_network_receive_multicast
+  - expr: node_network_receive_packets_total{device="eno1"}
+    record: node_network_receive_packets
+  - expr: node_network_speed_bytes{interface="eno1"}
+    record: node_network_speed_bytes
+  - expr: node_network_transmit_bytes_total{device="eno1"}
+    record: node_network_transmit_bytes
+  - expr: node_network_transmit_carrier_total{device="eno1"}
+    record: node_network_transmit_carrier
+  - expr: node_network_transmit_colls_total{device="eno1"}
+    record: node_network_transmit_colls
+  - expr: node_network_transmit_compressed_total{device="eno1"}
+    record: node_network_transmit_compressed
+  - expr: node_network_transmit_drop_total{device="eno1"}
+    record: node_network_transmit_drop
+  - expr: node_network_transmit_errs_total{device="eno1"}
+    record: node_network_transmit_errs
+  - expr: node_network_transmit_fifo_total{device="eno1"}
+    record: node_network_transmit_fifo
+  - expr: node_network_transmit_packets_total{device="eno1"}
+    record: node_network_transmit_packets
+  - expr: node_network_transmit_queue_length{interface="eno1"}
+    record: node_network_transmit_queue_length
+  - expr: node_network_up{interface="eno1"}
+    record: node_network_up
+- name: Network-Interface-br-eno2
+  rules:
+  - expr: node_network_address_assign_type{interface="eno2"}
+    record: node_network_address_assign_type
+  - expr: node_network_carrier{interface="eno2"}
+    record: node_network_carrier
+  - expr: node_network_carrier_changes_total{interface="eno2"}
+    record: node_network_carrier_changes
+  - expr: node_network_carrier_down_changes_total{interface="eno2"}
+    record: node_network_carrier_down_changes
+  - expr: node_network_carrier_up_changes_total{interface="eno2"}
+    record: node_network_carrier_up_changes
+  - expr: node_network_device_id{interface="eno2"}
+    record: node_network_device_id
+  - expr: node_network_dormant{interface="eno2"}
+    record: node_network_dormant
+  - expr: node_network_flags{interface="eno2"}
+    record: node_network_flags
+  - expr: node_network_iface_id{interface="eno2"}
+    record: node_network_iface_id
+  - expr: node_network_iface_link{interface="eno2"}
+    record: node_network_iface_link
+  - expr: node_network_iface_link_mode{interface="eno2"}
+    record: node_network_iface_link_mode
+  - expr: node_network_mtu_bytes{interface="eno2"}
+    record: node_network_mtu_bytes
+  - expr: node_network_name_assign_type{interface="eno2"}
+    record: node_network_name_assign_type
+  - expr: node_network_net_dev_group{interface="eno2"}
+    record: node_network_net_dev_group
+  - expr: node_network_protocol_type{interface="eno2"}
+    record: node_network_protocol_type
+  - expr: node_network_receive_bytes_total{device="eno2"}
+    record: node_network_receive_bytes
+  - expr: node_network_receive_compressed_total{device="eno2"}
+    record: node_network_receive_compressed
+  - expr: node_network_receive_drop_total{device="eno2"}
+    record: node_network_receive_drop
+  - expr: node_network_receive_errs_total{device="eno2"}
+    record: node_network_receive_errs
+  - expr: node_network_receive_fifo_total{device="eno2"}
+    record: node_network_receive_fifo
+  - expr: node_network_receive_frame_total{device="eno2"}
+    record: node_network_receive_frame
+  - expr: node_network_receive_multicast_total{device="eno2"}
+    record: node_network_receive_multicast
+  - expr: node_network_receive_packets_total{device="eno2"}
+    record: node_network_receive_packets
+  - expr: node_network_speed_bytes{interface="eno2"}
+    record: node_network_speed_bytes
+  - expr: node_network_transmit_bytes_total{device="eno2"}
+    record: node_network_transmit_bytes
+  - expr: node_network_transmit_carrier_total{device="eno2"}
+    record: node_network_transmit_carrier
+  - expr: node_network_transmit_colls_total{device="eno2"}
+    record: node_network_transmit_colls
+  - expr: node_network_transmit_compressed_total{device="eno2"}
+    record: node_network_transmit_compressed
+  - expr: node_network_transmit_drop_total{device="eno2"}
+    record: node_network_transmit_drop
+  - expr: node_network_transmit_errs_total{device="eno2"}
+    record: node_network_transmit_errs
+  - expr: node_network_transmit_fifo_total{device="eno2"}
+    record: node_network_transmit_fifo
+  - expr: node_network_transmit_packets_total{device="eno2"}
+    record: node_network_transmit_packets
+  - expr: node_network_transmit_queue_length{interface="eno2"}
+    record: node_network_transmit_queue_length
+  - expr: node_network_up{interface="eno2"}
+    record: node_network_up
+- name: Network-Interface-br-eno3
+  rules:
+  - expr: node_network_address_assign_type{interface="eno3"}
+    record: node_network_address_assign_type
+  - expr: node_network_carrier{interface="eno3"}
+    record: node_network_carrier
+  - expr: node_network_carrier_changes_total{interface="eno3"}
+    record: node_network_carrier_changes
+  - expr: node_network_carrier_down_changes_total{interface="eno3"}
+    record: node_network_carrier_down_changes
+  - expr: node_network_carrier_up_changes_total{interface="eno3"}
+    record: node_network_carrier_up_changes
+  - expr: node_network_device_id{interface="eno3"}
+    record: node_network_device_id
+  - expr: node_network_dormant{interface="eno3"}
+    record: node_network_dormant
+  - expr: node_network_flags{interface="eno3"}
+    record: node_network_flags
+  - expr: node_network_iface_id{interface="eno3"}
+    record: node_network_iface_id
+  - expr: node_network_iface_link{interface="eno3"}
+    record: node_network_iface_link
+  - expr: node_network_iface_link_mode{interface="eno3"}
+    record: node_network_iface_link_mode
+  - expr: node_network_mtu_bytes{interface="eno3"}
+    record: node_network_mtu_bytes
+  - expr: node_network_name_assign_type{interface="eno3"}
+    record: node_network_name_assign_type
+  - expr: node_network_net_dev_group{interface="eno3"}
+    record: node_network_net_dev_group
+  - expr: node_network_protocol_type{interface="eno3"}
+    record: node_network_protocol_type
+  - expr: node_network_receive_bytes_total{device="eno3"}
+    record: node_network_receive_bytes
+  - expr: node_network_receive_compressed_total{device="eno3"}
+    record: node_network_receive_compressed
+  - expr: node_network_receive_drop_total{device="eno3"}
+    record: node_network_receive_drop
+  - expr: node_network_receive_errs_total{device="eno3"}
+    record: node_network_receive_errs
+  - expr: node_network_receive_fifo_total{device="eno3"}
+    record: node_network_receive_fifo
+  - expr: node_network_receive_frame_total{device="eno3"}
+    record: node_network_receive_frame
+  - expr: node_network_receive_multicast_total{device="eno3"}
+    record: node_network_receive_multicast
+  - expr: node_network_receive_packets_total{device="eno3"}
+    record: node_network_receive_packets
+  - expr: node_network_speed_bytes{interface="eno3"}
+    record: node_network_speed_bytes
+  - expr: node_network_transmit_bytes_total{device="eno3"}
+    record: node_network_transmit_bytes
+  - expr: node_network_transmit_carrier_total{device="eno3"}
+    record: node_network_transmit_carrier
+  - expr: node_network_transmit_colls_total{device="eno3"}
+    record: node_network_transmit_colls
+  - expr: node_network_transmit_compressed_total{device="eno3"}
+    record: node_network_transmit_compressed
+  - expr: node_network_transmit_drop_total{device="eno3"}
+    record: node_network_transmit_drop
+  - expr: node_network_transmit_errs_total{device="eno3"}
+    record: node_network_transmit_errs
+  - expr: node_network_transmit_fifo_total{device="eno3"}
+    record: node_network_transmit_fifo
+  - expr: node_network_transmit_packets_total{device="eno3"}
+    record: node_network_transmit_packets
+  - expr: node_network_transmit_queue_length{interface="eno3"}
+    record: node_network_transmit_queue_length
+  - expr: node_network_up{interface="eno3"}
+    record: node_network_up
