@@ -580,6 +580,7 @@ Symbolic Representation :
 
 - The mapping of some hostnames to IP addresses .
 
+`Sample Output`
 ```shell
 IPAddress  Hostname
 127.0.0.1	 localhost
@@ -598,6 +599,11 @@ IPAddress  Hostname
 - The file is designed to be human readable and contains a list of keywords with values that provide various types of resolver information.
 - You need to update this file with your own caching dns server or ISPs caching dns server that you want to use the resolver should query.
 
+`Sample Output`
+```shell
+nameserver 10.0.80.11
+nameserver 10.0.80.12
+```
 </b></details>
 
 <details>
