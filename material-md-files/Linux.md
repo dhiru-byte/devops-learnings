@@ -582,7 +582,7 @@ Symbolic Representation :
 
 ```shell
 IPAddress       Hostname    		   Alias
-127.0.0.1			  localhost	 	       deep.openna.com
+127.0.0.1	  localhost	 	       deep.openna.com
 208.164.186.1		deep.openna.com		 deep
 208.164.186.2		mail.openna.com		 mail
 ```
