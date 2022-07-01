@@ -688,12 +688,11 @@ In most priority scheduling algorithms, the problem of starvation arises. The re
 </b></details>
 
 <details>
-<summary> What is Zombie Process in Linux?.</code></summary><br><b>
+<summary> What is Zombie & Orphan Process in Linux?.</code></summary><br><b>
 
-A zombie process is a process in its terminated state. This usually happens in a program that has parent-child functions. After a child function has finished execution, it sends an exit status to its parent function. Until the parent function receives and acknowledges the message, the child function remains in a “zombie” state, meaning it has executed but not exited.
+- A zombie  or defunct process is a process that has completed execution but still has an entry in the process table: it is a process in the "Terminated state".This usually happens in a program that has parent-child functions. After a child function has finished execution, it sends an exit status to its parent function. Until the parent function receives and acknowledges the message, the child function remains in a “zombie” state, meaning it has executed but not exited.
 
-A zombie process is also known as a defunct process. A zombie process or defunct process is a process that has completed execution (via the exit system call) but still has an entry in the process table: it is a process in the "Terminated state".
-
+- A process whose parent process no more exists i.e. either finished or terminated without waiting for its child process to terminate is called an orphan process.
 </b></details>
 
 <details>
