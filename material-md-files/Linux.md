@@ -576,6 +576,14 @@ Symbolic Representation :
 </b></details>
 
 <details>
+<summary>  proc file system in Linux?.</code></summary><br><b>
+
+- Proc file system (procfs) is virtual file system created on fly when system boots and is dissolved at time of system shut down.
+- It contains useful information about the processes that are currently running, it is regarded as control and information center for kernel.
+- The proc file system also provides communication medium between kernel space and user space.
+</b></details>
+
+<details>
 <summary> /etc/hosts File in Linux?.</code></summary><br><b>
 
 - The mapping of some hostnames to IP addresses .
