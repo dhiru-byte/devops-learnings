@@ -233,7 +233,12 @@ Verify that the nice value got changed to -19.
 <details>
 <summary> To change the directory.</code></summary><br><b>
 
-`cd $HOME`
+- cd / -> change to the root directory
+- cd ~ -> change to your home directory
+- cd -> change to your home directory
+- cd .. -> change to the directory above your current i.e parent directory
+- cd . -> change to the directory you currently in
+- cd - -> change to the last visited path
 </b></details>
 
 <details>
