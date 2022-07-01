@@ -573,6 +573,19 @@ Symbolic Representation :
 <img src="./images/etc_passwd_file.jpg" width="800" height="300" /> 
 </p>
 
+<details>
+<summary>  What is Inode?.</code></summary><br><b>
+
+ It stores file’s metadata, including all the storage blocks on which the file’s data can be found. 
+
+ Information contained in an inode:
+
+- File size
+- Device on which the file is stored 
+- User and group IDs associated with the file
+- Permissions needed to access the file
+- Creation, read, and write timestamps
+- Location of the data (though not the filepath)
 </b></details>
 
 <details>
