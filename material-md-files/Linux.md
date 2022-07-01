@@ -281,6 +281,24 @@ Important rules:
 </b></details>
 
 <details>
+<summary>Explain DNS Records TTL</summary><br><b>
+
+- "DNS TTL (time to live) is a setting that tells the DNS resolver how long to cache a query before requesting a new one. The information gathered is then stored in the cache of the recursive or local resolver for the TTL before it reaches back out to collect new, updated details."
+</b></details>
+
+<details>
+<summary>Is DNS using TCP or UDP?</summary><br><b>
+
+DNS uses UDP port 53 for resolving queries either regular or reverse. DNS uses TCP for zone transfer.
+</b></details>
+
+<details>
+<summary>True or False? DNS can be used for load balancing</summary><br><b>
+
+True.
+</b></details>
+
+<details>
 <summary>Resident & Virtual Memory in Linux .</code></summary><br><b>
 
 `Resident memory` is the part of the process memory that corresponds to the physical memory actually in operational use by this process. Over time, the operating system may swap out some of a process's resident memory according to a least-recently-used algorithm to make room for other code or data.
