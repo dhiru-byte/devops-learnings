@@ -584,6 +584,15 @@ Symbolic Representation :
 </b></details>
 
 <details>
+<summary> /etc/fstab & /etc/mtab File in Linux?.</code></summary><br><b>
+
+- /etc/fstab is a list of filesystems to be mounted at boot time. If you want your Windows or file-storage partitions mounted once your computer boots, you'll need to put appropriate entries into /etc/fstab.
+
+- /etc/mtab is a list of currently mounted filesystems. If you have a disk connected but not mounted, it won't show up in the /etc/mtab file. Once you mount it, it will show up there.
+
+</b></details>
+
+<details>
 <summary> /etc/hosts File in Linux?.</code></summary><br><b>
 
 - The mapping of some hostnames to IP addresses .
