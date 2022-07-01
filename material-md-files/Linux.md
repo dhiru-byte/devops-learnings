@@ -203,7 +203,6 @@ Here you can create and maintain user accounts, assigning different permissions 
 It is the default account every time you install Linux.
 </b></details>
 
-
 <details>
 <summary> What is CLI?.</code></summary><br><b>
 
@@ -212,25 +211,72 @@ CLI is short for Command Line Interface. This interface allows the user to type 
 </b></details>
 
 <details>
-<summary>What Happens When You Type google.com Or Any Other URL In Your Browser And Press Enter ? .</code></summary><br><b>
+<summary>What happens when you type google.com in Browser OR How DNS Works? .</code></summary><br><b>
 
-A webpage is basically a text file formatted a certain way so that your browser (ie. Chrome, Firefox, Safari, etc) can understand it; this format is called HyperText Markup Language (HTML). These files are located in computers that provide the service of storing said files and wait for someone to need them to deliver them. They are called servers because they serve the content that they hold to whoever needs it.
+In general the process is as follows:
 
-These servers can vary in classes, the most common and the one that we'll be talking about in the main portion of this article is a web server, the one that serves web pages. We can also find application servers, which are the ones that hold an application base code that will then be used to interact with a web browser or other applications. Database servers are also out there, which are the ones that hold a database that can be updated and consulted when needed.
+  * The user types an address in the web browser (some_site.com)
+  * The operating system gets a request from the browser to translate the address the user entered
+  * A query created to check if a local entry of the address exists in the system. In case it doesn't, the request is forwarded to the DNS resolver
+  * The Resolver is a server, usually configured by your ISP when you connect to the internet, that responsible for resolving your query by contacting other DNS servers
+  * The Resolver contacts the root nameserver (aka as .)
+  * The root nameserver either responds with the address you are looking for or it responds with the address of the relevant Top Level Domain DNS server (if your address ends with org then the org TLD)
+  * The Resolver then contacts the TLD DNS. TLD DNS might respond with the address you are looking for. If it doesn't has the information, it will provide the address of SLD DNS server
+  * SLD DNS server will reply with the address to the resolver
+  * The Resolver passes this information to the browser while your OS also stores this information in the cache
+  * The user cab browse the website with happiness and joy :D
+</b></details>
 
-These servers in order to deliver their content, much like in physical courier services, need to have an address so that the person needing said content can make a "letter" requesting the delivery; the person requesting the content in turn also has an address where the server can deliver the content to. These addresses are called IP (Internet Protocol) Address, a set of 4 numbers that range from 0 to 255 (one byte) separated by periods (ie. 127.0.0.1).
+<details>
+<summary>What types of DNS records are there?</summary><br><b>
 
-Another concept that is important to know is that the courier service traffic for the delivery can be one of two: Transmission Control Protocol (TCP) and User Datagram Protocol (UDP). Each one determines the way the content of a server is served, or delivered.
+  * A
+  * PTR
+  * MX
+  * AAAA
+  ...
 
-TCP is usually used to deliver static websites such as Wikipedia or Google and also email services and to download files to your computer because TCP makes sure that all the content that is needed gets delivered. It accomplishes this by sending the file in small packets of data and along with each packet a confirmation to know that the packet was delivered; that's why if you are ever downloading something and your internet connection suddenly drops when it comes back up you don't have to start over because the server would know exactly how many packets you have and how many you still need to receive. The downside to TCP is that because it has to confirm whether you got the packet or not before sending the next, it tends to be slower.
+A more detailed list, can be found [here](https://www.nslookup.io/learning/dns-record-types)
+</b></details>
 
-UDP, on the other hand, is usually used to serve live videos or online games. This is because UDP is a lot faster than TCP since UDP does not check if the information was received or not; it is not important. The only thing UDP cares about is sending the information. That is the reason why if you've ever watched a live video and if either your internet connection or the host's drops, you would just stop seeing the content; and when the connection comes back up you will only see the current stream of the broadcast and what was missed is forever lost. This is also true for online videogames (if you've played them you know exactly what this means)
+<details>
+<summary> Differences Among A, CNAME, ALIAS, SRV Record and URL records.</code></summary><br><b>
 
-What actually happens...
+These are the main differences:
 
-So back to the main question of what happens when you type www.google.com or any other URL (Uniform Resource Locator) in your web browser and press Enter. So the first thing that happens is that your browser looks up in its cache to see if that website was visited before and the IP address is known. If it can't find the IP address for the URL requested then it asks your operating system to locate the web site. The first place your operating system is going to check for the address of the URL you specified is in the hosts file (/etc/hosts in Linux and Mac, c:\windows\system32\drivers\etc\hosts in Windows). If the URL is not found inside this file, then the OS will make a DNS request to find the IP Address of the web page. The first step is to ask the Resolver (or Internet Service Provider) server to look up in its cache to see if it knows the IP Address, if the Resolver does not know then it asks the root server to ask the .COM TLD (Top Level Domain) server - if your URL ends in .net then the TLD server would be .NET and so on - the TLD server will again check in its cache to see if the requested IP Address is there. If not, then it will have at least one of the authoritative name servers associated with that URL, and after going to the Name Server, it will return the IP Address associated with your URL. All this was done in a matter of milliseconds WOW!
+* The A record points a name to one or more IP addresses when the IP are known and stable.
 
-After the OS has the IP Address and gives it to the browser, it then makes a GET (a type of HTTP Method) to said IP Address. When the request is made the browser again makes the request to the OS which then, in turn, packs the request in the TCP traffic protocol we discussed earlier, and it is sent to the IP Address. On its way, it is checked by both the OS' and the server's firewall to make sure that there are no security violations. And upon receiving the request the server (usually a load balancer that directs traffic to all available server for that website) sends a response with the IP Address of the chosen server along with the SSL (Secure Sockets Layer) certificate to initiate a secure session (HTTPS). Finally, the chosen server then sends the HTML, CSS, and Javascript files (If any) back to the OS who in turn gives it to the browser to interpret it. And then you get your website as you know it.
+i.e.  
+     
+     blog.dnsimple.com.     A        185.31.17.133
+
+* A CNAME record can point a name to another CNAME or to an A record.. It should only be used when there are no other records on that name.
+
+i.e. 
+     
+     blog.dnsimple.com.      CNAME   aetrion.github.io.
+
+     aetrion.github.io.      CNAME   github.map.fastly.net.
+
+     github.map.fastly.net.  A       185.31.17.133
+
+* The ALIAS record maps a name to another name, but can coexist with other records on that name.
+
+* The DNS "service" (SRV) record specifies a host and port for specific services such as voice over IP (VoIP), instant messaging, and so on. Most other DNS records only specify a server or an IP address, but SRV records include a port at that IP address as well. Some Internet protocols require the use of SRV records in order to function.
+
+* The URL record redirects the name to the target name using the HTTP 301 status code.
+
+Important rules:
+
+* The A, CNAME, and ALIAS records cause a name to resolve to an IP. Conversely, the URL record redirects the name to a destination. 
+
+* The URL record is a simple and effective way to apply a redirect for one name to another name, for example redirecting www.example.com to example.com.
+
+* The A name must resolve to an IP. The CNAME and ALIAS records must point to a name.
+
+* `PTR record` : a PTR record resolves the IP address to a domain name which is opposite to A record.
+
+* `MX record` : MX (Mail Exchange) Specifies a mail exchange server for the domain, which allows mail to be delivered to the correct mail servers in the domain.
 
 </b></details>
 
@@ -355,44 +401,6 @@ Properties of Thread
 * Threads shares instruction, global, and heap regions. However, it has its register and stack.
 
 * Thread management consumes very few, or no system calls because of communication between threads that can be achieved using shared memory.
-</b></details>
-
-
-<details>
-<summary> Differences Among A, CNAME, ALIAS, SRV Record and URL records.</code></summary><br><b>
-
-These are the main differences:
-
-* The A record points a name to one or more IP addresses when the IP are known and stable.
-
-i.e.  
-     
-     blog.dnsimple.com.     A        185.31.17.133
-
-* A CNAME record can point a name to another CNAME or to an A record.. It should only be used when there are no other records on that name.
-
-i.e. 
-     
-     blog.dnsimple.com.      CNAME   aetrion.github.io.
-
-     aetrion.github.io.      CNAME   github.map.fastly.net.
-
-     github.map.fastly.net.  A       185.31.17.133
-
-* The ALIAS record maps a name to another name, but can coexist with other records on that name.
-
-* The DNS "service" (SRV) record specifies a host and port for specific services such as voice over IP (VoIP), instant messaging, and so on. Most other DNS records only specify a server or an IP address, but SRV records include a port at that IP address as well. Some Internet protocols require the use of SRV records in order to function.
-
-* The URL record redirects the name to the target name using the HTTP 301 status code.
-
-Important rules:
-
-* The A, CNAME, and ALIAS records cause a name to resolve to an IP. Conversely, the URL record redirects the name to a destination. 
-
-* The URL record is a simple and effective way to apply a redirect for one name to another name, for example redirecting www.example.com to example.com.
-
-* The A name must resolve to an IP. The CNAME and ALIAS records must point to a name.
-
 </b></details>
 
 <details>
