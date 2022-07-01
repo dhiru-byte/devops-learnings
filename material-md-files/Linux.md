@@ -587,8 +587,13 @@ Symbolic Representation :
 <summary> /etc/fstab & /etc/mtab File in Linux?.</code></summary><br><b>
 
 - /etc/fstab is a list of filesystems to be mounted at boot time. If you want your Windows or file-storage partitions mounted once your computer boots, you'll need to put appropriate entries into /etc/fstab.
+- /etc/fstab is a created by the user.
 
+`/etc.mtab`
 - /etc/mtab is a list of currently mounted filesystems. If you have a disk connected but not mounted, it won't show up in the /etc/mtab file. Once you mount it, it will show up there.
+- /etc/mtab is a created by the system.
+
+The format of the files is similar. After mounting a new device, copy the relevant line from /etc/mtab to /etc/fstab so that it will be auto-mounted after boot or when calling mount -a.
 
 </b></details>
 
