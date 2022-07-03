@@ -185,9 +185,23 @@ True
   * Attributes
   * Meta-arguments</summary><br><b>
   
-  - Arguments: resource specific configurations
-  - Attributes: values exposed by the resource in a form of `resource_type.resource_name.attribute_name`. They are set by the provider or API usually.
-  - Meta-arguments: Functions of Terraform to change resource's behaviour
+  - `Arguments`: resource specific configurations
+  - `Attributes`: values exposed by the resource in a form of `resource_type.resource_name.attribute_name`. They are set by the provider or API usually.
+  - `Meta-arguments`: Functions of Terraform to change resource's behaviour
+</b></details>
+
+<details>
+<summary>Functions in terraform</summary><br><b>
+  
+- `Numeric Functions `
+- `String Functions`
+- `Collection Functions`
+- `Encoding Functions`
+- `Filesystem Functions`
+- `Date and Time Functions`
+- `Hash and Crypto Functions`
+- `IP Network Functions`
+- `Type Conversion Functions`
 </b></details>
 
 #### Terraform - Providers
