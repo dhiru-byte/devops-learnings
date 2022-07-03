@@ -51,21 +51,6 @@ In an operating system software performs each of the function:
 </b></details>
 
 <details>
-<summary>Features of OS ?.</code></summary><br><b>
-
-- Protected and supervisor mode.
-- Allows disk access and file systems Device drivers Networking Security.
-- Program Execution.
-- Memory management Virtual Memory Multitasking.
-- Handling I/O operations.
-- Manipulation of the file system.
-- Error Detection and handling.
-- Resource allocation.
-- Information and Resource Protection.
-
-</b></details>
-
-<details>
 <summary>What is Linux?.</code></summary><br><b>
 
 Linux is an operating system based on UNIX and was first introduced by Linus Torvalds. It is based on the Linux Kernel and can run on different hardware platforms manufactured by Intel, MIPS, HP, IBM, SPARC, and Motorola. Another popular element in Linux is its mascot, a penguin figure named Tux.
@@ -161,32 +146,9 @@ Unix originally began as a propriety operating system from Bell Laboratories, wh
 </b></details>
 
 <details>
-<summary>What is BASH?.</code></summary><br><b>
-
-BASH is short for Bourne Again SHell, was written by Steve Bourne as a replacement to the original Bourne Shell(represented by /bin/sh). It combines all the features from the original version of Bourne Shell, plus additional functions to make it easier and more convenient to use. It has since been adapted as the default shell for most systems running Linux.
-</b></details>
-
-<details>
 <summary> What is LILO?.</code></summary><br><b>
 
 LILO is a boot loader for Linux. It is used mainly to load the Linux operating system into main memory so that it can begin its operations.
-</b></details>
-
-<details>
-<summary> What is a swap space?.</code></summary><br><b>
-
-Swap space is a certain amount of space used by Linux to temporarily hold some programs that are running concurrently. This happens when RAM does not have enough memory to hold all programs that are executing.
-</b></details>
-<details>
-<summary> What is the basic difference between BASH and DOS?.</code></summary><br><b>
-
-The key differences between the BASH and DOS console lie in 3 areas:
-
-* BASH commands are case sensitive while DOS commands are not;
-
-* Under BASH, / character is a directory separator and \ acts as an escape character. Under DOS, / serves as a command argument delimiter and \ is the directory separator
-
-* DOS follows a convention in naming files, which is 8 character file name followed by a dot and 3 characters for the extension. BASH follows no such convention.
 </b></details>
 
 <details>
@@ -201,13 +163,6 @@ This so-called Free software movement allows several advantages, such as the fre
 The root account is like a systems administrator account and allows you full control of the system.
 Here you can create and maintain user accounts, assigning different permissions for each account.
 It is the default account every time you install Linux.
-</b></details>
-
-<details>
-<summary> What is CLI?.</code></summary><br><b>
-
-CLI is short for Command Line Interface. This interface allows the user to type declarative commands to instruct the computer to perform operations. CLI offers greater flexibility. However, other users who are already accustomed to using GUI find it difficult to remember commands including attributes that come with it.
-
 </b></details>
 
 <details>
@@ -356,14 +311,12 @@ There are 3 modes under vi:
 
 </b></details>
 
-
-
 <details>
-<summary> What is a typical size for a swap partition under a Linux system?.</code></summary><br><b>
+<summary> What is a swap space?.</code></summary><br><b>
 
-The preferred size for a swap partition is twice the amount of physical memory available on the system. 
+- `Swap space` is a certain amount of space used by Linux to temporarily hold some programs that are running concurrently. This happens when RAM does not have enough memory to hold all programs that are executing.
 
-If this is not possible, then the minimum size should be the same as the amount of memory installed. 
+- The preferred `size for a swap partition is twice the amount of physical memory` available on the system.If this is not possible, then the minimum size should be the same as the amount of memory installed. 
 </b></details>
 
 <details>
@@ -541,6 +494,12 @@ Daemons are services that provide several functions that may not be available un
 Assuming you have these two environments installed, just log out from the graphical interface. Then at the login screen, type your login ID and password and choose which session type you wish to load. This choice will remain your default until you change it to something else.
 </b></details>
 
+
+<details>
+<summary>  Understanding ifconfig output?.</code></summary><br><b>
+
+
+</b></details>
 
 <details>
 <summary> HTTP Rest Api status codes.</code></summary><br><b>
