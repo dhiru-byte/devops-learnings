@@ -502,22 +502,28 @@ Assuming you have these two environments installed, just log out from the graphi
 
 #### ifconfig output
 
-- `Link encap:Ethernet` - This denotes that the interface is an Ethernet related device.
-- `HWaddr 00:70:40:42:8A:60` - This is the hardware address or MAC address which is unique to each Ethernet card which is manufactured. Usually, the first half part of this address will contain the manufacturer code which is common for all the Ethernet cards manufactured by the same manufacturer and the rest will denote the device Id which should not be the same for any two devices manufactured at the same place.
-- `inet addr `- indicates the machine IP address
-- `Bcast` - denotes the broadcast address
+- `Link encap:Ethernet` :is the interface is an Ethernet related device.
+- `HWaddr 00:70:40:42:8A:60` :is hardware address or MAC address which is unique to each Ethernet card which is manufactured. Usually, the first half part of this address will contain the manufacturer code which is common for all the Ethernet cards manufactured by the same manufacturer and the rest will denote the device Id which should not be the same for any two devices manufactured at the same place.
+- `inet addr ` : indicates the machine IP address.
+- `inet6 addr `: is IPv6 address assigned to the interface.
+- `Scope` : is scope of IPv6 address. It can be link-local or global. Link-local address is used in local area network and is not routable. Global address is routable.
+- `Bcast` - denotes the broadcast address.
 - `Mask` - is the network mask which we passed using the netmask option (see above).
 - `UP` - This flag indicates that the kernel modules related to the Ethernet interface has been loaded.
 - `BROADCAST` - Denotes that the Ethernet device supports broadcasting - a necessary characteristic to obtain IP address via DHCP.
-- `NOTRAILERS` - indicate that trailer encapsulation is disabled. Linux usually ignore trailer encapsulation so this value has no effect at all.
+- `NOTRAILERS` - indicates trailer encapsulation is disabled. Linux usually ignore trailer encapsulation so this value has no effect at all.
 - `RUNNING` - The interface is ready to accept data.
-- `MULTICAST` - This indicates that the Ethernet interface supports multicasting. Multicasting can be best understood by relating to a radio station. Multiple devices can capture the same signal from the radio station but if and only if they tune to a particular frequency. Multicast allows a source to send a packet(s) to multiple machines as long as the machines are watching out for that packet.
-- `MTU` - short form for Maximum Transmission Unit is the size of each packet received by the Ethernet card. The value of MTU for all Ethernet devices by default is set to 1500. Though you can change the value by passing the necessary option to the ifconfig command. Setting this to a higher value could hazard packet fragmentation or buffer overflows. Do compare the MTU value of your Ethernet device and the loopback device and see if they are same or different. Usually, the loopback device will have a larger packet length.
-- `Metric `- This option can take a value of 0,1,2,3... with the lower the value the more leverage it has. The value of this property decides the priority of the device. This parameter has significance only while routing packets. For example, if you have two Ethernet cards and you want to forcibly make your machine use one card over the other in sending the data. Then you can set the Metric value of the Ethernet card which you favor lower than that of the other Ethernet card. I am told that in Linux, setting this value using ifconfig has no effect on the priority of the card being chosen as Linux uses the Metric value in its routing table to decide the priority.
-- `RX Packets, TX Packets` - The next two lines show the total number of packets received and transmitted respectively. As you can see in the output, the total errors are 0, no packets are dropped and there are no overruns. If you find the errors or dropped value greater than zero, then it could mean that the Ethernet device is failing or there is some congestion in your network.
-collisions - The value of this field should ideally be 0. If it has a value greater than 0, it could mean that the packets are colliding while traversing your network - a sure sign of network congestion.
-txqueuelen - This denotes the length of the transmit queue of the device. You usually set it to smaller values for slower devices with a high latency such as modem links and ISDN.
-- `RX Bytes, TX Bytes `- These indicate the total amount of data that has passed through the Ethernet interface either way. Taking the above example, I can fairly assume that I have used up 31.6 MB in downloading and 2.5 MB uploading which is a total of 37.1 MB of bandwidth. As long as there is some network traffic being generated via the Ethernet device, both the RX and TX bytes will go on increasing.
+- `MULTICAST` - It indicates that the Ethernet interface supports multicasting & allows a source to send a packet(s) to multiple machines as long as the machines are watching out for that packet.
+- `MTU` - `MTU (Maximum Transmission Unit)` is the size of each packet received by the Ethernet card. The value of MTU for all Ethernet devices by default is set to 1500. Though you can change the value by passing the necessary option to the ifconfig command. Setting this to a higher value could hazard packet fragmentation or buffer overflows. Do compare the MTU value of your Ethernet device and the loopback device and see if they are same or different. Usually, the loopback device will have a larger packet length.
+- `RX Packets, TX Packets` - the total number of packets received and transmitted respectively. 
+- `RX Bytes, TX Bytes `- the total amount of data that has passed through the Ethernet interface either way.
+- `RX errors`: shows a total number of packets received with error. This includes too-long-frames errors, ring-buffer overflow errors, CRC errors, frame alignment errors, fifo overruns, and missed packets.
+- `RX dropped` : is a number of dropped packets due to unintended VLAN tags or receiving IPv6 frames when interface is not configured for IPv6.
+- `RX overruns` :  is a number of received packets that experienced fifo overruns, caused by rate at which a buffer gets full and kernel isn’t able to empty it.
+- `RX frame` : is a number of misaligned frames, i.e. frames with length not divisible by 8.
+- `TX carriers`: is a number of packets that experienced loss of carriers. This usually happens when link is flapping.
+- `TX coliisions` : is a number of transmitted packets that experienced Ethernet collisions.
+- `TX txqueuelen` : is length of transmission queue.
 - `Interrupt` - From the data, I come to know that my network interface card is using the interrupt number 9. This is usually set by the system.
 
 [ifconfig](https://www.computerhope.com/unix/uifconfi.htm)
