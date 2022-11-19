@@ -17,7 +17,7 @@ services:
     image: python:3.7
     volumes:
       - ./localdir:/app/backend
-    expose:
+    ports:
       - "6000:6000"   
     depends_on:
       - frontend
