@@ -650,6 +650,31 @@ When Kubernetes creates a Pod it assigns one of these QoS classes to the Pod:
 </b></details>
 
 <details>
+<summary>What is the difference between a CSI, CRI and CNI?.</code></summary><br><b>
+
+</b></details>
+
+<details>
+<summary>What is the difference between a CNI and a CNI plugin?.</code></summary><br><b>
+
+</b></details>   
+
+<details>
+<summary>What is the naming convention of the APIs in Kubernetes? What does v1aplha1 specify?.</code></summary><br><b>
+
+</b></details>   
+   
+<details>
+<summary>What is the cluster IP of the kube-api server?.</code></summary><br><b>
+
+</b></details>   
+   
+<details>
+<summary> Can operator do exec in one of your running pods?.</code></summary><br><b>
+
+</b></details>    
+   
+<details>
 <summary>What happens to a PVC after pod deletion.</code></summary><br><b>
 
 PVCs have a lifetime independent of pods. If PV still exists it may be because it has ReclaimPolicy set to Retain in which case it won't be deleted even if PVC is gone.
