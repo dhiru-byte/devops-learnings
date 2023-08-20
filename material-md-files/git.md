@@ -44,3 +44,10 @@ Git hooks are scripts that run at specific points in the Git workflow, such as p
 A Git stash is a temporary storage area for changes that are not ready to be committed but need to be saved for later. Developers use it to switch to a different branch or to temporarily set aside work in progress.
 
 </b></details>
+
+<details>
+<summary>What is cherry-picking in git?.</code></summary><br><b>
+
+`cherry-picking` refers to the process of selecting and applying a specific commit from one branch onto another branch. This allows you to pick a single commit and apply it to a different branch without merging the entire branch. Cherry-picking is useful when you want to selectively bring changes from one branch into another, perhaps to apply a bug fix or feature that exists in one branch but not in another.
+
+</b></details>
