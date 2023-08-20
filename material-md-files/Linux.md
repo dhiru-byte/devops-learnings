@@ -2,6 +2,22 @@
 --------------------------------------------------------------------------------------
 
 <details>
+<summary>How setup a redirect nginx or apache?</code></summary><br><b>
+
+`Open Nginx Configuration File:` `/etc/nginx/nginx.conf`. You can also find server block configuration files in the `/etc/nginx/sites-available/` directory.
+
+```yaml
+server {
+    listen 80;
+    server_name example.com;
+
+    return 301 https://$host$request_uri;
+}
+```
+
+</b></details>
+
+<details>
 <summary>Prompt Customization.</code></summary><br><b>
 
 Ubuntu
