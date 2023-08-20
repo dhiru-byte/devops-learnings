@@ -36,3 +36,11 @@ A merge conflict occurs when Git cannot automatically merge changes from differe
 Git hooks are scripts that run at specific points in the Git workflow, such as pre-commit or post-receive. They can be used to enforce coding standards, perform tests, and trigger automated processes.
 
 </b></details>
+
+
+<details>
+<summary>What is a Git stash, and why would you use it?.</code></summary><br><b>
+
+A Git stash is a temporary storage area for changes that are not ready to be committed but need to be saved for later. Developers use it to switch to a different branch or to temporarily set aside work in progress.
+
+</b></details>
