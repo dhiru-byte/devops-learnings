@@ -22,3 +22,10 @@
 * By default, git pull performs a merge, but you can configure it to perform a rebase using the --rebase option.
 
 </b></details>
+
+<details>
+<summary>What is a merge conflict in Git, and how do you resolve it?.</code></summary><br><b>
+
+A merge conflict occurs when Git cannot automatically merge changes from different branches due to conflicting modifications in the same part of a file. To resolve it, you need to manually edit the conflicted files, choose which changes to keep, and then commit the resolution.
+
+</b></details>
