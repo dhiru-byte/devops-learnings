@@ -5,11 +5,13 @@
 
 docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
 
+```shell
 docker commit my-container my-image:my-tag
+```
 
-my-container is the name or ID of the running container.
-my-image is the name of the new image.
-my-tag is the optional tag for the new image.
+`my-container` is the name or ID of the running container.
+`my-image` is the name of the new image.
+`my-tag` is the optional tag for the new image.
 
 </b></details>
 
