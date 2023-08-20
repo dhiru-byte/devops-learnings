@@ -1,5 +1,17 @@
 ### Docker
 --------------------------------------------------------------------------------------
+<details>
+<summary>Create image out of running container.</code></summary><br><b>
+
+docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
+
+docker commit my-container my-image:my-tag
+
+my-container is the name or ID of the running container.
+my-image is the name of the new image.
+my-tag is the optional tag for the new image.
+
+</b></details>
 
 <details>
 <summary>What is Docker & it's feature ?.</code></summary><br><b>
