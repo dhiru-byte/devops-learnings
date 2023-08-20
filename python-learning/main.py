@@ -1,26 +1,26 @@
-# a = 50
-# b = 5
+# print("hello\npython" + "3" +"\nDasne_ka_nahi")
 
-# a = float(input("Enter a :"))
-# b = float(input("Enter b :"))
+# print(len(input("enter your location?")))
+
+# name = input("what is your name?")
+# length = len(name)
+# print(length)
+
+# a = input("a:")
+# b = input("b:")
+# temp = a
+# a = b
+# b = temp
+
+# print(a)
+# print(b)
+
+# print("String Concatenate")
+# string1 = input("Enter String 1 \n")
+# string2 = input("Enter String 2 \n")      
+# print("Concatenated String " + string1 + " " + string2)
+
+# street_name = "Abbey Road"
+# print(street_name[4] + street_name[7])
 
 
-# print("Division : ", a / b)
-
-# print("Multiplication : ", a * b)
-
-# print("Addition : ", a + b)
-
-# print("Subtraction : ", a - b)
-
-# if a > b:
-#   print("a is greater than b")
-# else:
-#   print("b is greater than a")
-
-
-a_list = []
-# for num in range(10):
-    list_num = float(input("Enter a number:"))
-    a_list.append(list_num)
-print(sum(a_list))

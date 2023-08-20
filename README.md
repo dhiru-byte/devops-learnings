@@ -2,7 +2,7 @@
 
 [Linux](material-md-files/Linux.md)  /  [Linux Commands](material-md-files/Linux_commands.md)
 
-[Git](material-md-files/git.md)  
+[Git](material-md-files/git.md) 
 
 [Terraform](material-md-files/Terraform.md)
 
