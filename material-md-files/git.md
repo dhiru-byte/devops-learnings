@@ -29,3 +29,10 @@
 A merge conflict occurs when Git cannot automatically merge changes from different branches due to conflicting modifications in the same part of a file. To resolve it, you need to manually edit the conflicted files, choose which changes to keep, and then commit the resolution.
 
 </b></details>
+
+<details>
+<summary>What are Git hooks, and how can they be useful in a Git workflow?.</code></summary><br><b>
+
+Git hooks are scripts that run at specific points in the Git workflow, such as pre-commit or post-receive. They can be used to enforce coding standards, perform tests, and trigger automated processes.
+
+</b></details>
