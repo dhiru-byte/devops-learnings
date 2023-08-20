@@ -16,6 +16,18 @@ docker commit my-container my-image:my-tag
 </b></details>
 
 <details>
+<summary>Create a Docker image from a file or URL.</code></summary><br><b>
+
+docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
+
+```shell
+docker import my_archive.tar my-image:tag
+
+```
+`my_archive.tar`  is a tarball archive file, and `my-image:tag` is the name and tag you want to assign to the imported Docker image.
+</b></details>
+
+<details>
 <summary>What is Docker & it's feature ?.</code></summary><br><b>
 
 Docker is an open-source containerization platform. It is used to automate the deployment of any application, using lightweight, portable containers.
