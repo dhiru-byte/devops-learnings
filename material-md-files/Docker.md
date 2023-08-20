@@ -28,6 +28,14 @@ docker import my_archive.tar my-image:tag
 </b></details>
 
 <details>
+<summary>Difference between docker run and docker create.</code></summary><br><b>
+
+`docker run` command is used to create and start a new container based on a specified image.
+
+`docker create` command is used to create a new container based on an image, but it does not start the container.
+</b></details>
+
+<details>
 <summary>What is Docker & it's feature ?.</code></summary><br><b>
 
 Docker is an open-source containerization platform. It is used to automate the deployment of any application, using lightweight, portable containers.
