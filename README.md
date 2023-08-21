@@ -8,7 +8,7 @@
 
 [Terraform Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_vMDBAqQIjRxDgPO0yBOTM8)
 
-[Docker](material-md-files/Docker.md) / [Docker Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_urmkyf2WVWsejiEYpWWNO2)
+[Docker](material-md-files/Docker.md)  [Docker Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_urmkyf2WVWsejiEYpWWNO2)
 
 [Dockerlabs](https://github.com/collabnix/dockerlabs) /  [DockerCheatsheet](https://github.com/wsargent/docker-cheat-sheet)
 
@@ -21,3 +21,5 @@
 [Pipeline Examples](https://github.com/jenkinsci/pipeline-examples) / [Aerial ScreenSaver](https://github.com/JohnCoates/Aerial) / [DataScienceCheatsheet](https://github.com/georgearun/Data-Science--Cheat-Sheet)
 
 [Istio YouTube](https://www.youtube.com/playlist?list=PLFune_RTbx_vMDBAqQIjRxDgPO0yBOTM8)
+
+[Bregman Devops Exercise](https://github.com/bregman-arie/devops-exercises)
