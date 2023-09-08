@@ -24,7 +24,7 @@ Ubuntu
 `sudo vi .bashrc` : `PS1="\[\033[01;32m\]\d \T \[\033[00m\]\$"`
 
 Mac bash_profile file 
-`export PS1="Dhirendra @\d \T $" ` & ` export PS1=”\u@\d \T $” `
+`export PS1="Dhirendra @\d \T $" ` & ` export PS1=”\u@\d \T $” `  'export PS1="\[\033[0;32m\]Dhirendra @\d \T $\[\033[0m\]" '
 </b></details>
 
 <details>
