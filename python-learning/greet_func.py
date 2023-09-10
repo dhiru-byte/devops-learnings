@@ -1,4 +1,4 @@
-def greet_with_name(name):
+def greet_with_name(name, loc):
     print(f"Hi {name}")
-    print(f"how are you {name} ?")
-greet_with_name("Dhiru")
+    print(f"How's Weather in {loc}?")
+greet_with_name(name="Dhiru", loc="Nowhere")
