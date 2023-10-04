@@ -72,3 +72,41 @@ Disaster recovery ensures that in situation when there is damage beyond repair, 
 
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
+
+<details>
+<summary>  Diff. between Service Principal and Managed Identity ?.</code></summary><br><b>
+
+Service principal is a security identity used by user-created apps, services, and automation tools to access specific Azure resources. SP created manually by users/administrators through Azure portal, Azure CLI, PowerShell, or Azure SDKs.
+
+- SP's are typically used in scenarios where an application needs to access Azure resources. They can be assigned roles and permissions, enabling applications to interact with Azure services securely.
+
+- SP's are authenticated using either a client secret (a password) or a certificate. They can authenticate without the need for interactive sign-ins.
+
+Managed identities for Azure resources, also known as Managed Service Identity (MSI), are a feature in Azure Active Directory that allow services to authenticate to cloud services (e.g., Azure Key Vault) without needing to insert credentials into the code.
+
+- MI's are created directly on Azure resources (like Virtual Machines, App Services, Functions, etc.). There's no need for manual creation or management.
+
+- MI's are used in scenarios where an Azure resource needs to access other Azure resources securely. The identity is automatically managed by Azure and doesn’t require explicit management by users.
+
+- MI's use the Azure AD authentication flow. When enabled, Azure automatically handles the authentication process for the resource using the identity.
+
+##Key Differences:
+
+1.Creation and Management:
+- Service Principal: Created manually and requires explicit management by the user.
+- Managed Identity: Created directly on Azure resources, and Azure handles the management automatically.
+
+2.Scope:
+- Service Principal: Can be created for various scenarios and doesn’t have a specific scope in Azure.
+- Managed Identity: Tied to a specific Azure resource and can only be used by that resource and its child resources.
+
+3.Authentication:
+- Service Principal: Requires manual configuration of authentication methods (client secret or certificate).
+- Managed Identity: Authentication is automatically handled by Azure AD.
+
+4.Use Cases:
+- Service Principal: Typically used for broader scenarios where applications or services need to access various Azure resources.
+- Managed Identity: Ideal for scenarios where a specific Azure resource (e.g., a VM or an App Service) needs secure access to other Azure resources.
+
+[fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
+</b></details>
