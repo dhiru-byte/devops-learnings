@@ -1,19 +1,25 @@
 ### Git
 
 <details>
-<summary>Difference between git fetch rebase  & pull.</code></summary><br><b>
+<summary>Difference between git fetch, merge, rebase  & pull.</code></summary><br><b>
 
-`git fetch` is used to retrieve changes from a remote repository to your local repository. It doesn't change your local working branch.
+`git fetch` is used to retrieve changes from a remote repository to your local repository without merging. It doesn't change your local working branch.
 
 * It fetches the latest commits, branches, and tags from the remote repository but does not automatically integrate them into your local branch.
 
 * It's a non-destructive operation and is often used to check for changes on the remote without affecting your local work.
 
-`git rebase` is used to integrate changes from one branch into another by moving or replaying the commits from your local branch on top of a different branch.
+`git merge` is used to integrate changes from one branch into another, creating a new merge commit.
+
+* It creates a new commit that combines changes from the source branch into the destination branch.
+
+* 
+
+`git rebase` is used to integrate changes from one branch into another maintaining a linear history.
 
 * It is typically used to keep your branch history linear and avoid unnecessary merge commits.
 
-* It is helpful when you want to incorporate changes from the remote repository into your local branch and make it appear as if you had made your changes on top of the latest remote commits.
+* It Rewrites commit history, providing a linear history without merge commits.
 
 `git pull` is a combination of git fetch and git merge. It fetches changes from the remote repository and automatically merges them into your current branch.
 
