@@ -76,7 +76,9 @@ Disaster recovery ensures that in situation when there is damage beyond repair, 
 <details>
 <summary>  Diff. between Service Principal and Managed Identity ?.</code></summary><br><b>
 
-Service principal is a security identity used by user-created apps, services, and automation tools to access specific Azure resources. SP created manually by users/administrators through Azure portal, Azure CLI, PowerShell, or Azure SDKs.
+Service principal is a security identity used by user-created apps, services, and automation tools to access specific Azure resources. 
+
+- SP's are created manually by users/administrators through Azure portal, Azure CLI, PowerShell, or Azure SDKs.
 
 - SP's are typically used in scenarios where an application needs to access Azure resources. They can be assigned roles and permissions, enabling applications to interact with Azure services securely.
 
