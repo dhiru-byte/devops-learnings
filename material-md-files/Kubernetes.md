@@ -707,6 +707,43 @@ When Kubernetes creates a Pod it assigns one of these QoS classes to the Pod:
 <details>
 <summary>What is the difference between a CSI, CRI and CNI?.</code></summary><br><b>
 
+In Kubernetes, CSI, CRI, and CNI are essential components that abstract and manage specific functionality within the container orchestration platform. Each of these interfaces plays a different role in the ecosystem, focused respectively on storage, runtime, and networking for containers. Understanding these components is key to effectively managing and extending Kubernetes functionalities.
+
+1. Container Storage Interface (CSI)
+CSI (Container Storage Interface) is a standard for exposing arbitrary block and file storage systems to containerized workloads on container orchestration systems like Kubernetes. It allows storage providers to develop a driver that works across a range of container orchestration systems.
+
+Role:
+
+- `Storage Abstraction`: CSI allows Kubernetes to abstract the details of how storage is provided and how volumes are managed. Developers can provision, attach, and mount storage without needing to know the details of the underlying storage infrastructure.
+- `Portability`: By using CSI, developers get consistent and portable access to storage across various environments.
+Use Case:
+
+Automatically allocating storage as part of a deployment process, integrating seamlessly with cloud providers’ storage solutions like AWS EBS, Azure Disks, or on-premise SAN systems.
+
+2. Container Runtime Interface (CRI)
+CRI (Container Runtime Interface) is an API that provides an abstraction layer for container runtime systems such as Docker, containerd, and CRI-O. CRI defines a standard set of operations that the Kubernetes kubelet process uses to manage container lifecycles, helping decouple the kubelet from a specific container runtime.
+
+Role:
+
+- `Runtime Management`: It handles all runtime-based operations in Kubernetes, such as starting and stopping containers, pulling images, handling storage, and more.
+- `Pluggability`: Kubernetes can leverage any container runtime that implements the CRI, allowing a user to swap between different runtimes without altering Kubernetes core code.
+
+- Use Case: Choosing between different container runtimes according to performance, security, or functionality needs, such as Docker, containerd, or CRI-O.
+
+3. Container Network Interface (CNI)
+CNI (Container Network Interface) is a specification and a set of libraries for writing plugins to configure network interfaces in Linux containers. It’s used in Kubernetes to set up networking layers in a way that pods can communicate with each other and other networks.
+
+Role:
+
+- `Network Connectivity`: CNI sets up the network connectivity of containers and provides them with a basic network setup, handling IP addressing as well.
+
+- `Network Isolation`: Ensures that appropriate isolation or communication is maintained between pods, across namespaces, or with external networks.
+  
+- `Extensibility`: Many different networking providers can provide plug-ins that conform to CNI, such as Calico, Flannel, and Weave.
+Use Case:
+
+Managing pod-to-pod networking, securing network communication, or integrating Kubernetes with specialized network architectures provided by cloud or data center providers.
+
 </b></details>
 
 <details>
