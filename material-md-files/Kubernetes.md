@@ -47,13 +47,18 @@ Components of a Service Discovery System
 The typical service discovery mechanism consists of the following components:
 
 `Service Registry` : This is where all the service instances register themselves and update their status (alive, dead). It can be thought of as a dynamic database of service endpoints.
+
 `Registrar`: This component is responsible for registering a service instance with the service registry when the instance starts.
+
 `Discovery Client`: This component queries the service registry to fetch up-to-date instances of the required services.
+
 `Health Checking`: This process involves periodically checking the health of services in the registry to ensure that requests are routed only to healthy instances.
+
 Examples in Kubernetes
 Kubernetes naturally provides service discovery:
 
 `Services`: Kubernetes Service object gives a permanent IP address (ClusterIP, NodePort, LoadBalancer) which routes requests to the correct pods by selector. This abstracts the underlying pod IPs which may change on rescheduling.
+
 `DNS`: Kubernetes Services are automatically discoverable via the cluster's DNS service (e.g., CoreDNS), where they are assigned DNS names. A pod can talk to another service using just the DNS name irrespective of the underlying pod changes.
 
 </b></details>
