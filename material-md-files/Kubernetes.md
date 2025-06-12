@@ -7,9 +7,10 @@
 - a headless service is a type of service that does not have a cluster IP. It is used to directly interface with specific Pods without the necessity of a load-balancing mechanism or a single service IP. Instead, it allows for direct access to Pods via their DNS entries or their individual IPs. This can be particularly useful in certain types of distributed systems, especially those where you need direct communication between your components, such as stateful applications like databases or other services that rely on a consistent network identity.
 
 - Characteristics of Headless Services
-No Cluster IP: Unlike regular services, headless services do not have a cluster IP. Requests to a headless service are routed directly to the Pods.
-DNS Entries: When a DNS query is made against a headless service, Kubernetes returns a set of IP addresses of the Pods that are matched by the service selector. This DNS response enables direct pod-to-pod communication.
-Stable Network Identity: This is particularly useful for stateful sets where each pod needs a persistent identifier that persists across rescheduling.
+
+`No Cluster IP`: Unlike regular services, headless services do not have a cluster IP. Requests to a headless service are routed directly to the Pods.
+`DNS Entries`: When a DNS query is made against a headless service, Kubernetes returns a set of IP addresses of the Pods that are matched by the service selector. This DNS response enables direct pod-to-pod communication.
+`Stable Network Identity`: This is particularly useful for stateful sets where each pod needs a persistent identifier that persists across rescheduling.
 
 </b></details>
 
