@@ -113,11 +113,8 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
 
-
 <details>
-<summary>  List all AWS Managed  Data Transformation, Integration, and Feature Engineering Services ?.</code></summary><br><b>
-# AWS Services for Data Transformation, Integration, and Feature Engineering
-
+<summary> List all AWS Managed Data Transformation Integration and Feature Engineering Services ?.</code></summary><br><b>
 | **Service**                   | **Category**                    | **Use Cases**                                                                                          | **Key Differences**                                                                                  |
 |-------------------------------|----------------------------------|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
 | **AWS Glue**                  | Data Integration and ETL        | Data integration, ETL (Extract, Transform, Load), automate workflows, schema discovery.                | A fully managed ETL service designed for large-scale data integration and transformation tasks.      |
@@ -137,7 +134,6 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | **Amazon DynamoDB Streams**   | Real-Time Streaming Data        | Integrate and transform change data captured in real-time from DynamoDB tables.                       | Specifically tied to DynamoDB for real-time data transformation and integration workflows.            |
 | **Amazon AppFlow**            | SaaS Data Integration           | Transfer and transform data between SaaS applications (e.g., Salesforce) and AWS services.            | A specialized tool for integrating and transferring data from SaaS platforms to AWS.                 |
 | **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.                                  |
-
 </b></details>
 
 <details>
@@ -168,8 +164,6 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | AWS Glue DataBrew | Data Preparation | No-code data preparation for machine learning workflows and analytics. |
 | Amazon Neptune ML | Graph ML | Use graph machine learning models to analyze relationships in highly connected data. |
 
-AWS Managed AI Service Chart                                                                                                                     
-# AWS Managed AI Services
 # AWS Managed AI Services (Including AWS Q Business)
 
 | **Service**                   | **Category**                | **NLP** | **Computer Vision** | **Speech Processing** | **Time Series Prediction** | **Anomaly Detection** | **Generative AI** | **Optimization** |
