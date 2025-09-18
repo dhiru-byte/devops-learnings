@@ -114,7 +114,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 </b></details>
 
 <details>
-<summary>  Lst all AWS Managed Ai Services ?.</code></summary><br><b>
+<summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
 
 | Service | Key Use Cases | Key Difference |
 | :-- | :-- | :-- |
@@ -142,20 +142,19 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | Amazon Neptune ML | Create, analyze, and query graphs using graph embeddings. | Machine learning for graph-based data in applications like social networks and knowledge graphs. |
 
 AWS Managed AI Service Chart                                                                                                                     
--------------------------------------------------------------------------------------------------------------------------------------------------
-| Service                       | NLP    | Computer Vision  | Speech Processing | Time Series Prediction | Anomaly Detection | Generative AI    |
--------------------------------------------------------------------------------------------------------------------------------------------------
-| Amazon Comprehend             |   ✔    |                 |                   |                        |                   |                 |
-| Amazon Rekognition            |        | ✔               |                   |                        |                   |                 |
-| Amazon Polly                  |        |                 | ✔                |                        |                   |                 |
-| Amazon Translate              |   ✔    |                 |                   |                        |                   |                 |
-| Amazon Forecast               |        |                 |                   |    ✔                   |                   |                 |
-| Amazon Lookout for Metrics    |        |                 |                   |                        |      ✔           |                 |
-| Amazon Bedrock                |        |                 |                   |                        |                   | ✔               |
-| Amazon SageMaker              |   ✔    | ✔               | ✔                |    ✔                   |      ✔           |                 |
-| AWS Panorama                  |        | ✔               |                   |                        |                   |                 |
-| Amazon Lex                    |   ✔    |                 | ✔                |                        |                   |                 |
-| Amazon Textract               |        | ✔               |                   |                        |                   |                 |
--------------------------------------------------------------------------------------------------------------------------------------------------
+# AWS Managed AI Services
 
+| **Service**                   | **NLP** | **Computer Vision** | **Speech Processing** | **Time Series Prediction** | **Anomaly Detection** | **Generative AI** |
+|-------------------------------|---------|----------------------|------------------------|----------------------------|-----------------------|-------------------|
+| **Amazon Comprehend**         | ✔       |                      |                        |                            |                       |                   |
+| **Amazon Rekognition**        |         | ✔                    |                        |                            |                       |                   |
+| **Amazon Polly**              |         |                      | ✔                      |                            |                       |                   |
+| **Amazon Translate**          | ✔       |                      |                        |                            |                       |                   |
+| **Amazon Forecast**           |         |                      |                        | ✔                          |                       |                   |
+| **Amazon Lookout for Metrics**|         |                      |                        |                            | ✔                     |                   |
+| **Amazon Bedrock**            |         |                      |                        |                            |                       | ✔                 |
+| **Amazon SageMaker**          | ✔       | ✔                    | ✔                      | ✔                          | ✔                     |                   |
+| **AWS Panorama**              |         | ✔                    |                        |                            |                       |                   |
+| **Amazon Lex**                | ✔       |                      | ✔                      |                            |                       |                   |
+| **Amazon Textract**           |         | ✔                    |                        |                            |                       |                   |
 </b></details>
