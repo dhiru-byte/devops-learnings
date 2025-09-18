@@ -1,5 +1,4 @@
 # AWS 
---------------------------------------------------------------------------------------
 
 <details>
 <summary> How many Subnets can you have per VPC?.</code></summary><br><b>
