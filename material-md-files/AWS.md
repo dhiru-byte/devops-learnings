@@ -115,6 +115,22 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 <details>
 <summary> List all AWS Managed Data Transformation Integration and Feature Engineering Services ?.</code></summary><br><b>
+| Use Case | Recommended Service |
+| :-- | :-- |
+| Automating ETL and large-scale integration | AWS Glue |
+| No-code data transformation and cleaning | AWS Glue DataBrew |
+| Batch processing of large datasets | AWS Batch |
+| Real-time data streaming and transformation | Amazon Kinesis Data Analytics, DynamoDB Streams |
+| Feature engineering for ML models | Amazon SageMaker Data Wrangler |
+| Data querying with transformation | Amazon Athena, Redshift Spectrum |
+| SaaS platform integration | Amazon AppFlow |
+| Big data frameworks (Spark, Hadoop) | Amazon EMR |
+| Centralized data repository for integration | AWS Lake Formation |
+| Workflow orchestration and scheduling | AWS Step Functions, AWS Data Pipeline |
+| Data visualization with lightweight prep | Amazon QuickSight |                         |
+
+# AWS Services for Data Transformation, Integration, and Feature Engineering
+
 | **Service**                   | **Category**                    | **Use Cases**                                                                                          | **Key Differences**                                                                                  |
 |-------------------------------|----------------------------------|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
 | **AWS Glue**                  | Data Integration and ETL        | Data integration, ETL (Extract, Transform, Load), automate workflows, schema discovery.                | A fully managed ETL service designed for large-scale data integration and transformation tasks.      |
@@ -133,7 +149,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | **Amazon OpenSearch Service** | Search and Analytics            | Perform structured searches and real-time analytics on transformed data (e.g., logs, JSON, metrics).   | Optimized for structured search queries and visual analytics.                                        |
 | **Amazon DynamoDB Streams**   | Real-Time Streaming Data        | Integrate and transform change data captured in real-time from DynamoDB tables.                       | Specifically tied to DynamoDB for real-time data transformation and integration workflows.            |
 | **Amazon AppFlow**            | SaaS Data Integration           | Transfer and transform data between SaaS applications (e.g., Salesforce) and AWS services.            | A specialized tool for integrating and transferring data from SaaS platforms to AWS.                 |
-| **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.                                  |
+| **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.                                  |  
 </b></details>
 
 <details>
