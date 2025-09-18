@@ -115,6 +115,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
+  
 | Service | Key Use Cases | Key Difference |
 | :-- | :-- | :-- |
 | Amazon Comprehend | NLP/Text Analytics | Text analytics, sentiment analysis, entity recognition, and language processing. |
