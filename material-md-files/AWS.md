@@ -113,10 +113,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
 
-# AWS Machine Learning Exam Questions (Data Transformation, Integrity & Feature Engineering)
-
 ---
-
 <details>
 <summary>What is the purpose of feature engineering in machine learning workflows?</summary><br><b>
 
