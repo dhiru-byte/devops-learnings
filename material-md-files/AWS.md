@@ -112,3 +112,32 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
+
+<details>
+<summary>  Lst all AWS Managed Ai Services ?.</code></summary><br><b>
+
+| Service | Key Use Cases | Key Difference |
+| :-- | :-- | :-- |
+| Amazon Comprehend | Text analytics, sentiment analysis, entity recognition, key phrase extraction. | Focuses on natural language processing (NLP). |
+| Amazon Textract | Extract text, tables, and forms from documents. | Specifically designed for extracting text and data from scanned documents and forms using OCR. |
+| Amazon Rekognition | Image and video analysis, object detection, facial recognition, label detection. | Focuses on computer vision-based tasks with pre-trained models. |
+| Amazon SageMaker | Build, train, and deploy custom machine learning models. | Fully flexible platform for custom ML model development; not pre-trained AI. |
+| Amazon Translate | Language translation between multiple languages. | Designed specifically for machine translation. |
+| Amazon Polly | Text-to-speech conversion with lifelike voices. | Converts text to speech, enabling the development of voice-enabled applications. |
+| Amazon Lex | Build conversational AI, chatbots, and voice bots. | Focused on creating AI-driven virtual assistants with ASR (Automatic Speech Recognition) and NLP. |
+| Amazon Transcribe | Automatic speech-to-text transcription from audio/video files. | Specifically enables speech-to-text conversion tasks for audio and video content. |
+| Amazon Personalize | Build real-time personalized recommendations (e.g., retail, media). | Designed for recommendation system creation using machine learning models. |
+| Amazon Forecast | Time-series data forecasting (e.g., inventory, financial metrics, demand). | Optimized for time-series forecasting with ML models. |
+| Amazon CodeWhisperer | AI-powered code completion and generation for developers. | Similar to GitHub Copilot; focuses on developer productivity in writing code. |
+| Amazon Kendra | Enterprise search service for retrieving structured and unstructured data. | Focuses on information retrieval to enhance workplace productivity and knowledge management. |
+| AWS DeepLens | Develop and deploy deep learning models using a camera-enabled device. | Hardware-integrated solution for edge computing with computer vision applications. |
+| Amazon HealthLake | Store, transform, and analyze health-related data. | Healthcare-specific AI service for processing medical data in HL7 FHIR format. |
+| Amazon Lookout for Equipment | Predictive maintenance for industrial systems (e.g., monitor IoT device health). | Tailored for anomaly detection in sensor and IoT data to maintain industrial machinery. |
+| Amazon Lookout for Metrics | Anomaly detection for business or operational metrics (e.g., revenue, sales). | Focused on finding anomalies in large-scale business/event metric datasets. |
+| Amazon Lookout for Vision | Detect quality defects in manufactured products. | Tailored for visual anomaly detection in manufacturing (industrial quality assurance). |
+| Amazon Bedrock | Run and scale foundation models (generative AI) like GPT, Claude, etc. | Focused on generative AI, providing different popular models as managed services. |
+| AWS Panorama | Computer vision at the edge for analyzing on-premises video streams. | Edge AI solution for computer vision in low-latency environments. |
+| AWS Glue DataBrew | Data preparation for ML and analytics through a no-code visual interface. | Preprocessing tool for preparing data before running machine learning workflows. |
+| Amazon Fraud Detector | Build and deploy fraud detection models. | Designed to detect fraud in real-time transactions with custom ML models. |
+| Amazon Neptune ML | Create, analyze, and query graphs using graph embeddings. | Machine learning for graph-based data in applications like social networks and knowledge graphs. |
+</b></details>
