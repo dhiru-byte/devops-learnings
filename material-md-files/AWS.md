@@ -418,6 +418,7 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
 | **Amazon AppFlow**            | SaaS Data Integration           | Transfer and transform data between SaaS applications (e.g., Salesforce) and AWS services.            | A specialized tool for integrating and transferring data from SaaS platforms to AWS.                 |
 | **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.       </b></details>
 
+---
 
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
