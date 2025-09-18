@@ -113,7 +113,6 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
 
----
 <details>
 <summary>What is the purpose of feature engineering in machine learning workflows?</summary><br><b>
 
@@ -129,8 +128,6 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 **Explanation:**  
 Feature engineering involves selecting, transforming, and pre-processing data to make it suitable for training a machine learning model. It is a crucial step in creating high-quality datasets that improve model accuracy.
 </b></details>
-
----
 
 <details>
 <summary>Which AWS service is most suitable for cleaning and normalizing data through a no-code interface?</summary><br><b>
@@ -148,8 +145,6 @@ Feature engineering involves selecting, transforming, and pre-processing data to
 AWS Glue DataBrew provides a visual, no-code interface to clean, normalize, and transform data. It is specifically designed for users who require an easy-to-use tool for data preparation without writing complex scripts.
 </b></details>
 
----
-
 <details>
 <summary>You query data stored in Amazon S3 using SQL for lightweight transformation. Which AWS service should you choose?</summary><br><b>
 
@@ -165,8 +160,6 @@ AWS Glue DataBrew provides a visual, no-code interface to clean, normalize, and 
 **Explanation:**  
 Amazon Athena is a serverless SQL-based query service that allows you to perform lightweight transformations and analysis directly on data stored in Amazon S3.
 </b></details>
-
----
 
 <details>
 <summary>Which AWS service enables on-the-fly data preprocessing and transformation for machine learning workflows?</summary><br><b>
@@ -184,8 +177,6 @@ Amazon Athena is a serverless SQL-based query service that allows you to perform
 SageMaker Data Wrangler simplifies data preparation and feature engineering by providing an interactive interface for pre-processing datasets and exporting them directly into the machine learning pipeline.
 </b></details>
 
----
-
 <details>
 <summary>How can you ensure data integrity during ETL (Extract, Transform, Load) processes?</summary><br><b>
 
@@ -202,8 +193,6 @@ SageMaker Data Wrangler simplifies data preparation and feature engineering by p
 Data integrity can be preserved by implementing validation mechanisms like checksums or hashes during and after the data transfer. AWS services like AWS Glue and Amazon S3 integrate integrity checks automatically during certain operations.
 </b></details>
 
----
-
 <details>
 <summary>You need to join multiple datasets and transform them for downstream analysis. Which AWS service is the most suitable?</summary><br><b>
 
@@ -219,8 +208,6 @@ Data integrity can be preserved by implementing validation mechanisms like check
 **Explanation:**  
 AWS Glue is specifically designed for ETL operations required to join, clean, and transform data from multiple sources. It automates workflows and supports transformation at scale.
 </b></details>
-
----
 
 <details>
 <summary>You are preparing a dataset for a regression model. Which preprocessing steps should you perform? (Select TWO)</summary><br><b>
@@ -242,8 +229,6 @@ For regression models:
 - **Normalization** scales continuous features to bring them within the same range, improving convergence during training.
 </b></details>
 
----
-
 <details>
 <summary>Which AWS service would you use for real-time data transformation in streaming pipelines?</summary><br><b>
 
@@ -259,8 +244,6 @@ For regression models:
 **Explanation:**  
 Amazon Kinesis Data Analytics allows you to process and transform streaming data in real-time using SQL, making it an ideal choice for real-time transformations.
 </b></details>
-
----
 
 <details>
 <summary>Which technique would you use to handle missing data in a dataset? (Select TWO)</summary><br><b>
@@ -281,8 +264,6 @@ Handling missing data is essential for clean datasets:
 - Removing rows or columns is used when missing data is substantial and cannot be meaningfully imputed.
 </b></details>
 
----
-
 <details>
 <summary>Which AWS service would you use to orchestrate complex ETL workflows across multiple services?</summary><br><b>
 
@@ -299,8 +280,6 @@ Handling missing data is essential for clean datasets:
 AWS Step Functions is a workflow orchestration service that integrates with multiple AWS services, such as Glue, Lambda, and SageMaker, to enable seamless ETL pipeline execution.
 </b></details>
 
----
-
 <details>
 <summary>Which data integrity mechanism can ensure transformed datasets match the original source datasets in AWS Glue?</summary><br><b>
 
@@ -316,8 +295,6 @@ AWS Step Functions is a workflow orchestration service that integrates with mult
 **Explanation:**  
 Versioning in Amazon S3, combined with validation scripts for checksums or row counts, ensures that transformed datasets retain data integrity against their original source datasets during Glue workflows.
 </b></details>
-
----
 
 <details>
 <summary>What is a key reason to use feature scaling in machine learning workflows?</summary><br><b>
