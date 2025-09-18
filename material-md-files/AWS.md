@@ -138,6 +138,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.                                  |  
 </b></details>
 
+
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
 
