@@ -553,6 +553,247 @@ SageMaker JumpStart provides pre-trained models, examples, and templates to help
 </b></details>
 
 ---
+# AWS Machine Learning Associate Exam - SageMaker Built-In Algorithms Questions and Answers
+
+<details>
+<summary>Which SageMaker algorithm is best suited for creating product recommendation systems using sparse datasets?</summary><br><b>
+
+**Options:**
+- **A.** Linear Learner  
+- **B.** Factorization Machines  
+- **C.** K-Means Clustering  
+- **D.** Random Cut Forest  
+
+**Answer:**  
+**B. Factorization Machines**
+
+**Explanation:**  
+Factorization Machines are designed for sparse datasets and are frequently used in recommendation systems, predicting user preferences based on historical data.
+
+</b></details>
+
+<details>
+<summary>You want to segment customers into groups based on purchasing behavior. Which SageMaker algorithm should you use?</summary><br><b>
+
+**Options:**
+- **A.** Principal Component Analysis (PCA)  
+- **B.** K-Means Clustering  
+- **C.** Neural Topic Modeling  
+- **D.** DeepAR  
+
+**Answer:**  
+**B. K-Means Clustering**
+
+**Explanation:**  
+K-Means Clustering is an unsupervised learning algorithm used for customer segmentation, grouping similar customers based on shared behaviors.
+
+</b></details>
+
+<details>
+<summary>Which algorithm would you use to forecast sales trends or stock prices using time-series data in SageMaker?</summary><br><b>
+
+**Options:**
+- **A.** DeepAR Forecasting  
+- **B.** Neural Topic Modeling  
+- **C.** Linear Learner  
+- **D.** Multinomial Logistic Regression  
+
+**Answer:**  
+**A. DeepAR Forecasting**
+
+**Explanation:**  
+DeepAR is specifically designed for probabilistic time-series forecasting and is well-suited for predicting trends in sales, stock prices, and demand planning.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker algorithm is best used to identify anomalous patterns in data, such as fraud detection or network monitoring?</summary><br><b>
+
+**Options:**
+- **A.** Random Cut Forest  
+- **B.** XGBoost  
+- **C.** K-Means Clustering  
+- **D.** PCA  
+
+**Answer:**  
+**A. Random Cut Forest**
+
+**Explanation:**  
+Random Cut Forest (RCF) is optimized for anomaly detection in tabular and time-series datasets, making it ideal for identifying fraudulent activities or network anomalies.
+
+</b></details>
+
+<details>
+<summary>Which built-in algorithm is the most suitable for multi-class classification tasks?</summary><br><b>
+
+**Options:**
+- **A.** Linear Learner  
+- **B.** Multinomial Logistic Regression  
+- **C.** BlazingText  
+- **D.** Factorization Machines  
+
+**Answer:**  
+**B. Multinomial Logistic Regression**
+
+**Explanation:**  
+Multinomial Logistic Regression is ideal for multi-class classification problems where there are more than two categories to predict.
+
+</b></details>
+
+<details>
+<summary>You're working with image classification on SageMaker to label objects in photos. Which algorithm should be used?</summary><br><b>
+
+**Options:**
+- **A.** Object Detection  
+- **B.** BlazingText  
+- **C.** Image Classification  
+- **D.** Semantic Segmentation  
+
+**Answer:**  
+**C. Image Classification**
+
+**Explanation:**  
+The Image Classification algorithm is built to categorize objects into predefined labels using image datasets.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker algorithm is used when predicting the relationship between features and a continuous numeric target variable?</summary><br><b>
+
+**Options:**
+- **A.** XGBoost  
+- **B.** Linear Learner  
+- **C.** DeepAR Forecasting  
+- **D.** Sequence-to-Sequence  
+
+**Answer:**  
+**B. Linear Learner**
+
+**Explanation:**  
+Linear Learner is well-suited for regression problems that involve predicting a continuous target variable based on input features.
+
+</b></details>
+
+<details>
+<summary>Which algorithm is suitable for reducing the dimensionality of large datasets while retaining key information?</summary><br><b>
+
+**Options:**
+- **A.** Neural Topic Modeling  
+- **B.** Principal Component Analysis (PCA)  
+- **C.** K-Means Clustering  
+- **D.** Random Cut Forest  
+
+**Answer:**  
+**B. Principal Component Analysis (PCA)**
+
+**Explanation:**  
+PCA is designed for dimensionality reduction, simplifying large datasets while keeping the most important statistical information.
+
+</b></details>
+
+<details>
+<summary>You need to predict customer churn using tabular datasets with a high number of features. Which SageMaker algorithm is most appropriate?</summary><br><b>
+
+**Options:**
+- **A.** Neural Topic Modeling  
+- **B.** XGBoost  
+- **C.** Factorization Machines  
+- **D.** DeepAR  
+
+**Answer:**  
+**B. XGBoost**
+
+**Explanation:**  
+XGBoost is highly efficient for tabular data and performs well in predictive modeling tasks such as customer churn and forecasting.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker algorithm should you use for word embedding and text classification tasks?</summary><br><b>
+
+**Options:**
+- **A.** Sequence-to-Sequence  
+- **B.** BlazingText  
+- **C.** Neural Topic Modeling  
+- **D.** Linear Learner  
+
+**Answer:**  
+**B. BlazingText**
+
+**Explanation:**  
+BlazingText is optimized for word embeddings and text classification tasks, such as document categorization or sentiment analysis.
+
+</b></details>
+
+<details>
+<summary>A logistics company needs to optimize delivery routes and reduce costs. Which SageMaker algorithm can be applied?</summary><br><b>
+
+**Options:**
+- **A.** Linear Learner  
+- **B.** Factorization Machines  
+- **C.** Sequence-to-Sequence  
+- **D.** Reinforcement Learning  
+
+**Answer:**  
+**D. Reinforcement Learning**
+
+**Explanation:**  
+Reinforcement Learning is perfect for decision-making tasks, such as optimizing delivery routes or dynamic logistics planning.
+
+</b></details>
+
+<details>
+<summary>Which algorithm is appropriate for extracting topics from text datasets or collections of documents?</summary><br><b>
+
+**Options:**
+- **A.** Neural Topic Modeling  
+- **B.** BlazingText  
+- **C.** Sequence-to-Sequence  
+- **D.** Random Cut Forest  
+
+**Answer:**  
+**A. Neural Topic Modeling**
+
+**Explanation:**  
+Neural Topic Modeling identifies abstract topics in text datasets using unsupervised learning techniques.
+
+</b></details>
+
+<details>
+<summary>Which algorithm should you use to locate objects in digital images and detect their bounding boxes?</summary><br><b>
+
+**Options:**
+- **A.** Semantic Segmentation  
+- **B.** Object Detection  
+- **C.** Image Classification  
+- **D.** PCA  
+
+**Answer:**  
+**B. Object Detection**
+
+**Explanation:**  
+Object Detection identifies objects in images and outputs their bounding boxes and associated classes.
+
+</b></details>
+
+<details>
+<summary>You want to reduce overfitting in a text classification model using the built-in SageMaker algorithm. Which algorithm can be used for this?</summary><br><b>
+
+**Options:**
+- **A.** BlazingText  
+- **B.** Linear Learner  
+- **C.** XGBoost  
+- **D.** Sequence-to-Sequence  
+
+**Answer:**  
+**A. BlazingText**
+
+**Explanation:**  
+BlazingText applies techniques like regularization and dropout to minimize overfitting in text classification models.
+
+</b></details>
+
+---
 
 <details>
 <summary> Lists AWS Glue components and their purposes and use cases:?.</code></summary><br><b>
