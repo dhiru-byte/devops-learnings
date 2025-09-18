@@ -113,6 +113,8 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
 
+---
+
 <details>
 <summary>What is the purpose of feature engineering in machine learning workflows?</summary><br><b>
 
@@ -312,8 +314,6 @@ Versioning in Amazon S3, combined with validation scripts for checksums or row c
 Feature scaling ensures equal contribution by bringing all feature values into the same range. This is crucial for models like Logistic Regression or Neural Networks that are sensitive to feature magnitudes.
 </b></details>
 
----
-
 <details>
 <summary>Which AWS service specifically supports feature engineering by creating embeddings for structured relationship data?</summary><br><b>
 
@@ -329,6 +329,8 @@ Feature scaling ensures equal contribution by bringing all feature values into t
 **Explanation:**  
 Amazon Neptune ML leverages graph neural networks to generate embeddings for conducting machine learning on highly connected datasets, such as social networks or recommendation systems.
 </b></details>
+
+---
 
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
