@@ -140,4 +140,22 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | AWS Glue DataBrew | Data preparation for ML and analytics through a no-code visual interface. | Preprocessing tool for preparing data before running machine learning workflows. |
 | Amazon Fraud Detector | Build and deploy fraud detection models. | Designed to detect fraud in real-time transactions with custom ML models. |
 | Amazon Neptune ML | Create, analyze, and query graphs using graph embeddings. | Machine learning for graph-based data in applications like social networks and knowledge graphs. |
+
+AWS Managed AI Service Chart                                                                                                                     
+-------------------------------------------------------------------------------------------------------------------------------------------------
+| Service                       | NLP    | Computer Vision  | Speech Processing | Time Series Prediction | Anomaly Detection | Generative AI    |
+-------------------------------------------------------------------------------------------------------------------------------------------------
+| Amazon Comprehend             |   ✔    |                 |                   |                        |                   |                 |
+| Amazon Rekognition            |        | ✔               |                   |                        |                   |                 |
+| Amazon Polly                  |        |                 | ✔                |                        |                   |                 |
+| Amazon Translate              |   ✔    |                 |                   |                        |                   |                 |
+| Amazon Forecast               |        |                 |                   |    ✔                   |                   |                 |
+| Amazon Lookout for Metrics    |        |                 |                   |                        |      ✔           |                 |
+| Amazon Bedrock                |        |                 |                   |                        |                   | ✔               |
+| Amazon SageMaker              |   ✔    | ✔               | ✔                |    ✔                   |      ✔           |                 |
+| AWS Panorama                  |        | ✔               |                   |                        |                   |                 |
+| Amazon Lex                    |   ✔    |                 | ✔                |                        |                   |                 |
+| Amazon Textract               |        | ✔               |                   |                        |                   |                 |
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
 </b></details>
