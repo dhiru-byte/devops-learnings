@@ -416,8 +416,8 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
 | **Amazon OpenSearch Service** | Search and Analytics            | Perform structured searches and real-time analytics on transformed data (e.g., logs, JSON, metrics).   | Optimized for structured search queries and visual analytics.                                        |
 | **Amazon DynamoDB Streams**   | Real-Time Streaming Data        | Integrate and transform change data captured in real-time from DynamoDB tables.                       | Specifically tied to DynamoDB for real-time data transformation and integration workflows.            |
 | **Amazon AppFlow**            | SaaS Data Integration           | Transfer and transform data between SaaS applications (e.g., Salesforce) and AWS services.            | A specialized tool for integrating and transferring data from SaaS platforms to AWS.                 |
-| **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.         
-</b></details>
+| **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.       </b></details>
+
 
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
