@@ -113,6 +113,249 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
 
+# AWS Machine Learning Exam Questions (Data Transformation, Integrity & Feature Engineering)
+
+---
+
+<details>
+<summary>What is the purpose of feature engineering in machine learning workflows?</summary><br><b>
+
+**Options:**
+- **A.** Simplify model deployment  
+- **B.** Improve data storage efficiency  
+- **C.** Select, transform, and prepare data for training  
+- **D.** Manage training infrastructure  
+
+**Answer:**  
+**C. Select, transform, and prepare data for training**
+
+**Explanation:**  
+Feature engineering involves selecting, transforming, and pre-processing data to make it suitable for training a machine learning model. It is a crucial step in creating high-quality datasets that improve model accuracy.
+</b></details>
+
+---
+
+<details>
+<summary>Which AWS service is most suitable for cleaning and normalizing data through a no-code interface?</summary><br><b>
+
+**Options:**
+- **A.** Amazon SageMaker  
+- **B.** AWS Glue DataBrew  
+- **C.** Amazon EMR  
+- **D.** AWS Data Pipeline  
+
+**Answer:**  
+**B. AWS Glue DataBrew**
+
+**Explanation:**  
+AWS Glue DataBrew provides a visual, no-code interface to clean, normalize, and transform data. It is specifically designed for users who require an easy-to-use tool for data preparation without writing complex scripts.
+</b></details>
+
+---
+
+<details>
+<summary>You query data stored in Amazon S3 using SQL for lightweight transformation. Which AWS service should you choose?</summary><br><b>
+
+**Options:**
+- **A.** Amazon Athena  
+- **B.** AWS Glue  
+- **C.** AWS Step Functions  
+- **D.** Amazon Kinesis Data Analytics  
+
+**Answer:**  
+**A. Amazon Athena**
+
+**Explanation:**  
+Amazon Athena is a serverless SQL-based query service that allows you to perform lightweight transformations and analysis directly on data stored in Amazon S3.
+</b></details>
+
+---
+
+<details>
+<summary>Which AWS service enables on-the-fly data preprocessing and transformation for machine learning workflows?</summary><br><b>
+
+**Options:**
+- **A.** Amazon S3  
+- **B.** Amazon SageMaker Data Wrangler  
+- **C.** AWS Glue Studio  
+- **D.** Amazon Redshift  
+
+**Answer:**  
+**B. Amazon SageMaker Data Wrangler**
+
+**Explanation:**  
+SageMaker Data Wrangler simplifies data preparation and feature engineering by providing an interactive interface for pre-processing datasets and exporting them directly into the machine learning pipeline.
+</b></details>
+
+---
+
+<details>
+<summary>How can you ensure data integrity during ETL (Extract, Transform, Load) processes?</summary><br><b>
+
+**Options:**
+- **A.** Use Amazon CloudWatch to trigger metrics  
+- **B.** Implement checksums or hashes during data transfer  
+- **C.** Use AWS Auto Scaling to handle data overflow  
+- **D.** Configure Amazon S3 bucket logging  
+
+**Answer:**  
+**B. Implement checksums or hashes during data transfer**
+
+**Explanation:**  
+Data integrity can be preserved by implementing validation mechanisms like checksums or hashes during and after the data transfer. AWS services like AWS Glue and Amazon S3 integrate integrity checks automatically during certain operations.
+</b></details>
+
+---
+
+<details>
+<summary>You need to join multiple datasets and transform them for downstream analysis. Which AWS service is the most suitable?</summary><br><b>
+
+**Options:**
+- **A.** Amazon Athena  
+- **B.** AWS Glue  
+- **C.** Amazon Kinesis Data Streams  
+- **D.** Amazon QuickSight  
+
+**Answer:**  
+**B. AWS Glue**
+
+**Explanation:**  
+AWS Glue is specifically designed for ETL operations required to join, clean, and transform data from multiple sources. It automates workflows and supports transformation at scale.
+</b></details>
+
+---
+
+<details>
+<summary>You are preparing a dataset for a regression model. Which preprocessing steps should you perform? (Select TWO)</summary><br><b>
+
+**Options:**
+- **A.** One-hot encode categorical features  
+- **B.** Normalize continuous features  
+- **C.** Apply dropout techniques to the dataset  
+- **D.** Use k-means clustering on the dataset  
+- **E.** Convert text features to binary files  
+
+**Answer:**  
+**A. One-hot encode categorical features**  
+**B. Normalize continuous features**
+
+**Explanation:**  
+For regression models:
+- **One-hot encoding** is used to convert categorical variables into binary format.  
+- **Normalization** scales continuous features to bring them within the same range, improving convergence during training.
+</b></details>
+
+---
+
+<details>
+<summary>Which AWS service would you use for real-time data transformation in streaming pipelines?</summary><br><b>
+
+**Options:**
+- **A.** Amazon Kinesis Data Analytics  
+- **B.** AWS Glue  
+- **C.** Amazon QuickSight  
+- **D.** Amazon S3  
+
+**Answer:**  
+**A. Amazon Kinesis Data Analytics**
+
+**Explanation:**  
+Amazon Kinesis Data Analytics allows you to process and transform streaming data in real-time using SQL, making it an ideal choice for real-time transformations.
+</b></details>
+
+---
+
+<details>
+<summary>Which technique would you use to handle missing data in a dataset? (Select TWO)</summary><br><b>
+
+**Options:**
+- **A.** Impute missing values with the median or mean  
+- **B.** Use SageMaker Debugger to detect missing data  
+- **C.** Remove rows or columns with missing values  
+- **D.** Use SageMaker Model Monitoring for missing data adjustments  
+
+**Answer:**  
+**A. Impute missing values with the median or mean**  
+**C. Remove rows or columns with missing values**
+
+**Explanation:**  
+Handling missing data is essential for clean datasets:
+- Imputing replaces missing values with the mean or median.
+- Removing rows or columns is used when missing data is substantial and cannot be meaningfully imputed.
+</b></details>
+
+---
+
+<details>
+<summary>Which AWS service would you use to orchestrate complex ETL workflows across multiple services?</summary><br><b>
+
+**Options:**
+- **A.** AWS Step Functions  
+- **B.** AWS Glue DataBrew  
+- **C.** Amazon SageMaker  
+- **D.** Amazon EMR  
+
+**Answer:**  
+**A. AWS Step Functions**
+
+**Explanation:**  
+AWS Step Functions is a workflow orchestration service that integrates with multiple AWS services, such as Glue, Lambda, and SageMaker, to enable seamless ETL pipeline execution.
+</b></details>
+
+---
+
+<details>
+<summary>Which data integrity mechanism can ensure transformed datasets match the original source datasets in AWS Glue?</summary><br><b>
+
+**Options:**
+- **A.** Implement AWS Glue crawlers  
+- **B.** Configure job bookmarks in Glue  
+- **C.** Use S3 Versioning and data validation scripts  
+- **D.** Utilize Amazon EMR’s Auto Scaling feature  
+
+**Answer:**  
+**C. Use S3 Versioning and data validation scripts**
+
+**Explanation:**  
+Versioning in Amazon S3, combined with validation scripts for checksums or row counts, ensures that transformed datasets retain data integrity against their original source datasets during Glue workflows.
+</b></details>
+
+---
+
+<details>
+<summary>What is a key reason to use feature scaling in machine learning workflows?</summary><br><b>
+
+**Options:**
+- **A.** To improve the interpretability of trained models  
+- **B.** To handle highly skewed datasets  
+- **C.** To ensure all features contribute equally to model training  
+- **D.** To reduce dataset size for faster computation  
+
+**Answer:**  
+**C. To ensure all features contribute equally to model training**
+
+**Explanation:**  
+Feature scaling ensures equal contribution by bringing all feature values into the same range. This is crucial for models like Logistic Regression or Neural Networks that are sensitive to feature magnitudes.
+</b></details>
+
+---
+
+<details>
+<summary>Which AWS service specifically supports feature engineering by creating embeddings for structured relationship data?</summary><br><b>
+
+**Options:**
+- **A.** Amazon SageMaker Processing  
+- **B.** Amazon Neptune ML  
+- **C.** AWS Data Pipeline  
+- **D.** Amazon Kinesis Data Firehose  
+
+**Answer:**  
+**B. Amazon Neptune ML**
+
+**Explanation:**  
+Amazon Neptune ML leverages graph neural networks to generate embeddings for conducting machine learning on highly connected datasets, such as social networks or recommendation systems.
+</b></details>
+
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
   
