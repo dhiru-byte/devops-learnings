@@ -382,63 +382,6 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
 </b></details>
 
 <details>
-<summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
-  
-| Service | Key Use Cases | Key Difference |
-| :-- | :-- | :-- |
-| Amazon Comprehend | NLP/Text Analytics | Text analytics, sentiment analysis, entity recognition, and language processing. |
-| Amazon Rekognition | Computer Vision | Image/video analysis, object detection, facial recognition, and label detection. |
-| Amazon Polly | Speech AI | Text-to-speech conversion with lifelike voices for interactive applications. |
-| Amazon Translate | NLP/Language Translation | Language translation across multiple languages. |
-| Amazon Forecast | Time Series Forecasting | Predict future outcomes like financial metrics, inventory, and demand planning. |
-| Amazon Lookout for Metrics | Anomaly Detection | Detection of anomalies in metrics like revenue, sales, and operational data. |
-| Amazon Lookout for Vision | Computer Vision | Detect quality defects in manufactured products with computer vision. |
-| Amazon Bedrock | Generative AI | Run and scale generative AI models like GPT, Claude, and others on AWS infrastructure. |
-| Amazon SageMaker | End-to-End ML Platform | Build, train, and deploy custom machine learning models. |
-| AWS Panorama | Edge AI | Edge computer vision for analyzing on-premises video streams locally in low-latency environments. |
-| Amazon Lex | Conversational AI | Conversational AI for creating chatbots or voice bots for customer service and virtual assistants. |
-| Amazon Textract | Document Processing | Extract text, tables, and forms from scanned documents. |
-| Amazon Personalize | Recommendations | Build personalized recommendations for users (e.g., e-commerce, media). |
-| Amazon CodeWhisperer | Developer Productivity | AI-powered code suggestions and completions to enhance developer productivity. |
-| Amazon HealthLake | Healthcare AI | Process and analyze health-related data, store, and transform data in HL7 FHIR format. |
-| AWS Q Business | Business Optimization | Optimization and quantum-inspired solutions for solving complex computational problems in logistics, finance, and manufacturing. |
-| Amazon Fraud Detector | Fraud Detection | Detect and prevent online fraud in real time. |
-| Amazon Transcribe | Speech-to-Text Conversion | Automatic transcription of spoken language from audio files. |
-| AWS DeepLens | Computer Vision/Hardware | Edge hardware for computer vision modeling and deployment. |
-| Amazon Kendra | Enterprise Search | Enhances enterprise productivity with machine learning-powered contextual search across large data sources. |
-| AWS Glue DataBrew | Data Preparation | No-code data preparation for machine learning workflows and analytics. |
-| Amazon Neptune ML | Graph ML | Use graph machine learning models to analyze relationships in highly connected data. |
-
-# AWS Managed AI Services (Including AWS Q Business)
-
-| **Service**                   | **Category**                | **NLP** | **Computer Vision** | **Speech Processing** | **Time Series Prediction** | **Anomaly Detection** | **Generative AI** | **Optimization** |
-|-------------------------------|-----------------------------|---------|----------------------|------------------------|----------------------------|-----------------------|-------------------|------------------|
-| **Amazon Comprehend**         | NLP/Text Analytics         | ✔       |                      |                        |                            |                       |                   |                  |
-| **Amazon Rekognition**        | Computer Vision            |         | ✔                    |                        |                            |                       |                   |                  |
-| **Amazon Polly**              | Speech AI                 |         |                      | ✔                      |                            |                       |                   |                  |
-| **Amazon Translate**          | NLP/Language Translation   | ✔       |                      |                        |                            |                       |                   |                  |
-| **Amazon Forecast**           | Time Series Forecasting    |         |                      |                        | ✔                          |                       |                   |                  |
-| **Amazon Lookout for Metrics**| Anomaly Detection          |         |                      |                        |                            | ✔                     |                   |                  |
-| **Amazon Lookout for Vision** | Computer Vision            |         | ✔                    |                        |                            |                       |                   |                  |
-| **Amazon Bedrock**            | Generative AI              |         |                      |                        |                            |                       | ✔                 |                  |
-| **Amazon SageMaker**          | End-to-End ML Platform     | ✔       | ✔                    | ✔                      | ✔                          | ✔                     |                   | ✔                |
-| **AWS Panorama**              | Edge AI                   |         | ✔                    |                        |                            |                       |                   |                  |
-| **Amazon Lex**                | Conversational AI          | ✔       |                      | ✔                      |                            |                       |                   |                  |
-| **Amazon Textract**           | Document Processing        |         | ✔                    |                        |                            |                       |                   |                  |
-| **Amazon Personalize**        | Recommendations            | ✔       |                      |                        |                            | ✔                     |                   |                  |
-| **Amazon CodeWhisperer**      | Developer Productivity     |         |                      |                        |                            |                       |                   |                  |
-| **Amazon HealthLake**         | Healthcare AI              | ✔       |                      |                        | ✔                          | ✔                     |                   |                  |
-| **AWS Q Business**            | Business Optimization      |         |                      |                        |                            |                       |                   | ✔                |
-| **Amazon Fraud Detector**     | Fraud Detection            |         |                      |                        |                            | ✔                     |                   |                  |
-| **Amazon Transcribe**         | Speech-to-Text Conversion  |         |                      | ✔                      |                            |                       |                   |                  |
-| **AWS DeepLens**              | Computer Vision/Hardware   |         | ✔                    |                        |                            |                       |                   |                  |
-| **Amazon Kendra**             | Enterprise Search          | ✔       |                      |                        |                            |                       |                   |                  |
-| **AWS Glue DataBrew**         | Data Preparation           |         |                      |                        |                            |                       |                   |                  |
-| **Amazon Neptune ML**         | Graph ML                  |         |                      |                        |                            |                       |                   |                  |
-
-</b></details>
-
-<details>
 <summary> List all AWS Managed Data Transformation Integration and Feature Engineering Services ?.</code></summary><br><b>
   
 | Use Case | Recommended Service |
@@ -474,4 +417,34 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
 | **Amazon DynamoDB Streams**   | Real-Time Streaming Data        | Integrate and transform change data captured in real-time from DynamoDB tables.                       | Specifically tied to DynamoDB for real-time data transformation and integration workflows.            |
 | **Amazon AppFlow**            | SaaS Data Integration           | Transfer and transform data between SaaS applications (e.g., Salesforce) and AWS services.            | A specialized tool for integrating and transferring data from SaaS platforms to AWS.                 |
 | **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                        | Designed for large-scale compute-intensive, batch-driven workflows.         
+</b></details>
+
+<details>
+<summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
+  
+| Service | Key Use Cases | Key Difference |
+| :-- | :-- | :-- |
+| Amazon Comprehend | NLP/Text Analytics | Text analytics, sentiment analysis, entity recognition, and language processing. |
+| Amazon Rekognition | Computer Vision | Image/video analysis, object detection, facial recognition, and label detection. |
+| Amazon Polly | Speech AI | Text-to-speech conversion with lifelike voices for interactive applications. |
+| Amazon Translate | NLP/Language Translation | Language translation across multiple languages. |
+| Amazon Forecast | Time Series Forecasting | Predict future outcomes like financial metrics, inventory, and demand planning. |
+| Amazon Lookout for Metrics | Anomaly Detection | Detection of anomalies in metrics like revenue, sales, and operational data. |
+| Amazon Lookout for Vision | Computer Vision | Detect quality defects in manufactured products with computer vision. |
+| Amazon Bedrock | Generative AI | Run and scale generative AI models like GPT, Claude, and others on AWS infrastructure. |
+| Amazon SageMaker | End-to-End ML Platform | Build, train, and deploy custom machine learning models. |
+| AWS Panorama | Edge AI | Edge computer vision for analyzing on-premises video streams locally in low-latency environments. |
+| Amazon Lex | Conversational AI | Conversational AI for creating chatbots or voice bots for customer service and virtual assistants. |
+| Amazon Textract | Document Processing | Extract text, tables, and forms from scanned documents. |
+| Amazon Personalize | Recommendations | Build personalized recommendations for users (e.g., e-commerce, media). |
+| Amazon CodeWhisperer | Developer Productivity | AI-powered code suggestions and completions to enhance developer productivity. |
+| Amazon HealthLake | Healthcare AI | Process and analyze health-related data, store, and transform data in HL7 FHIR format. |
+| AWS Q Business | Business Optimization | Optimization and quantum-inspired solutions for solving complex computational problems in logistics, finance, and manufacturing. |
+| Amazon Fraud Detector | Fraud Detection | Detect and prevent online fraud in real time. |
+| Amazon Transcribe | Speech-to-Text Conversion | Automatic transcription of spoken language from audio files. |
+| AWS DeepLens | Computer Vision/Hardware | Edge hardware for computer vision modeling and deployment. |
+| Amazon Kendra | Enterprise Search | Enhances enterprise productivity with machine learning-powered contextual search across large data sources. |
+| AWS Glue DataBrew | Data Preparation | No-code data preparation for machine learning workflows and analytics. |
+| Amazon Neptune ML | Graph ML | Use graph machine learning models to analyze relationships in highly connected data. |
+
 </b></details>
