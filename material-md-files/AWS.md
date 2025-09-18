@@ -420,8 +420,6 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
                                            |
 </b></details>
 
----
-
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
   
