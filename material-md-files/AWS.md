@@ -330,6 +330,229 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
 </b></details>
 
 ---
+# AWS Machine Learning Associate Exam - SageMaker Questions and Answers
+<details>
+<summary>Which SageMaker component is used to visually prepare and transform datasets without writing code?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Processing  
+- **B.** SageMaker Studio  
+- **C.** SageMaker Data Wrangler  
+- **D.** SageMaker Autopilot  
+
+**Answer:**  
+**C. SageMaker Data Wrangler**
+
+**Explanation:**  
+SageMaker Data Wrangler provides a visual, no-code interface to prepare, clean, and transform datasets for machine learning workflows.
+
+</b></details>
+
+<details>
+<summary>What is the primary purpose of SageMaker Model Monitor?</summary><br><b>
+
+**Options:**
+- **A.** Automate data labeling for supervised learning.  
+- **B.** Debug model training jobs for performance bottlenecks.  
+- **C.** Detect model prediction drift and anomalies in production.  
+- **D.** Optimize models for edge devices.  
+
+**Answer:**  
+**C. Detect model prediction drift and anomalies in production**
+
+**Explanation:**  
+SageMaker Model Monitor detects changes in incoming data, concept drift, or anomalies in model predictions, ensuring the deployed model's accuracy over time.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker feature allows you to orchestrate an end-to-end machine learning workflow, including data preparation, training, and deployment?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Autopilot  
+- **B.** SageMaker Processing Jobs  
+- **C.** SageMaker Pipelines  
+- **D.** SageMaker Debugger  
+
+**Answer:**  
+**C. SageMaker Pipelines**
+
+**Explanation:**  
+SageMaker Pipelines is used to automate and orchestrate the entire ML workflow, including data preparation, feature engineering, model training, tuning, and deployment.
+
+</b></details>
+
+<details>
+<summary>Which feature in SageMaker is specifically designed for training jobs to detect performance issues during model training?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Debugger  
+- **B.** SageMaker Processing  
+- **C.** SageMaker Pipelines  
+- **D.** SageMaker Model Monitor  
+
+**Answer:**  
+**A. SageMaker Debugger**
+
+**Explanation:**  
+SageMaker Debugger provides tools to debug and monitor training jobs, identifying performance issues like underfitting, overfitting, and hardware bottlenecks during training.
+
+</b></details>
+
+<details>
+<summary>What is the purpose of the SageMaker Feature Store?</summary><br><b>
+
+**Options:**
+- **A.** To preprocess data for machine learning models.  
+- **B.** To store, share, and reuse features across teams and workflows.  
+- **C.** To automate model training.  
+- **D.** To deploy models to edge devices.  
+
+**Answer:**  
+**B. To store, share, and reuse features across teams and workflows**
+
+**Explanation:**  
+The SageMaker Feature Store allows you to create, manage, and share reusable features across different teams and ML projects, ensuring consistency and efficiency.
+
+</b></details>
+
+<details>
+<summary>You need to train a machine learning model on a large dataset that doesn't fit in memory. Which SageMaker feature would you use?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Pipelines  
+- **B.** SageMaker Training with Pipe Mode  
+- **C.** SageMaker Autopilot  
+- **D.** SageMaker Debugger  
+
+**Answer:**  
+**B. SageMaker Training with Pipe Mode**
+
+**Explanation:**  
+SageMaker Training with **Pipe Mode** streams data directly from Amazon S3 to training algorithms, eliminating the need to fit the entire dataset into memory.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker feature should you use to automatically generate an ML model without writing custom algorithms?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Studio  
+- **B.** SageMaker Data Wrangler  
+- **C.** SageMaker Autopilot  
+- **D.** SageMaker Feature Store  
+
+**Answer:**  
+**C. SageMaker Autopilot**
+
+**Explanation:**  
+SageMaker Autopilot automatically trains and tunes models based on your dataset while providing transparency into the models and underlying processes.
+
+</b></details>
+
+<details>
+<summary>Which file format is recommended for distributed training in SageMaker?</summary><br><b>
+
+**Options:**
+- **A.** CSV files stored in S3 buckets  
+- **B.** JSON files stored in DynamoDB  
+- **C.** RecordIO files in augmented manifest format  
+- **D.** Parquet files stored in S3 buckets  
+
+**Answer:**  
+**C. RecordIO files in augmented manifest format**
+
+**Explanation:**  
+The RecordIO format in the augmented manifest format is ideal for efficient distributed training as it provides faster reading and processing of large datasets.
+
+</b></details>
+
+<details>
+<summary>How can you deploy a trained SageMaker model for real-time inference?</summary><br><b>
+
+**Options:**
+- **A.** Use SageMaker Processing  
+- **B.** Deploy the model to a SageMaker Endpoint  
+- **C.** Use SageMaker Data Wrangler  
+- **D.** Integrate the model with Lambda directly  
+
+**Answer:**  
+**B. Deploy the model to a SageMaker Endpoint**
+
+**Explanation:**  
+SageMaker Endpoints allow you to deploy trained models for real-time inference and handle production workloads efficiently.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker component can be used to label datasets for supervised machine learning?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Model Monitor  
+- **B.** SageMaker Ground Truth  
+- **C.** SageMaker Autopilot  
+- **D.** SageMaker JumpStart  
+
+**Answer:**  
+**B. SageMaker Ground Truth**
+
+**Explanation:**  
+SageMaker Ground Truth is used to label datasets either through human annotation or semi-automated processes, which is critical for building supervised learning models.
+
+</b></details>
+
+<details>
+<summary>What is SageMaker Neo used for?</summary><br><b>
+
+**Options:**
+- **A.** Optimizing models for deployment to edge devices.  
+- **B.** Debugging underperforming training jobs.  
+- **C.** Preprocessing raw data for model training.  
+- **D.** Managing the storage of feature data.  
+
+**Answer:**  
+**A. Optimizing models for deployment to edge devices**
+
+**Explanation:**  
+SageMaker Neo helps optimize ML models to run on edge devices with reduced latency and lower resource consumption.
+
+</b></details>
+
+<details>
+<summary>Which SageMaker feature is recommended for batch inference use cases?</summary><br><b>
+
+**Options:**
+- **A.** SageMaker Training  
+- **B.** SageMaker Processing  
+- **C.** SageMaker Transform Jobs  
+- **D.** SageMaker Debugger  
+
+**Answer:**  
+**C. SageMaker Transform Jobs**
+
+**Explanation:**  
+SageMaker Transform Jobs are specifically designed for non-real-time batch inference tasks where predictions need to be made on large datasets.
+
+</b></details>
+
+<details>
+<summary>What is the purpose of SageMaker JumpStart?</summary><br><b>
+
+**Options:**
+- **A.** Automate and deploy prebuilt ML models for common business problems.  
+- **B.** Debug training pipelines for faster iteration cycles.  
+- **C.** Store reusable ML features for later use.  
+- **D.** Create end-to-end workflows for data preprocessing and training.  
+
+**Answer:**  
+**A. Automate and deploy prebuilt ML models for common business problems**
+
+**Explanation:**  
+SageMaker JumpStart provides pre-trained models, examples, and templates to help you quickly build and deploy machine learning solutions for common use cases.
+
+</b></details>
+
+---
 
 <details>
 <summary> Lists AWS Glue components and their purposes and use cases:?.</code></summary><br><b>
