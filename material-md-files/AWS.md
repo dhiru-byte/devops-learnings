@@ -330,6 +330,32 @@ Amazon Neptune ML leverages graph neural networks to generate embeddings for con
 </b></details>
 
 ---
+<details>
+<summary>   Amazon SageMaker's components and their use cases for various purposes .</code></summary><br><b>
+# Amazon SageMaker Components and Their Use Cases
+
+| **Component**                       | **Purpose**                               | **Use Cases**                                                                                         |
+|-------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| **SageMaker Studio**                | Integrated Development Environment (IDE) | Allows data scientists and developers to build, train, debug, and deploy ML models in a unified interface. |
+| **SageMaker Data Wrangler**         | Data Preparation and Feature Engineering  | Simplifies data preparation, cleaning, and feature engineering for machine learning workflows.         |
+| **SageMaker Autopilot**             | Build Models Automatically                | Automatically trains and tunes the best ML model based on your data while providing visibility into the process. |
+| **SageMaker Training**              | Model Training                            | Trains ML models at scale with support for distributed training and custom training scripts.           |
+| **SageMaker Processing**            | Data Preprocessing and Post-processing    | Run data preprocessing, post-processing tasks, or batch inference workloads using managed infrastructure. |
+| **SageMaker Feature Store**         | Feature Management                        | Centralize, create, and reuse features for ML models across teams and projects.                        |
+| **SageMaker Debugger**              | Debugging and Insights                    | Analyzes and debugs training jobs by identifying performance bottlenecks and providing actionable insights. |
+| **SageMaker Model Monitor**         | Model Monitoring in Production            | Detects deviations, concept drift, and anomalies in model predictions to ensure accurate and reliable production models. |
+| **SageMaker Pipelines**             | Machine Learning Pipelines                | Automates and orchestrates workflows for data preparation, model building, training, optimization, and deployment. |
+| **SageMaker Ground Truth**          | Data Labeling                             | Builds accurate ground truth datasets for supervised learning by enabling human labeling tasks or semi-automation. |
+| **SageMaker Neo**                   | Model Optimization for Edge               | Optimizes machine learning models to run faster and at lower latency on edge devices and hardware.      |
+| **SageMaker JumpStart**             | Prebuilt Solutions and Models             | Provides pre-trained models, solution templates, and example notebooks for various ML use cases.        |
+| **SageMaker Inference Recommender** | Recommendation for Deployment             | Automates the selection of the best resources for deploying machine learning models.                    |
+| **SageMaker Hosting/Inferences**    | Model Deployment and Inference            | Deploys trained models as endpoints for real-time, batch, and asynchronous inference.                   |
+| **SageMaker Clarify**               | Data Bias and Model Explainability        | Detects bias in your data and explains model predictions for fairness and transparency.                 |
+| **SageMaker Model Registry**        | Centralized Model Repository              | Tracks and manages ML models and their versions for streamlined deployment and governance.              |
+| **SageMaker Marketplace**           | External Model Use                        | Allows you to use and deploy pre-trained machine learning models and algorithms from third-party vendors. |
+| **SageMaker Edge Manager**          | Edge Device Management                    | Deploys, manages, and monitors models on thousands of edge devices.                                    |
+
+</b></details>
 
 <details>
 <summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
