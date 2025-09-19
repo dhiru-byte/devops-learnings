@@ -20,7 +20,7 @@
 
 [CKA](https://github.com/walidshaari/Kubernetes-Certified-Administrator) / [CKAD](https://github.com/dgkanatsios/CKAD-exercises)
 
-[AWS](material-md-files/AWS.md) [AWS_MLCA_01](AWS_MLCA_01.md)
+[AWS](material-md-files/AWS.md) [AWS_MLCA_01](material-md-files/AWS_MLCA_01.md)
 
 [AWS-Kubeadm-terraform](https://github.com/graykode/aws-kubeadm-terraform) 
 
