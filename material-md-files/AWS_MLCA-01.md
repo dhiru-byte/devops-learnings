@@ -11,8 +11,6 @@
 <details>
 <summary> AWS Machine Learning Services.</code></summary><br><b>
 
-# AWS AI/ML Services – Full Reference Chart
-
 | Service | Category | What It Does | When to Use |
 |----------|-----------|--------------|-------------|
 | **Amazon Augmented AI (A2I)** | Human-in-the-Loop Machine Learning | Integrates human review into ML predictions | When model outputs need human verification (sensitive documents, low-confidence predictions) |
@@ -48,7 +46,7 @@
 </b></details>
 
 <details>
-<summary> Analytics Services (Data Transformation Integration and Feature Engineering Services) ?.</code></summary><br><b>
+<summary> Analytics Services (Data Transformation Integration and Feature Engineering Services).</code></summary><br><b>
 
 # AWS Data Analytics & Processing Services
 
@@ -71,7 +69,7 @@
 
 
 <details>
-<summary> Lists AWS Glue components and their purposes and use cases:?.</code></summary><br><b>
+<summary> Lists AWS Glue components and their purposes and use cases.</code></summary><br><b>
 # AWS Glue Components and Their Use Cases
 
 | **Component**              | **Purpose**                                | **Use Cases**                                                                                 |
@@ -94,7 +92,7 @@
 </b></details>
 
 <details>
-<summary> List all AWS SageMaker's components and their use cases for various purposes .</code></summary><br><b>
+<summary> List all AWS SageMaker's components and their use cases for various purposes.</code></summary><br><b>
 # Amazon SageMaker Components and Their Use Cases
 
 | **Component**                       | **Purpose**                               | **Use Cases**                                                                                         |
@@ -149,7 +147,7 @@
 </b></details>
 
 <details>
-<summary> Bullet points for Frame ML problem .</code></summary><br><b>
+<summary> Bullet points for Frame ML problem.</code></summary><br><b>
   
 ### Establish ML Roles and Responsibilities
 - SageMaker Role Manager
