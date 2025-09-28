@@ -218,35 +218,6 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 </b></details>
 
-<details>
-<summary>  List all AWS Managed AI Services ?.</code></summary><br><b>
-  
-| Service | Key Use Cases | Key Difference |
-| :-- | :-- | :-- |
-| Amazon Comprehend | NLP/Text Analytics | Text analytics, sentiment analysis, entity recognition, and language processing. |
-| Amazon Rekognition | Computer Vision | Image/video analysis, object detection, facial recognition, and label detection. |
-| Amazon Polly | Speech AI | Text-to-speech conversion with lifelike voices for interactive applications. |
-| Amazon Translate | NLP/Language Translation | Language translation across multiple languages. |
-| Amazon Forecast | Time Series Forecasting | Predict future outcomes like financial metrics, inventory, and demand planning. |
-| Amazon Lookout for Metrics | Anomaly Detection | Detection of anomalies in metrics like revenue, sales, and operational data. |
-| Amazon Lookout for Vision | Computer Vision | Detect quality defects in manufactured products with computer vision. |
-| Amazon Bedrock | Generative AI | Run and scale generative AI models like GPT, Claude, and others on AWS infrastructure. |
-| Amazon SageMaker | End-to-End ML Platform | Build, train, and deploy custom machine learning models. |
-| AWS Panorama | Edge AI | Edge computer vision for analyzing on-premises video streams locally in low-latency environments. |
-| Amazon Lex | Conversational AI | Conversational AI for creating chatbots or voice bots for customer service and virtual assistants. |
-| Amazon Textract | Document Processing | Extract text, tables, and forms from scanned documents. |
-| Amazon Personalize | Recommendations | Build personalized recommendations for users (e.g., e-commerce, media). |
-| Amazon CodeWhisperer | Developer Productivity | AI-powered code suggestions and completions to enhance developer productivity. |
-| Amazon HealthLake | Healthcare AI | Process and analyze health-related data, store, and transform data in HL7 FHIR format. |
-| AWS Q Business | Business Optimization | Optimization and quantum-inspired solutions for solving complex computational problems in logistics, finance, and manufacturing. |
-| Amazon Fraud Detector | Fraud Detection | Detect and prevent online fraud in real time. |
-| Amazon Transcribe | Speech-to-Text Conversion | Automatic transcription of spoken language from audio files. |
-| AWS DeepLens | Computer Vision/Hardware | Edge hardware for computer vision modeling and deployment. |
-| Amazon Kendra | Enterprise Search | Enhances enterprise productivity with machine learning-powered contextual search across large data sources. |
-| AWS Glue DataBrew | Data Preparation | No-code data preparation for machine learning workflows and analytics. |
-| Amazon Neptune ML | Graph ML | Use graph machine learning models to analyze relationships in highly connected data. |
-
-</b></details>
 
 <details>
 <summary> ML Problem Framing: The ML Lifecycle.</code></summary><br><b>
@@ -260,30 +231,40 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 <details>
 <summary> AWS Machine Learning Services.</code></summary><br><b>
 
-| Service | What It Does | When to Use |
-|----------|--------------|-------------|
-| **Amazon Augmented AI (A2I)** | Integrate human review into ML predictions | When model outputs need human verification (e.g., sensitive documents, low-confidence predictions) |
-| **Amazon Bedrock** | Access foundation models via API without managing infrastructure | Build generative AI apps (text, chatbots, summarization) without training large models |
-| **Amazon CodeGuru** | Automated code reviews and performance recommendations | Optimize application performance and detect security issues |
-| **Amazon Comprehend** | NLP for text: sentiment, entities, key phrases | Extract meaning from unstructured text like reviews, emails |
-| **Amazon Comprehend Medical** | Specialized NLP for healthcare data | Analyze clinical notes or health records, HIPAA-compliant |
-| **Amazon DevOps Guru** | ML-based operational issue and anomaly detection | Proactive monitoring and fixing of performance issues |
-| **Amazon Fraud Detector** | Detects fraudulent online activities | For transaction fraud, fake accounts, suspicious logins |
-| **AWS HealthLake** | HIPAA-eligible data lake for healthcare | Store, analyze, and run ML on large healthcare datasets |
-| **Amazon Kendra** | Enterprise search powered by ML | Intelligent search across internal docs, FAQs, manuals |
-| **Amazon Lex** | Build conversational interfaces (chatbots/IVR) | Integrate chatbots or voicebots with AWS services |
-| **Amazon Lookout for Equipment** | Predictive maintenance for industrial equipment | Forecast equipment failure, schedule maintenance |
-| **Amazon Lookout for Metrics** | Detect anomalies in business or operational metrics | Monitor KPIs (conversion rates, revenue, user activity) without manual thresholds |
-| **Amazon Lookout for Vision** | Detects defects/anomalies in images | For manufacturing quality control, defect detection |
-| **Amazon Mechanical Turk** | Crowdsourced workforce for small tasks | Label training data, surveys, human intelligence tasks |
-| **Amazon Personalize** | Recommendation engine | Build tailored recommendations for products or content |
-| **Amazon Polly** | Text-to-speech with realistic voices | Add spoken audio to apps, IVR systems, or accessibility tools |
-| **Amazon Q** | AI-powered business assistant | Chat with enterprise data, automate workflows |
-| **Amazon Rekognition** | Image and video analysis: faces, objects, moderation | Image/video classification, security surveillance |
-| **Amazon SageMaker** | Fully managed ML platform to build, train, deploy models | End-to-end ML development without managing servers |
-| **Amazon Textract** | Extracts text/structured data from scanned documents | Digitize paper forms, invoices, or contracts |
-| **Amazon Transcribe** | Automatic speech-to-text conversion | Transcribe calls, create subtitles, convert voice notes |
-| **Amazon Translate** | Neural machine translation between languages | Real-time or batch translation of text or documents |
+# AWS AI/ML Services – Full Reference Chart
+
+| Service | Category | What It Does | When to Use |
+|----------|-----------|--------------|-------------|
+| **Amazon Augmented AI (A2I)** | Human-in-the-Loop Machine Learning | Integrates human review into ML predictions | When model outputs need human verification (sensitive documents, low-confidence predictions) |
+| **Amazon Bedrock** | Generative AI | Run and scale generative AI models like GPT, Claude, and others on AWS infrastructure | Build generative AI apps without training your own large model |
+| **Amazon CodeGuru** | Developer Productivity | Automated code reviews and performance recommendations | Optimize application performance and detect security issues |
+| **Amazon Comprehend** | NLP/Text Analytics | Text analytics, sentiment analysis, entity recognition, and language processing | Extract meaning from unstructured text like reviews or emails |
+| **Amazon Comprehend Medical** | Healthcare NLP | Extracts medical entities and codes (ICD-10, RxNorm) from unstructured medical text | Analyze clinical notes or health records in a HIPAA-compliant way |
+| **Amazon DevOps Guru** | Operational Intelligence | Uses ML to automatically detect operational issues and anomalies in applications | Proactive monitoring and anomaly detection for app performance |
+| **Amazon Fraud Detector** | Fraud Detection | Detect and prevent online fraud in real time | Transaction fraud, fake account sign-ups, or suspicious logins |
+| **Amazon Forecast** | Time Series Forecasting | Predict future outcomes like financial metrics, inventory, and demand planning | Demand planning, resource allocation, and forecasting trends |
+| **AWS HealthLake** | Healthcare AI | Process and analyze health-related data, store and transform data in HL7 FHIR format | Centralize, normalize, and analyze large volumes of healthcare data |
+| **Amazon Kendra** | Enterprise Search | Enhances enterprise productivity with machine learning-powered contextual search across large data sources | Intelligent search across internal docs, FAQs, manuals |
+| **Amazon Lex** | Conversational AI | Conversational AI for creating chatbots or voice bots for customer service and virtual assistants | Build chatbots or IVR systems integrated with AWS |
+| **Amazon Lookout for Equipment** | Predictive Maintenance | Analyzes sensor data from industrial equipment to predict potential failures | Predictive maintenance for manufacturing, energy, or industrial operations |
+| **Amazon Lookout for Metrics** | Anomaly Detection | Detection of anomalies in metrics like revenue, sales, and operational data | Monitor KPIs without manually setting thresholds |
+| **Amazon Lookout for Vision** | Computer Vision | Detect quality defects in manufactured products with computer vision | Manufacturing quality control and defect detection |
+| **Amazon Mechanical Turk** | Human Workforce / Data Labeling | Provides a global workforce for data labeling and human intelligence tasks | Human labeling, surveys, or manual data verification tasks |
+| **Amazon Personalize** | Recommendations | Build personalized recommendations for users (e-commerce, media) | Personalized product/content recommendations |
+| **Amazon Polly** | Speech AI | Text-to-speech conversion with lifelike voices for interactive applications | Add spoken audio to apps, IVR systems, or accessibility tools |
+| **Amazon Q** | AI-Powered Business Assistant | Generative AI for your enterprise data and apps | Chat with enterprise data, automate workflows |
+| **Amazon Rekognition** | Computer Vision | Image/video analysis, object detection, facial recognition, and label detection | Image/video classification, surveillance, and moderation |
+| **Amazon SageMaker** | End-to-End ML Platform | Build, train, and deploy custom machine learning models | Full ML development lifecycle without managing servers |
+| **Amazon Textract** | Document Processing | Extract text, tables, and forms from scanned documents | Digitize paper forms, invoices, or contracts |
+| **Amazon Transcribe** | Speech-to-Text Conversion | Automatic transcription of spoken language from audio files | Transcribe calls, create subtitles, convert voice notes |
+| **Amazon Translate** | NLP/Language Translation | Language translation across multiple languages | Real-time or batch translation of text or documents |
+| **AWS Panorama** | Edge AI | Edge computer vision for analyzing on-premises video streams locally in low-latency environments | On-premise video analytics without sending data to the cloud |
+| **Amazon CodeWhisperer** | Developer Productivity | AI-powered code suggestions and completions to enhance developer productivity | Speed up coding tasks and improve code quality |
+| **AWS Q Business** | Business Optimization | Optimization and quantum-inspired solutions for solving complex computational problems in logistics, finance, and manufacturing | Solve optimization-heavy business problems |
+| **AWS DeepLens** | Computer Vision/Hardware | Edge hardware for computer vision modeling and deployment | Develop and deploy CV models on physical hardware devices |
+| **AWS Glue DataBrew** | Data Preparation | No-code data preparation for machine learning workflows and analytics | Clean and prepare data quickly for analytics or ML |
+| **Amazon Neptune ML** | Graph Machine Learning | Use graph machine learning models to analyze relationships in highly connected data | Social networks, fraud detection, recommendation engines |
+
 
 </b></details>
 
