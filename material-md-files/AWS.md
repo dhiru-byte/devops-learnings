@@ -247,3 +247,45 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | Amazon Neptune ML | Graph ML | Use graph machine learning models to analyze relationships in highly connected data. |
 
 </b></details>
+
+<details>
+<summary> Bullet points for Frame ML problem .</code></summary><br><b>
+
+
+**Establish ML roles and responsibilities**  
+SageMaker Role Manager  
+
+**Prepare an ML profile template**  
+Document the resources required  
+
+**Establish model improvement strategies**  
+SageMaker Experiments, hyper-parameter optimization, AutoML  
+
+**Establish a lineage tracker system**  
+SageMaker Lineage Tracking, Pipelines, Studio, Feature Store, Model Registry  
+
+**Establish feedback loops across ML lifecycle phases**  
+SageMaker Model Monitor, CloudWatch, Amazon Augmented AI (A2I)  
+
+**Review fairness and explainability**  
+SageMaker Clarify  
+
+**Design data encryption and obfuscation**  
+(Glue DataBrew)  
+
+**Use APIs to abstract change from model consuming applications**  
+SageMaker + API Gateway  
+
+**Adopt a machine learning microservice strategy**  
+Lambda, Fargate  
+
+**Use purpose-built AI and ML services and resources**  
+SageMaker, JumpStart, Marketplace  
+
+**Define relevant evaluation metrics**  
+
+**Identify if machine learning is the right solution**  
+
+**Tradeoff analysis on custom versus pre-trained models** 
+</b></details>
+
