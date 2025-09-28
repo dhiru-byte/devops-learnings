@@ -250,56 +250,54 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 <details>
 <summary> Bullet points for Frame ML problem .</code></summary><br><b>
-# Frame ML Problem
-
-## Establish ML Roles and Responsibilities
+### Establish ML Roles and Responsibilities
 - SageMaker Role Manager
 
-## Prepare an ML Profile Template
+### Prepare an ML Profile Template
 - Document the resources required
 
-## Establish Model Improvement Strategies
+### Establish Model Improvement Strategies
 - SageMaker Experiments
 - Hyper-parameter optimization
 - AutoML
 
-## Establish a Lineage Tracker System
+### Establish a Lineage Tracker System
 - SageMaker Lineage Tracking
 - Pipelines
 - Studio
 - Feature Store
 - Model Registry
 
-## Establish Feedback Loops Across ML Lifecycle Phases
+### Establish Feedback Loops Across ML Lifecycle Phases
 - SageMaker Model Monitor
 - CloudWatch
 - Amazon Augmented AI (A2I)
 
-## Review Fairness and Explainability
+### Review Fairness and Explainability
 - SageMaker Clarify
 
 ---
 
-## Design Data Encryption and Obfuscation
+### Design Data Encryption and Obfuscation
 - Glue DataBrew
 
-## Use APIs to Abstract Change from Model Consuming Applications
+### Use APIs to Abstract Change from Model Consuming Applications
 - SageMaker + API Gateway
 
-## Adopt a Machine Learning Microservice Strategy
+### Adopt a Machine Learning Microservice Strategy
 - Lambda
 - FarGate
 
-## Use Purpose-Built AI and ML Services and Resources
+### Use Purpose-Built AI and ML Services and Resources
 - SageMaker
 - JumpStart
 - Marketplace
 
-## Define Relevant Evaluation Metrics
+### Define Relevant Evaluation Metrics
 
-## Identify if Machine Learning is the Right Solution
+### Identify if Machine Learning is the Right Solution
 
-## Tradeoff Analysis on Custom versus Pre-trained Models
+### Tradeoff Analysis on Custom versus Pre-trained Models
 
 </b></details>
 
