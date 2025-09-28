@@ -258,6 +258,39 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 </b></details>
 
 <details>
+<summary> How many Subnets can you have per VPC?.</code></summary><br><b>
+
+`200 Subnets per VPC`
+</b></details>
+
+# AWS Machine Learning Services Overview
+
+| Service | What It Does | When to Use |
+|----------|--------------|-------------|
+| **Amazon Augmented AI (A2I)** | Integrate human review into ML predictions | When model outputs need human verification (e.g., sensitive documents, low-confidence predictions) |
+| **Amazon Bedrock** | Access foundation models via API without managing infrastructure | Build generative AI apps (text, chatbots, summarization) without training large models |
+| **Amazon CodeGuru** | Automated code reviews and performance recommendations | Optimize application performance and detect security issues |
+| **Amazon Comprehend** | NLP for text: sentiment, entities, key phrases | Extract meaning from unstructured text like reviews, emails |
+| **Amazon Comprehend Medical** | Specialized NLP for healthcare data | Analyze clinical notes or health records, HIPAA-compliant |
+| **Amazon DevOps Guru** | ML-based operational issue and anomaly detection | Proactive monitoring and fixing of performance issues |
+| **Amazon Fraud Detector** | Detects fraudulent online activities | For transaction fraud, fake accounts, suspicious logins |
+| **AWS HealthLake** | HIPAA-eligible data lake for healthcare | Store, analyze, and run ML on large healthcare datasets |
+| **Amazon Kendra** | Enterprise search powered by ML | Intelligent search across internal docs, FAQs, manuals |
+| **Amazon Lex** | Build conversational interfaces (chatbots/IVR) | Integrate chatbots or voicebots with AWS services |
+| **Amazon Lookout for Equipment** | Predictive maintenance for industrial equipment | Forecast equipment failure, schedule maintenance |
+| **Amazon Lookout for Metrics** | Detect anomalies in business or operational metrics | Monitor KPIs (conversion rates, revenue, user activity) without manual thresholds |
+| **Amazon Lookout for Vision** | Detects defects/anomalies in images | For manufacturing quality control, defect detection |
+| **Amazon Mechanical Turk** | Crowdsourced workforce for small tasks | Label training data, surveys, human intelligence tasks |
+| **Amazon Personalize** | Recommendation engine | Build tailored recommendations for products or content |
+| **Amazon Polly** | Text-to-speech with realistic voices | Add spoken audio to apps, IVR systems, or accessibility tools |
+| **Amazon Q** | AI-powered business assistant | Chat with enterprise data, automate workflows |
+| **Amazon Rekognition** | Image and video analysis: faces, objects, moderation | Image/video classification, security surveillance |
+| **Amazon SageMaker** | Fully managed ML platform to build, train, deploy models | End-to-end ML development without managing servers |
+| **Amazon Textract** | Extracts text/structured data from scanned documents | Digitize paper forms, invoices, or contracts |
+| **Amazon Transcribe** | Automatic speech-to-text conversion | Transcribe calls, create subtitles, convert voice notes |
+| **Amazon Translate** | Neural machine translation between languages | Real-time or batch translation of text or documents |
+
+<details>
 <summary> Bullet points for Frame ML problem .</code></summary><br><b>
   
 ### Establish ML Roles and Responsibilities
@@ -310,4 +343,5 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 ### Tradeoff Analysis on Custom versus Pre-trained Models
 
 </b></details>
+
 
