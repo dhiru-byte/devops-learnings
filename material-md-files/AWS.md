@@ -194,27 +194,25 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 </b></details>
 
 <details>
-<summary> List all AWS Managed Data Transformation Integration and Feature Engineering Services ?.</code></summary><br><b>
+<summary> Analytics Services (Data Transformation Integration and Feature Engineering Services) ?.</code></summary><br><b>
 
-| **Service**                   | **Category**                    | **Use Cases**                                                                                          | **Key Differences**                                                                                  |
-|-------------------------------|----------------------------------|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| **AWS Glue**                  | Data Integration and ETL        | Data integration, ETL (Extract, Transform, Load), automate workflows, schema discovery.                | A fully managed ETL service designed for large-scale data integration and transformation tasks.      |
-| **AWS Glue DataBrew**         | Data Preparation (No-Code)      | Visual, no-code preparation of datasets for ML workflows or analytics.                                | A no-code data transformation tool focusing on cleaning, normalizing, and profiling data.            |
-| **Amazon EMR**                | Big Data Processing             | Process large-scale data using frameworks like Apache Spark, Hadoop, etc.                             | Highly scalable big data processing for analytics and transformation using open-source frameworks.   |
-| **Amazon Redshift**           | Data Warehousing               | Query large-scale structured or semi-structured datasets, create data models for ML.                  | Provides built-in transformation through SQL-based operations within a managed data warehouse setup. |
-| **Amazon Redshift Spectrum**  | Query over S3 Data              | Query S3-based structured data directly without loading it into Redshift.                             | Extends Redshift's capabilities by allowing you to query data already hosted in Amazon S3.           |
-| **AWS Lambda**                | Event-Driven Data Processing    | Perform custom data transformations and lightweight feature engineering using serverless compute.      | No infrastructure required for workflows with small-scale custom transformation tasks.               |
-| **Amazon Kinesis Data Analytics** | Real-Time Data Integration   | Analyze streaming data and perform transformations in real-time.                                      | Focused on Kinesis streams for real-time analytics and transformations.                             |
-| **Amazon QuickSight**         | Data Visualization & Analytics | Create visualizations, perform lightweight transformations, and build dashboards from datasets.        | Primarily used for business intelligence with minor transformation capabilities.                     |
-| **Amazon Sagemaker Data Wrangler** | Feature Engineering for ML | Aggregate, clean, normalize, and transform datasets specifically for machine learning workflows.       | A tool within SageMaker specifically designed for feature engineering in ML.                         |
-| **AWS Step Functions**        | Workflow Orchestration         | Orchestrate ETL pipelines by integrating multiple services like AWS Glue, Lambda, and SageMaker.       | Mainly used for combining and managing workflows across multiple data transformation services.        |
-| **AWS Data Pipeline**         | Data Workflow Automation       | Create end-to-end data workflows for transformation and integration with periodic scheduling.          | Older ETL automation tool with support for batch processing.                                         |
-| **Amazon Athena**             | Interactive Query Service       | Query and transform S3 data using SQL.                                                                | Serverless service to perform lightweight data transformation using SQL queries.                      |
-| **AWS Lake Formation**        | Centralized Data Repository     | Build a centralized data lake, clean and catalog data from various sources.                           | Focuses on managing, cataloging, and transforming data at scale in data lakes.                       |
-| **Amazon OpenSearch Service** | Search and Analytics            | Perform structured searches and real-time analytics on transformed data (e.g., logs, JSON, metrics).   | Optimized for structured search queries and visual analytics.                                        |
-| **Amazon DynamoDB Streams**   | Real-Time Streaming Data        | Integrate and transform change data captured in real-time from DynamoDB tables.                       | Specifically tied to DynamoDB for real-time data transformation and integration workflows.            |
-| **Amazon AppFlow**            | SaaS Data Integration           | Transfer and transform data between SaaS applications (e.g., Salesforce) and AWS services.            | A specialized tool for integrating and transferring data from SaaS platforms to AWS.                 |
-| **AWS Batch**                 | Batch Processing                | Execute large-scale data processing or transformation workflows in batch jobs.                   | Designed for large-scale compute-intensive, batch-driven workflows.
+# AWS Data Analytics & Processing Services
+
+| **Component**                                 | **Purpose**                                               | **Use Cases**                                                                                               |
+|----------------------------------------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| **Amazon Athena**                            | Serverless interactive query service                      | Run SQL queries directly on data stored in Amazon S3 without setting up infrastructure; ad-hoc analytics.   |
+| **Amazon Data Firehose (Kinesis Data Firehose)** | Reliable streaming data delivery                         | Capture, transform, and load streaming data into data lakes, warehouses, and analytics services (e.g., S3, Redshift, OpenSearch). |
+| **Amazon EMR**                               | Managed big data processing                               | Run large-scale data processing frameworks like Apache Spark, Hadoop, HBase, and Presto for analytics.       |
+| **AWS Glue**                                 | Serverless data integration                               | Automate ETL (Extract, Transform, Load) for batch and streaming data pipelines.                              |
+| **AWS Glue DataBrew**                        | No-code data preparation                                  | Visually clean, normalize, and transform datasets without coding for analytics and ML workflows.             |
+| **AWS Glue Data Quality**                    | Data profiling and validation                             | Measure, monitor, and improve data quality with built-in rules and metrics.                                  |
+| **Amazon Kinesis (Data Streams)**            | Real-time data ingestion and processing                   | Collect and process real-time streaming data like clickstreams, logs, and IoT telemetry.                     |
+| **AWS Lake Formation**                       | Secure data lake creation and governance                  | Quickly build and manage secure data lakes with centralized access control and cataloging.                   |
+| **Amazon Managed Service for Apache Flink**  | Real-time stream processing                               | Build and run stream-processing applications using Apache Flink without managing infrastructure.             |
+| **Amazon OpenSearch Service**                | Managed search and analytics                               | Search, monitor, and analyze log or operational data with Elasticsearch-compatible APIs.                     |
+| **Amazon QuickSight**                        | Business Intelligence (BI) and dashboards                 | Create interactive dashboards, reports, and embedded analytics with serverless scaling.                      |
+| **Amazon Redshift**                          | Data warehouse for analytics                              | Run complex analytical queries on structured and semi-structured data at scale.                              |
+
 
 </b></details>
 
