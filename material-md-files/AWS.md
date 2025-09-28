@@ -251,7 +251,9 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 <details>
 <summary> ML Problem Framing: The ML Lifecycle.</code></summary><br><b>
 
-![ML Problem Framing: The ML Lifecycle](./images/ML_LifeCycle.png)
+<p align="center">
+<img src="./images/ML_LifeCycle.png.jpg" width="800" height="300" /> 
+</p>
 
 </b></details>
 
