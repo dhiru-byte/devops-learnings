@@ -250,6 +250,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 <details>
 <summary> Bullet points for Frame ML problem .</code></summary><br><b>
+  
 ### Establish ML Roles and Responsibilities
 - SageMaker Role Manager
 
