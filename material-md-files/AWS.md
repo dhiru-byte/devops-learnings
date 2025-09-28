@@ -258,12 +258,7 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 </b></details>
 
 <details>
-<summary> How many Subnets can you have per VPC?.</code></summary><br><b>
-
-`200 Subnets per VPC`
-</b></details>
-
-# AWS Machine Learning Services Overview
+<summary> AWS Machine Learning Services.</code></summary><br><b>
 
 | Service | What It Does | When to Use |
 |----------|--------------|-------------|
@@ -289,6 +284,9 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 | **Amazon Textract** | Extracts text/structured data from scanned documents | Digitize paper forms, invoices, or contracts |
 | **Amazon Transcribe** | Automatic speech-to-text conversion | Transcribe calls, create subtitles, convert voice notes |
 | **Amazon Translate** | Neural machine translation between languages | Real-time or batch translation of text or documents |
+
+</b></details>
+
 
 <details>
 <summary> Bullet points for Frame ML problem .</code></summary><br><b>
