@@ -250,41 +250,56 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 
 <details>
 <summary> Bullet points for Frame ML problem .</code></summary><br><b>
+# Frame ML Problem
 
-**Establish ML roles and responsibilities 
-SageMaker Role Manager  
+## Establish ML Roles and Responsibilities
+- SageMaker Role Manager
 
-**Prepare an ML profile template**  
-Document the resources required  
+## Prepare an ML Profile Template
+- Document the resources required
 
-**Establish model improvement strategies**  
-SageMaker Experiments, hyper-parameter optimization, AutoML  
+## Establish Model Improvement Strategies
+- SageMaker Experiments
+- Hyper-parameter optimization
+- AutoML
 
-**Establish a lineage tracker system**  
-SageMaker Lineage Tracking, Pipelines, Studio, Feature Store, Model Registry  
+## Establish a Lineage Tracker System
+- SageMaker Lineage Tracking
+- Pipelines
+- Studio
+- Feature Store
+- Model Registry
 
-**Establish feedback loops across ML lifecycle phases**  
-SageMaker Model Monitor, CloudWatch, Amazon Augmented AI (A2I)  
+## Establish Feedback Loops Across ML Lifecycle Phases
+- SageMaker Model Monitor
+- CloudWatch
+- Amazon Augmented AI (A2I)
 
-**Review fairness and explainability**  
-SageMaker Clarify  
+## Review Fairness and Explainability
+- SageMaker Clarify
 
-**Design data encryption and obfuscation**  
-(Glue DataBrew)  
+---
 
-**Use APIs to abstract change from model consuming applications**  
-SageMaker + API Gateway  
+## Design Data Encryption and Obfuscation
+- Glue DataBrew
 
-**Adopt a machine learning microservice strategy**  
-Lambda, Fargate  
+## Use APIs to Abstract Change from Model Consuming Applications
+- SageMaker + API Gateway
 
-**Use purpose-built AI and ML services and resources**  
-SageMaker, JumpStart, Marketplace  
+## Adopt a Machine Learning Microservice Strategy
+- Lambda
+- FarGate
 
-**Define relevant evaluation metrics**  
+## Use Purpose-Built AI and ML Services and Resources
+- SageMaker
+- JumpStart
+- Marketplace
 
-**Identify if machine learning is the right solution**  
+## Define Relevant Evaluation Metrics
 
-Tradeoff analysis on custom versus pre-trained models
+## Identify if Machine Learning is the Right Solution
+
+## Tradeoff Analysis on Custom versus Pre-trained Models
+
 </b></details>
 
