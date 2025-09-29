@@ -146,6 +146,44 @@
 | Multinomial Logistic Regression | Classification | Multi-class classification problems such as labeling categories in text datasets. | Solves multi-class classification problems using regression techniques extended to multiple categories. |
 | Confusion Matrix | Evaluation/Metric | Evaluating performance of classification models. | Provides a summary of model predictions by counting true positives, true negatives, false positives, and false negatives. Helpful for measuring accuracy, recall, precision, and F1-score. |
 
+# Short Mnemonic Summary by Use Case
+
+### Prediction Tasks
+- **Mnemonic:** "Let's X-Ray the Data Deeply"
+- **Algorithms:** Linear Learner, XGBoost, DeepAR
+
+### Recommendation Systems
+- **Mnemonic:** "Machines and Matrix Recommending Products"
+- **Algorithms:** Factorization Machines, Matrix Factorization
+
+### Computer Vision
+- **Mnemonic:** "Images Objectively help Segment Vision"
+- **Algorithms:** Image Classification, Object Detection, Semantic Segmentation
+
+### Natural Language Processing (NLP)
+- **Mnemonic:** "Blazing Sequences of Text"
+- **Algorithms:** BlazingText, Sequence-to-Sequence
+
+### Time Series Forecasting
+- **Mnemonic:** "Time Runs Deep"
+- **Algorithms:** DeepAR
+
+### Dimensionality Reduction / Clustering
+- **Mnemonic:** "Components Cluster"
+- **Algorithms:** Principal Component Analysis (PCA), K-Means Clustering
+
+### Anomaly and Fraud Detection
+- **Mnemonic:** "Random IP Fraud"
+- **Algorithms:** Random Cut Forest (RCF), IP Insights
+
+### Decision Making / Optimization
+- **Mnemonic:** "Train to Decide Reinforced Tasks"
+- **Algorithms:** Reinforcement Learning, Training Algorithm Optimization (TAO)
+
+### Evaluation
+- **Mnemonic:** "Confused Class Evaluator"
+- **Algorithm:** Confusion Matrix
+
 </b></details>
 
 <details>
