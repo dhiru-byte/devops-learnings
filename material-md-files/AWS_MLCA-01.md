@@ -162,6 +162,7 @@
 
 <details>
 <summary> ML Model Evaluation and Optimization Techniques: When to Use.</code></summary><br><b>
+
 | Technique | Type | When to Use |
 | :-- | :-- | :-- |
 | Confusion Matrix | Evaluation (Classification) | Use for evaluating models that perform classification tasks. Best for binary/multi-class classification metrics like accuracy, precision, recall, and F1-score. |
@@ -190,6 +191,7 @@
 | SHAP/Feature Importance | Evaluation (Explainability) | Use when needing interpretability to understand the impact of individual features on predictions. |
 | Batch Normalization | Optimization | Use for scaling and normalizing inputs in deep learning models to stabilize and improve training speed. |
 | Data Augmentation | Optimization (Preprocessing) | Use to increase the size and diversity of training data, especially for computer vision and NLP tasks. |
+
 </b></details>
 
 <details>
