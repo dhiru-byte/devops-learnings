@@ -95,26 +95,27 @@
 <summary> List all AWS SageMaker's components and their use cases for various purposes.</code></summary><br><b>
 # Amazon SageMaker Components and Their Use Cases
 
-| **Component**                       | **Purpose**                               | **Use Cases**                                                                                         |
-|-------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| **SageMaker Studio**                | Integrated Development Environment (IDE) | Allows data scientists and developers to build, train, debug, and deploy ML models in a unified interface. |
-| **SageMaker Data Wrangler**         | Data Preparation and Feature Engineering  | Simplifies data preparation, cleaning, and feature engineering for machine learning workflows.         |
-| **SageMaker Autopilot**             | Build Models Automatically                | Automatically trains and tunes the best ML model based on your data while providing visibility into the process. |
-| **SageMaker Training**              | Model Training                            | Trains ML models at scale with support for distributed training and custom training scripts.           |
-| **SageMaker Processing**            | Data Preprocessing and Post-processing    | Run data preprocessing, post-processing tasks, or batch inference workloads using managed infrastructure. |
-| **SageMaker Feature Store**         | Feature Management                        | Centralize, create, and reuse features for ML models across teams and projects.                        |
-| **SageMaker Debugger**              | Debugging and Insights                    | Analyzes and debugs training jobs by identifying performance bottlenecks and providing actionable insights. |
-| **SageMaker Model Monitor**         | Model Monitoring in Production            | Detects deviations, concept drift, and anomalies in model predictions to ensure accurate and reliable production models. |
-| **SageMaker Pipelines**             | Machine Learning Pipelines                | Automates and orchestrates workflows for data preparation, model building, training, optimization, and deployment. |
-| **SageMaker Ground Truth**          | Data Labeling                             | Builds accurate ground truth datasets for supervised learning by enabling human labeling tasks or semi-automation. |
-| **SageMaker Neo**                   | Model Optimization for Edge               | Optimizes machine learning models to run faster and at lower latency on edge devices and hardware.      |
-| **SageMaker JumpStart**             | Prebuilt Solutions and Models             | Provides pre-trained models, solution templates, and example notebooks for various ML use cases.        |
-| **SageMaker Inference Recommender** | Recommendation for Deployment             | Automates the selection of the best resources for deploying machine learning models.                    |
-| **SageMaker Hosting/Inferences**    | Model Deployment and Inference            | Deploys trained models as endpoints for real-time, batch, and asynchronous inference.                   |
-| **SageMaker Clarify**               | Data Bias and Model Explainability        | Detects bias in your data and explains model predictions for fairness and transparency.                 |
-| **SageMaker Model Registry**        | Centralized Model Repository              | Tracks and manages ML models and their versions for streamlined deployment and governance.              |
-| **SageMaker Marketplace**           | External Model Use                        | Allows you to use and deploy pre-trained machine learning models and algorithms from third-party vendors. |
-| **SageMaker Edge Manager**          | Edge Device Management                    | Deploys, manages, and monitors models on thousands of edge devices.                                    |
+| SageMaker Tool/Feature | Category | Use Case | Key Features |
+| :-- | :-- | :-- | :-- |
+| SageMaker Studio | Integrated Development Environment (IDE) | Allows data scientists and developers to build, train, debug, and deploy ML models in a unified interface. | A single web-based IDE for end-to-end machine learning workflows. |
+| SageMaker Data Wrangler | Data Preparation and Feature Engineering | Simplifies data preparation, cleaning, and feature engineering for machine learning workflows. | Provides a GUI to transform and analyze data without writing code. |
+| SageMaker Autopilot | Build Models Automatically | Automatically trains and tunes the best ML model based on your data while providing visibility into the process. | Full automation combined with transparency via generated notebooks showing every step. |
+| SageMaker Training | Model Training | Trains ML models at scale with support for distributed training and custom training scripts. | Supports distributed training across GPUs/CPUs, customizable training jobs. |
+| SageMaker Processing | Data Preprocessing and Post-processing | Run data preprocessing, post-processing tasks, or batch inference workloads using managed infrastructure. | Useful for handling data transformation tasks before and after ML training/inference. |
+| SageMaker Feature Store | Feature Management | Centralize, create, and reuse features for ML models across teams and projects. | Enables real-time access to feature values for models during inference and provides lineage/history for feature creation. |
+| SageMaker Debugger | Debugging and Insights | Analyzes and debugs training jobs by identifying performance bottlenecks and providing actionable insights. | Tracks resource utilization, gradients, loss curves, etc., for optimizing training performance. |
+| SageMaker Model Monitor | Model Monitoring in Production | Detects deviations, concept drift, and anomalies in model predictions to ensure accurate and reliable production models. | Simplifies post-deployment monitoring to maintain model performance. |
+| SageMaker Pipelines | Machine Learning Pipelines | Automates and orchestrates workflows for data preparation, model building, training, optimization, and deployment. | Streamlined ML workflow automation for enterprise-level scaling. |
+| SageMaker Ground Truth | Data Labeling | Builds accurate ground truth datasets for supervised learning by enabling human labeling tasks or semi-automation. | Supports human labeling tasks and active learning frameworks. |
+| SageMaker Neo | Model Optimization for Edge | Optimizes machine learning models to run faster and at lower latency on edge devices and hardware. | Converts models for compatibility across edge devices and enables hardware acceleration. |
+| SageMaker JumpStart | Prebuilt Solutions and Models | Provides pre-trained models, solution templates, and example notebooks for various ML use cases. | Speeds up development with prebuilt templates for common use cases like recommendation systems, fraud detection, etc. |
+| SageMaker Inference Recommender | Recommendation for Deployment | Automates the selection of the best resources for deploying machine learning models. | Analyzes deployment requirements to recommend EC2 instances or configurations for optimal performance and cost-effectiveness. |
+| SageMaker Hosting/Inferences | Model Deployment and Inference | Deploys trained models as endpoints for real-time, batch, and asynchronous inference. | Fully managed service for scalable model inference in production settings. |
+| SageMaker Clarify | Data Bias and Model Explainability | Detects bias in your data and explains model predictions for fairness and transparency. | Provides fairness metrics for datasets/models and interprets how features impact predictions. |
+| SageMaker Model Registry | Centralized Model Repository | Tracks and manages ML models and their versions for streamlined deployment and governance. | Keeps detailed history of models and versioning for repeatable and auditable deployments. |
+| SageMaker Marketplace | External Model Use | Allows you to use and deploy pre-trained machine learning models and algorithms from third-party vendors. | Facilitates the use of third-party professional models for niche domains or large-scale applications. |
+| SageMaker Edge Manager | Edge Device Management | Deploys, manages, and monitors models on thousands of edge devices. | Enables large-scale model deployment and monitoring for IoT and edge devices. |
+| SageMaker Experiment | Experiment Management | Organizes and tracks experiments to compare model performance across different runs and configurations. | Allows you to log and compare training jobs' metrics (e.g., hyperparameters, accuracy) for optimizing model development processes. |
 
 </b></details>
 
