@@ -161,6 +161,38 @@
 </b></details>
 
 <details>
+<summary> ML Model Evaluation and Optimization Techniques: When to Use.</code></summary><br><b>
+| Technique | Type | When to Use |
+| :-- | :-- | :-- |
+| Confusion Matrix | Evaluation (Classification) | Use for evaluating models that perform classification tasks. Best for binary/multi-class classification metrics like accuracy, precision, recall, and F1-score. |
+| Accuracy | Evaluation (Classification) | Use as a summary metric when the dataset is balanced (equal representation of classes). |
+| Precision | Evaluation (Classification) | Use when false positives matter more (e.g., fraud detection). |
+| Recall (Sensitivity) | Evaluation (Classification) | Use when false negatives matter more (e.g., cancer diagnosis). |
+| F1-Score | Evaluation (Classification) | Use when there is an imbalance between precision and recall trade-off (harmonic mean of both). |
+| AUC-ROC Curve | Evaluation (Classification) | Use for binary classification problems to evaluate the trade-off between sensitivity (recall) and specificity. |
+| Mean Absolute Error (MAE) | Evaluation (Regression) | Use to evaluate how far predictions are from actual values in regression tasks when all errors are treated equally. |
+| Mean Squared Error (MSE) | Evaluation (Regression) | Use for regression when larger errors need to be penalized higher (squared losses). |
+| R^2 (Coefficient of Determination) | Evaluation (Regression) | Use to measure how much variance in the output is explained by the input features. |
+| Cross-Validation | Evaluation/Optimization | Use to validate model performance across multiple data splits (e.g., k-fold CV). Helps ensure generalization. |
+| Grid Search | Optimization | Use to systematically find the best hyperparameters when manually defining a small hyperparameter space. |
+| Random Search | Optimization | Use when hyperparameter optimization needs to balance exploration and efficiency over a large search space. |
+| Bayesian Optimization | Optimization | Use for efficient hyperparameter tuning with probabilistic models to balance exploration/exploitation. |
+| Gradient Descent Variants (SGD, Adam, etc.) | Optimization | Use to optimize a model’s weights during training (e.g., neural network optimization). |
+| Hyperparameter Tuning (Manual) | Optimization | Use when testing a few configurations manually for small models (often combined with domain knowledge). |
+| Early Stopping | Optimization | Use to stop training when the validation loss stops improving to avoid overfitting. |
+| Ensemble Methods (Bagging, Boosting) | Optimization | Use when improving performance by combining multiple models (e.g., Random Forest, XGBoost). |
+| Transfer Learning | Optimization | Use when reusing pre-trained models for similar tasks to improve performance without training from scratch. |
+| Regularization (L1, L2) | Optimization | Use to prevent overfitting by penalizing large weights during model training (adds constraints). |
+| Feature Engineering | Optimization (Preprocessing) | Use to improve model performance by transforming, selecting, or extracting relevant features from raw data. |
+| Dimensionality Reduction (PCA) | Optimization (Preprocessing) | Use to remove redundant features or reduce noise in datasets with high-dimensional inputs. |
+| Model Monitoring | Post-Deployment | Use to monitor model performance in production over time (concept drift, data drift). |
+| Bias and Fairness Detection | Evaluation (Explainability) | Use to ensure fairness across demographic groups or prevent discrimination in predictions (e.g., SageMaker Clarify). |
+| SHAP/Feature Importance | Evaluation (Explainability) | Use when needing interpretability to understand the impact of individual features on predictions. |
+| Batch Normalization | Optimization | Use for scaling and normalizing inputs in deep learning models to stabilize and improve training speed. |
+| Data Augmentation | Optimization (Preprocessing) | Use to increase the size and diversity of training data, especially for computer vision and NLP tasks. |
+</b></details>
+
+<details>
 <summary> Bullet points for Frame ML problem.</code></summary><br><b>
   
 ### Establish ML Roles and Responsibilities
