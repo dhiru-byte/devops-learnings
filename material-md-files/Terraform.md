@@ -1,7 +1,5 @@
 # Terraform Questions and Answers
 
----
-
 <details>
 <summary>One remote backend configuration always maps to a single remote workspace.</summary><br><b>
 
@@ -309,6 +307,204 @@ Storing secrets (e.g., credentials, API keys) in the same version control reposi
 
 **Reference**:  
 [A Comprehensive Guide to Managing Secrets in Terraform Code](https://blog.gruntwork.io/a-comprehensive-guide-to-managing-secrets-in-your-terraform-code-1d6586955ace1)
+
+</b></details>
+
+<details>
+<summary>Which of the following is not a valid string function in Terraform?</summary><br><b>
+
+**Options:**
+- `A. split`
+- `B. join`
+- `C. slice`
+- `D. chomp`
+
+**Correct Answer:** `C. slice`
+
+**Explanation**:  
+In Terraform, `split`, `join`, and `chomp` are valid string functions:
+- **split**: Splits a string into a list based on a delimiter.
+- **join**: Joins elements of a list into a single string with a delimiter.
+- **chomp**: Removes trailing newline characters from a string.
+
+The `slice` function, however, is not a valid Terraform string function, as slicing operations are not directly supported in Terraform. For more advanced text manipulation, you'd need to use workarounds or external tools.
+
+</b></details>
+
+<details>
+<summary>You have provisioned some virtual machines (VMs) on Google Cloud Platform (GCP) using the gcloud command-line tool. However, you are standardizing with Terraform and want to manage these VMs using Terraform instead. What are the two things you must do to achieve this? (Choose two.)</summary><br><b>
+
+**Options:**
+- `A. Provision new VMs using Terraform with the same VM names`
+- `B. Use the terraform import command for the existing VMs`
+- `C. Write Terraform configuration for the existing VMs`
+- `D. Run the terraform import-gcp command`
+
+**Correct Answer:** `B. Use the terraform import command for the existing VMs`  
+`C. Write Terraform configuration for the existing VMs`
+
+**Explanation**:  
+To bring existing infrastructure under Terraform's management without recreating it:
+1. Use the `terraform import` command to manually import the existing resources (e.g., VMs) into Terraform's state file.
+2. Write Terraform configuration that mirrors the current state of the resources. The configuration must define the same attributes and parameters for successful management after import.
+
+Terraform does not automatically generate configuration files, so manual configuration writing is necessary.
+
+**References**:  
+- [Terraform Import Command Documentation](https://www.terraform.io/docs/cli/import/usage.html)  
+- [Google Cloud and Terraform Documentation](https://cloud.google.com/docs/terraform)
+
+</b></details>
+
+<details>
+<summary>You are an engineer tasked with evaluating multiple outages that occurred during peak traffic times. You discover that the team manually deploys and configures new compute instances. This led to inconsistent configurations between each compute instance. How would you solve this using infrastructure as code?</summary><br><b>
+
+**Options:**
+- `A. Implement a ticketing workflow that makes engineers submit a ticket before manually provisioning and configuring a resource`
+- `B. Implement a checklist that engineers can follow when configuring compute instances`
+- `C. Replace the compute instance type with a larger version to reduce the number of required deployments`
+- `D. Build a provisioning pipeline that deploys infrastructure configurations committed to your version control system, following code reviews`
+
+**Correct Answer:** `D. Build a provisioning pipeline that deploys infrastructure configurations committed to your version control system, following code reviews`
+
+**Explanation**:  
+Using infrastructure as code (IaC) encourages consistent deployment by:
+- Storing configuration in version control systems for better collaboration and traceability.
+- Automating provisioning pipelines to ensure all resources are deployed in a standardized and repeatable manner.
+- Enabling code reviews to ensure all infrastructure changes are reviewed and approved before deployment.
+
+This approach minimizes human error and ensures reliability during deployments.
+
+</b></details>
+
+<details>
+<summary>terraform init initializes a sample main.tf file in the current directory.</summary><br><b>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation**:  
+The `terraform init` command initializes a working directory with all the necessary files for Terraform to manage infrastructure. It downloads provider plugins, sets up the backend, and prepares the directory for running Terraform commands. However, it does **not** create a `main.tf` file or any configuration files. Users must write their own `.tf` configuration files manually or copy them into the directory.
+
+</b></details>
+
+<details>
+<summary>Which two steps are required to provision new infrastructure in the Terraform workflow? (Choose two.)</summary><br><b>
+
+**Options:**
+- `A. Destroy`
+- `B. Apply`
+- `C. Import`
+- `D. Init`
+- `E. Validate`
+
+**Correct Answer:** `B. Apply`  
+`D. Init`
+
+**Explanation**:  
+To provision new infrastructure using Terraform, the following steps are required:  
+1. **Init (`terraform init`)**: Initializes the working directory by downloading necessary provider plugins and preparing the backend for state management.  
+2. **Apply (`terraform apply`)**: Executes the Terraform configuration to create or modify infrastructure resources.  
+
+Other steps like `terraform validate` or `terraform import` are not mandatory for provisioning new infrastructure, while `terraform destroy` is used for removing resources.
+
+**Reference**:  
+[Terraform Core Workflow Guide](https://www.terraform.io/guides/core-workflow.html)
+
+</b></details>
+
+<details>
+<summary>Why would you use the terraform taint command?</summary><br><b>
+
+**Options:**
+- `A. When you want to force Terraform to destroy a resource on the next apply`
+- `B. When you want to force Terraform to destroy and recreate a resource on the next apply`
+- `C. When you want Terraform to ignore a resource on the next apply`
+- `D. When you want Terraform to destroy all the infrastructure in your workspace`
+
+**Correct Answer:** `B. When you want to force Terraform to destroy and recreate a resource on the next apply`
+
+**Explanation**:  
+The `terraform taint` command is used to manually mark a resource as tainted. A tainted resource will be destroyed and recreated on the next `terraform apply`. This is useful in cases where a resource needs to be replaced due to corruption, misconfiguration, or a manual override.
+
+**Reference**:  
+[Terraform Taint Command Documentation](https://www.terraform.io/docs/cli/commands/taint.html)
+
+</b></details>
+
+<details>
+<summary>Terraform requires the Go runtime as a prerequisite for installation.</summary><br><b>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Explanation**:  
+Terraform is written in the Go programming language, and the Go runtime is required for its development and installation processes. However, for simply using Terraform as an end-user, the Go runtime is not required, as Terraform distributions include precompiled binaries.
+
+</b></details>
+
+<details>
+<summary>When should you use the force-unlock command?</summary><br><b>
+
+**Options:**
+- `A. You see a status message that you cannot acquire the lock`
+- `B. You have a high priority change`
+- `C. Automatic unlocking failed`
+- `D. apply failed due to a state lock`
+
+**Correct Answer:** `C. Automatic unlocking failed`
+
+**Explanation**:  
+The `terraform force-unlock` command is used to manually unlock a Terraform state that is locked. This is typically required when automatic unlocking fails due to unexpected scenarios, such as a crash or a stale lock held by a previous operation. Use this command cautiously to avoid corrupting the state file.
+
+**Reference**:  
+[Terraform Force Unlock Command Documentation](https://www.terraform.io/docs/cli/commands/force-unlock.html)
+
+</b></details>
+
+
+<details>
+<summary>Terraform can import modules from a number of sources – which of the following is not a valid source?</summary><br><b>
+
+**Options:**
+- `A. FTP server`
+- `B. GitHub repository`
+- `C. Local path`
+- `D. Terraform Module Registry`
+
+**Correct Answer:** `A. FTP server`
+
+**Explanation**:  
+Terraform supports importing modules from various sources, including:
+- **GitHub repository:** Sources hosted on Git or other version control systems.
+- **Local path:** Local files and directories.
+- **Terraform Module Registry:** A centralized location for reusable Terraform modules.
+
+However, Terraform does not support pulling modules from an **FTP server**, making it an invalid source.
+
+</b></details>
+
+<details>
+<summary>Which of the following is available only in Terraform Enterprise or Cloud workspaces and not in Terraform CLI?</summary><br><b>
+
+**Options:**
+- `A. Secure variable storage`
+- `B. Support for multiple cloud providers`
+- `C. Dry runs with terraform plan`
+- `D. Using the workspace as a data source`
+
+**Correct Answer:** `A. Secure variable storage`
+
+**Explanation**:  
+Secure storage of sensitive variables is a feature exclusive to Terraform Cloud and Terraform Enterprise. This enables users to store and manage variables securely using encryption. 
+
+Other features, such as support for multiple cloud providers, `terraform plan` for dry runs, and workspaces as a data source, are available in the Terraform CLI and are not limited to Terraform Cloud or Enterprise.
 
 </b></details>
 
