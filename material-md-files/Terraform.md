@@ -2012,3 +2012,570 @@ resource "aws_instance" "example" {
 
 </details>
 
+<details>
+<summary>What does state locking accomplish?</summary>
+
+**Options:**
+- `A. Copies the state file from memory to disk`
+- `B. Encrypts any credentials stored within the state file`
+- `C. Blocks Terraform commands from modifying the state file`
+- `D. Prevents accidental deletion of the state file`
+
+**Correct Answer:** `C. Blocks Terraform commands from modifying the state file`
+
+**Reference:**  
+[Terraform State Locking Documentation](https://developer.hashicorp.com/terraform/language/state/locking)
+</details>
+
+<details>
+<summary>You just upgraded the version of a provider in an existing Terraform project. What do you need to do to install the new provider?</summary>
+
+**Options:**
+- `A. Run terraform apply -upgrade`
+- `B. Run terraform init -upgrade`
+- `C. Run terraform refresh`
+- `D. Upgrade your version of Terraform`
+
+**Correct Answer:** `B. Run terraform init -upgrade`
+
+**Reference:**  
+[Terraform Init Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/init)
+</details>
+
+<details>
+<summary>A module can always refer to all variables declared in its parent module. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Modules Documentation](https://developer.hashicorp.com/terraform/language/modules/inputs)
+</details>
+
+<details>
+<summary>When you use a remote backend that needs authentication, HashiCorp recommends that you:</summary>
+
+**Options:**
+- `A. Use partial configuration to load the authentication credentials outside of the Terraform code`
+- `B. Push your Terraform configuration to an encrypted git repository`
+- `C. Write the authentication credentials in the Terraform configuration files`
+- `D. Keep the Terraform configuration files in a secret store`
+
+**Correct Answer:** `A. Use partial configuration to load the authentication credentials outside of the Terraform code`
+
+**Reference:**  
+[Terraform Backend Configuration Documentation](https://developer.hashicorp.com/terraform/language/settings/backends/configuration)
+</details>
+
+<details>
+<summary>You have a simple Terraform configuration containing one virtual machine (VM) in a cloud provider. You run `terraform apply` and the VM is created successfully. What will happen if you run `terraform apply` again immediately afterwards without changing any Terraform code?</summary>
+
+**Options:**
+- `A. Terraform will terminate and recreate the VM`
+- `B. Terraform will create another duplicate VM`
+- `C. Terraform will apply the VM to the state file`
+- `D. Nothing`
+
+**Correct Answer:** `D. Nothing`
+
+**Reference:**  
+[Terraform Plan and Apply Workflow](https://developer.hashicorp.com/terraform/cli/commands/apply)
+</details>
+
+<details>
+<summary>A junior admin accidentally deleted some of your cloud instances. What does Terraform do when you run `terraform apply`?</summary>
+
+**Options:**
+- `A. Build a completely brand new set of infrastructure`
+- `B. Tear down the entire workspace infrastructure and rebuild it`
+- `C. Rebuild only the instances that were deleted`
+- `D. Stop and generate an error message about the missing instances`
+
+**Correct Answer:** `C. Rebuild only the instances that were deleted`
+
+**Reference:**  
+[Terraform Apply Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/apply)
+</details>
+
+<details>
+<summary>You have created a `main.tf` Terraform configuration consisting of an application server, a database, and a load balancer. You ran `terraform apply` and all resources were created successfully. Now you realize that you do not actually need the load balancer, so you run `terraform destroy` without any flags. What will happen?</summary>
+
+**Options:**
+- `A. Terraform will destroy the application server because it is listed first in the code`
+- `B. Terraform will prompt you to confirm that you want to destroy all the infrastructure`
+- `C. Terraform will destroy the `main.tf` file`
+- `D. Terraform will prompt you to pick which resource you want to destroy`
+- `E. Terraform will immediately destroy all the infrastructure`
+
+**Correct Answer:** `B. Terraform will prompt you to confirm that you want to destroy all the infrastructure`
+
+**Reference:**  
+[Terraform Destroy Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/destroy)
+</details>
+
+<details>
+<summary>Which type of block fetches or computes information for use elsewhere in a Terraform configuration?</summary>
+
+**Options:**
+- `A. provider`
+- `B. resource`
+- `C. local`
+- `D. data`
+
+**Correct Answer:** `D. data`
+
+**Reference:**  
+[Terraform Data Sources Documentation](https://developer.hashicorp.com/terraform/language/data-sources)
+</details>
+
+<details>
+<summary>You have just developed a new Terraform configuration for two virtual machines with a cloud provider. You would like to create the infrastructure for the first time. Which Terraform command should you run first?</summary>
+
+**Options:**
+- `A. terraform apply`
+- `B. terraform plan`
+- `C. terraform show`
+- `D. terraform init`
+
+**Correct Answer:** `D. terraform init`
+
+**Reference:**  
+[Terraform Init Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/init)
+</details>
+
+<details>
+<summary>All modules published on the official Terraform Module Registry have been verified by HashiCorp. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Module Registry Documentation](https://registry.terraform.io/)
+</details>
+
+<details>
+<summary>You must initialize a Terraform backend before it can be configured. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Backend Configuration Documentation](https://developer.hashicorp.com/terraform/language/settings/backends/configuration)
+</details>
+
+<details>
+<summary>Which of the following does `terraform apply` change after you approve the execution plan? (Choose two.)</summary>
+
+**Options:**
+- `A. Cloud infrastructure`
+- `B. The .terraform directory`
+- `C. The execution plan`
+- `D. State file`
+- `E. Terraform code`
+
+**Correct Answers:** `A. Cloud infrastructure`, `D. State file`
+
+**Reference:**  
+[Terraform Apply Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/apply)
+</details>
+
+<details>
+<summary>A Terraform backend determines how Terraform loads state and stores updates when you execute ___________.</summary>
+
+**Options:**
+- `A. apply`
+- `B. taint`
+- `C. destroy`
+- `D. All of the above`
+- `E. None of the above`
+
+**Correct Answer:** `D. All of the above`
+
+**Reference:**  
+[Terraform Backend Documentation](https://developer.hashicorp.com/terraform/language/settings/backends)
+</details>
+
+<details>
+<summary>What does Terraform use `.terraform.lock.hcl` file for?</summary>
+
+**Options:**
+- `A. Tracking provider dependencies`
+- `B. There is no such file`
+- `C. Preventing Terraform runs from occurring`
+- `D. Storing references to workspaces which are locked`
+
+**Correct Answer:** `A. Tracking provider dependencies`
+
+**Reference:**  
+[Terraform Dependency Lock File Documentation](https://developer.hashicorp.com/terraform/language/files/dependency-lock)
+</details>
+
+<details>
+<summary>You've used Terraform to deploy a virtual machine and a database. You want to replace this virtual machine instance with an identical one without affecting the database. What is the best way to achieve this using Terraform?</summary>
+
+**Options:**
+- `A. Use the terraform state rm command to remove the VM from state file`
+- `B. Use the terraform taint command targeting the VM, then run terraform plan and terraform apply`
+- `C. Use the terraform apply command without targeting the VM resources only`
+- `D. Delete the Terraform VM resources from your Terraform code then run terraform apply`
+
+**Correct Answer:** `B. Use the terraform taint command targeting the VM, then run terraform plan and terraform apply`
+
+**Reference:**  
+[Terraform Taint Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/taint)
+</details>
+
+<details>
+<summary>How do you specify a module's version when publishing it to the public Terraform Module Registry?</summary>
+
+**Options:**
+- `A. The module's configuration page on the Terraform Module Registry`
+- `B. Terraform Module Registry does not support versioning modules`
+- `C. The release tags in the associated repo`
+- `D. The module's Terraform code`
+
+**Correct Answer:** `C. The release tags in the associated repo`
+
+**Reference:**  
+[Terraform Module Registry Versioning Documentation](https://developer.hashicorp.com/terraform/registry/modules/publish)
+</details>
+
+<details>
+<summary>Terraform plan updates your state file. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Plan Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/plan)
+</details>
+
+<details>
+<summary>To check if all code in a Terraform configuration with multiple modules is properly formatted without making changes, what command should be run?</summary>
+
+**Options:**
+- `A. terraform fmt -check`
+- `B. terraform fmt -write=false`
+- `C. terraform fmt -list -recursive`
+- `D. terraform fmt -check -recursive`
+
+**Correct Answer:** `D. terraform fmt -check -recursive`
+
+**Reference:**  
+[Terraform Fmt Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/fmt)
+</details>
+
+<details>
+<summary>As a member of the operations team, you need to run a script on a virtual machine created by Terraform. Which provisioner is best to use in your Terraform code?</summary>
+
+**Options:**
+- `A. null-exec`
+- `B. local-exec`
+- `C. remote-exec`
+- `D. file`
+
+**Correct Answer:** `C. remote-exec`
+
+**Reference:**  
+[Terraform Remote-Exec Provisioner Documentation](https://developer.hashicorp.com/terraform/language/resources/provisioners/remote-exec)
+</details>
+
+<details>
+<summary>You are using a networking module in your Terraform configuration with the name label `my_network`. When running `terraform validate`, you encounter an error: "Reference to undeclared output value". What must you do to successfully retrieve this value from your networking module?</summary>
+
+**Options:**
+- `A. Define the attribute vnet_id as a variable in the networking module`
+- `B. Change the referenced value to module.my_network.outputs.vnet_id`
+- `C. Define the attribute vnet_id as an output in the networking module`
+- `D. Change the referenced value to my_network.outputs.vnet_id`
+
+**Correct Answer:** `C. Define the attribute vnet_id as an output in the networking module`
+
+**Reference:**  
+[Terraform Module Output Values Documentation](https://developer.hashicorp.com/terraform/language/modules/outputs)
+</details>
+
+<details>
+<summary>How can a ticket-based system slow down infrastructure provisioning and limit the ability to scale? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` A full audit trail of the request and fulfillment process is generated  
+- `B.` A request must be submitted for infrastructure changes  
+- `C.` As additional resources are required, more tickets are submitted  
+- `D.` A catalog of approved resources can be accessed from drop-down lists in a request form  
+
+**Correct Answer:** `B, C`
+
+**Reference:**  
+[Infrastructure as Code Best Practices](https://developer.hashicorp.com/terraform/docs)
+</details>
+
+<details>
+<summary>Which of the following statements about Terraform modules is <u>not</u> true?</summary>
+
+**Options:**
+
+- `A.` Modules must be publicly accessible  
+- `B.` Modules can be called multiple times  
+- `C.` A module is a container for one or more resources  
+- `D.` Modules can call other modules  
+
+**Correct Answer:** `A`
+
+**Reference:**  
+[Terraform Modules Overview](https://developer.hashicorp.com/terraform/language/modules)
+</details>
+
+<details>
+<summary>Which Terraform collection type should you use to store key/value pairs?</summary>
+
+**Options:**
+
+- `A.` tuple  
+- `B.` set  
+- `C.` map  
+- `D.` list  
+
+**Correct Answer:** `C`
+
+**Reference:**  
+[Terraform Data Types](https://developer.hashicorp.com/terraform/language/expressions/types)
+</details>
+
+<details>
+<summary>You have used Terraform to create an ephemeral development environment in the cloud and are now ready to destroy all the infrastructure described by your Terraform configuration. To be safe, you would like to first see all the infrastructure that will be deleted by Terraform. Which command should you use to show all of the resources that will be deleted? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` Run `terraform plan -destroy`  
+- `B.` Run `terraform state rm *`  
+- `C.` Run `terraform destroy` and it will first output all the resources that will be deleted before prompting for approval  
+- `D.` Run `terraform show -destroy`  
+
+**Correct Answer:** `A, C`
+
+**Reference:**  
+[Terraform Destroy Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/destroy)  
+[Terraform Plan Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/plan)
+</details>
+
+<details>
+<summary>When do you need to explicitly execute <code>terraform refresh</code>?</summary>
+
+**Options:**
+
+- `A.` Before every `terraform plan`  
+- `B.` Before every `terraform apply`  
+- `C.` Before every `terraform import`  
+- `D.` None of the above  
+
+**Correct Answer:** `D`
+
+**Reference:**  
+[Terraform Refresh Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/refresh)  
+(Note: `terraform refresh` is typically not needed explicitly as `terraform plan` and `terraform apply` automatically refresh the state.)
+</details>
+
+<details>
+<summary>All Terraform Cloud tiers support team management and governance.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+
+</details>
+
+<details>
+<summary>What advantage does an operations team that uses infrastructure as code have?</summary>
+
+**Options:**
+
+- `A.` The ability to delete infrastructure  
+- `B.` The ability to update existing infrastructure  
+- `C.` The ability to reuse best practice configurations and settings  
+- `D.` The ability to autoscale a group of servers  
+
+**Correct Answer:** `C`
+
+</details>
+
+<details>
+<summary>Terraform variable names are saved in the state file.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>Terraform Cloud is available only as a paid offering from HashiCorp.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+
+**Reference:**  
+[Terraform Cloud Pricing](https://www.hashicorp.com/products/terraform/pricing)  
+(Note: Terraform Cloud offers a free tier suitable for small teams and personal projects, with paid tiers providing additional features.)
+</details>
+
+<details>
+<summary>Which of the following is <u>not</u> a way to trigger <code>terraform destroy</code>?</summary>
+
+**Options:**
+
+- `A.` Using the `destroy` command with auto-approve  
+- `B.` Running `terraform destroy` from the correct directory and then typing "yes" when prompted in the CLI  
+- `C.` Passing `--destroy` at the end of a plan request  
+- `D.` Delete the state file and run `terraform apply`  
+
+**Correct Answer:** `D`
+
+</details>
+
+<details>
+<summary>Which of the following is <u>not</u> an advantage of using infrastructure as code operations?</summary>
+
+**Options:**
+
+- `A.` Self-service infrastructure deployment  
+- `B.` Troubleshoot via a Linux `diff` command  
+- `C.` Public cloud console configuration workflows  
+- `D.` Modify a count parameter to scale resources  
+- `E.` API-driven workflows  
+
+**Correct Answer:** `C`
+</details>
+
+<details>
+<summary>You're writing a Terraform configuration that needs to read input from a local file called <code>id_rsa.pub</code>. Which built-in Terraform function can you use to import the file's contents as a string?</summary>
+
+**Options:**
+
+- `A.` `fileset("id_rsa.pub")`  
+- `B.` `filebase64("id_rsa.pub")`  
+- `C.` `templatefile("id_rsa.pub")`  
+- `D.` `file("id_rsa.pub")`  
+
+**Correct Answer:** `D`
+</details>
+
+<details>
+<summary>What does Terraform use providers for? (Choose three.)</summary>
+
+**Options:**
+
+- `A.` Provision resources for on-premises infrastructure services  
+- `B.` Simplify API interactions  
+- `C.` Provision resources for public cloud infrastructure services  
+- `D.` Enforce security and compliance policies  
+- `E.` Group a collection of Terraform configuration files that map to a single state file  
+
+**Correct Answer:** `A, B, C`
+</details>
+
+<details>
+<summary>You can reference a resource created with <code>for_each</code> using a Splat (*) expression.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>How does Terraform determine dependencies between resources?</summary>
+
+**Options:**
+
+- `A.` Terraform automatically builds a resource graph based on resources, provisioners, special meta-parameters, and the state file  
+- `B.` Terraform requires all dependencies between resources to be specified using the `depends_on` parameter  
+- `C.` Terraform requires resources in a configuration to be listed in the order they will be created to determine dependencies  
+- `D.` Terraform requires resource dependencies to be defined as modules and stored in order  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>Which parameters does <code>terraform import</code> require? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` Path  
+- `B.` Provider  
+- `C.` Resource ID  
+- `D.` Resource address  
+
+**Correct Answer:** `C, D`
+</details>
+
+<details>
+<summary>Once you configure a new Terraform backend with the <code>terraform backend</code> block, which command(s) should you use to migrate the state file?</summary>
+
+**Options:**
+
+- `A.` terraform apply  
+- `B.` terraform push  
+- `C.` terraform destroy, then terraform apply  
+- `D.` terraform init  
+
+**Correct Answer:** `D`
+</details>
+
+<details>
+<summary>What does this code do?</summary>
+
+```hcl
+terraform {
+  required_providers {
+    aws = "~> 3.0"
+  }
+}
+```
+**Options:**
+
+- A. Requires any version of the AWS provider >= 3.0 and < 4.0
+- B. Requires any version of the AWS provider >= 3.0
+- C. Requires any version of the AWS provider after the 3.0 major release, like 4.1
+- D. Requires any version of the AWS provider > 3.0
+
+**Correct Answer:** A
+</details>
+
+<details>
+<summary>What does <code>terraform refresh</code> modify?</summary>
+
+**Options:**
+
+- `A.` Your cloud infrastructure  
+- `B.` Your state file  
+- `C.` Your Terraform plan  
+- `D.` Your Terraform configuration  
+
+**Correct Answer:** `B`
+</details>
+
