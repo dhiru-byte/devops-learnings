@@ -2579,3 +2579,423 @@ terraform {
 **Correct Answer:** `B`
 </details>
 
+<details>
+<summary>Which of the following is <u>not</u> a valid source path for specifying a module?</summary>
+
+**Options:**
+
+- `A.` `source = "./module?version=v1.0.0"`  
+- `B.` `source = "github.com/hashicorp/example?ref=v1.0.0"`  
+- `C.` `source = "./module"`  
+- `D.` `source = "hashicorp/consul/aws"`  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>Which of the following is true about <code>terraform apply</code>? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` It only operates on infrastructure defined in the current working directory or workspace  
+- `B.` You must pass the output of a terraform plan command to it  
+- `C.` Depending on provider specification, Terraform may need to destroy and recreate your infrastructure resources  
+- `D.` By default, it does not refresh your state file to reflect current infrastructure configuration  
+- `E.` You cannot target specific resources for the operation  
+
+**Correct Answer:** `A, C`
+</details>
+
+<details>
+<summary>Which of the following statements about local modules is incorrect?</summary>
+
+**Options:**
+
+- `A.` Local modules are not cached by the terraform init command  
+- `B.` Local modules are sourced from a directory on disk  
+- `C.` Local modules support versions  
+- `D.` All of the above (all statements above are incorrect)  
+- `E.` None of the above (all statements above are correct)  
+
+**Correct Answer:** `C`
+</details>
+
+<details>
+<summary>Which of the following is true about Terraform's implementation of infrastructure as code? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` It is only compatible with AWS infrastructure management  
+- `B.` You cannot reuse infrastructure configuration  
+- `C.` You can version your infrastructure configuration  
+- `D.` It requires manual configuration of infrastructure resources  
+- `E.` It allows you to automate infrastructure provisioning  
+
+**Correct Answer:** `C, E`
+</details>
+
+
+<details>
+<summary>You need to write some Terraform code that adds 42 firewall rules to a security group. What can you use to avoid writing 42 different nested ingress config blocks by hand?</summary>
+
+**Options:**
+
+- `A.` A count loop  
+- `B.` A for block  
+- `C.` A for each block  
+- `D.` A dynamic block  
+
+**Correct Answer:** `D`
+</details>
+
+<details>
+<summary>Which of the following is the safest way to inject sensitive values into a Terraform Cloud workspace?</summary>
+
+**Options:**
+
+- `A.` Write the value to a file and specify the file with the <code>-var-file</code> flag  
+- `B.` Set a value for the variable in the UI and check the "Sensitive" check box  
+- `C.` Edit the state file directly just before running <code>terraform apply</code>  
+- `D.` Set the variable value on the command line with the <code>-var</code> flag  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary><code>terraform apply</code> will fail if you have not run <code>terraform plan</code> first to update the plan output.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>How would you reference the attribute "name" of this fictitious resource in HCL?</summary>
+
+```hcl
+resource "kubernetes_namespace" "example" {
+  name = "test"
+}
+```
+**Options:**
+
+- A. resource.kubernetes_namespace.example.name
+- B. kubernetes_namespace.test.name
+- C. kubernetes_namespace.example.name
+- D. data.kubernetes_namespace.name
+- E. None of the above
+
+**Correct Answer:** C
+
+</details>
+
+<details>
+<summary>A Terraform output that sets the "sensitive" argument to true will not store that value in the state file.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>Which are forbidden actions when the Terraform state file is locked? (Choose three.)</summary>
+
+**Options:**
+
+- `A.` terraform destroy  
+- `B.` terraform fmt  
+- `C.` terraform state list  
+- `D.` terraform apply  
+- `E.` terraform plan  
+- `F.` terraform validate  
+
+**Correct Answer:** `A, D, E`
+</details>
+
+<details>
+<summary>Terraform installs its providers during which phase?</summary>
+
+**Options:**
+
+- `A.` Plan  
+- `B.` Init  
+- `C.` Refresh  
+- `D.` All of the above  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>When does Sentinel enforce policy logic during a Terraform Enterprise run?</summary>
+
+**Options:**
+
+- `A.` Before the plan phase  
+- `B.` During the plan phase  
+- `C.` Before the apply phase  
+- `D.` After the apply phase  
+
+**Correct Answer:** `C`
+</details>
+
+<details>
+<summary>What is the purpose of a Terraform workspace in either open source or enterprise?</summary>
+
+**Options:**
+
+- `A.` Workspaces allow you to manage collections of infrastructure in state files  
+- `B.` A logical separation of business units  
+- `C.` A method of grouping multiple infrastructure security policies  
+- `D.` Provides limited access to a cloud environment  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>Which is the best way to specify a tag of <code>v1.0.0</code> when referencing a module stored in Git?</summary>
+
+**Options:**
+
+- `A.` Append `?ref=v1.0.0` argument to the source path  
+- `B.` Add `version = "1.0.0"` parameter to module block  
+- `C.` Nothing – modules stored on Git always default to version 1.0.0  
+- `D.` Modules stored on GitHub do not support versioning  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>Changing the Terraform backend from the default "local" backend to a different one after doing your first <code>terraform apply</code> is:</summary>
+
+**Options:**
+
+- `A.` Mandatory  
+- `B.` Optional  
+- `C.` Impossible  
+- `D.` Discouraged  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>You have modified your local Terraform configuration and ran <code>terraform plan</code> to review the changes. Simultaneously, your teammate manually modified the infrastructure component you are working on. Since you already ran <code>terraform plan</code> locally, the execution plan for <code>terraform apply</code> will be the same.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary><code>terraform apply</code> is failing with an "Access Denied" error. What next step should you take to determine the root cause of the problem?</summary>
+
+**Options:**
+
+- `A.` Set `TF_LOG=DEBUG`  
+- `B.` Review syslog for Terraform error messages  
+- `C.` Run `terraform login` to reauthenticate with the provider  
+- `D.` Review `/var/log/terraform.log` for error messages  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>As a member of an operations team that uses infrastructure as code (IaC) practices, you are tasked with making a change to an infrastructure stack running in a public cloud. Which pattern would follow IaC best practices for making a change?</summary>
+
+**Options:**
+
+- `A.` Clone the repository containing your infrastructure code and then run the code  
+- `B.` Use the public cloud console to make the change after a database record has been approved  
+- `C.` Make the change programmatically via the public cloud CLI  
+- `D.` Make the change via the public cloud API endpoint  
+- `E.` Submit a pull request and wait for an approved merge of the proposed changes  
+
+**Correct Answer:** `E`
+</details>
+
+<details>
+<summary>What command can you run to generate DOT (Document Template) formatted data to visualize Terraform dependencies?</summary>
+
+**Options:**
+
+- `A.` terraform refresh  
+- `B.` terraform show  
+- `C.` terraform graph  
+- `D.` terraform output  
+
+**Correct Answer:** `C`
+</details>
+
+<details>
+<summary>Which provider authentication method prevents credentials from being stored in the Terraform state file?</summary>
+
+**Options:**
+
+- `A.` Using environment variables  
+- `B.` Specifying the login credentials in the provider block  
+- `C.` Setting credentials as Terraform variables  
+- `D.` None of the above  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>Running <code>terraform fmt</code> without any flags in a directory with Terraform configuration files will check the formatting of those files without changing their contents.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary><code>terraform init</code> retrieves the source code for all referenced modules.</summary>
+
+**Options:**
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>You have a Terraform configuration that defines a single virtual machine with no references to it. You have run <code>terraform apply</code> to create the resource and then removed the resource definition from your Terraform configuration file. What will happen when you run <code>terraform apply</code> in the working directory again?</summary>
+
+**Options:**
+
+- `A.` Nothing  
+- `B.` Terraform will destroy the virtual machine  
+- `C.` Terraform will error  
+- `D.` Terraform will remove the virtual machine from the state file, but the resource will still exist  
+
+**Correct Answer:** `B`
+</details>
+
+<details>
+<summary>Which configuration consistency errors does <code>terraform validate</code> report?</summary>
+
+**Options:**
+
+- `A.` A mix of spaces and tabs in configuration files  
+- `B.` Differences between local and remote state  
+- `C.` Terraform module isn't the latest version  
+- `D.` Declaring a resource identifier more than once  
+
+**Correct Answer:** `D`
+</details>
+
+<details>
+<summary>Where can Terraform <u>not</u> load a provider from?</summary>
+
+**Options:**
+
+- `A.` Source code  
+- `B.` Plugins directory  
+- `C.` Official HashiCorp distribution on <code>releases.hashicorp.com</code>  
+- `D.` Provider plugin cache  
+
+**Correct Answer:** `A`
+</details>
+
+<details>
+<summary>Which of the following locations can Terraform use as a private source for modules? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` Internally hosted SCM (Source Control Manager) platform  
+- `B.` Public Terraform Module Registry  
+- `C.` Private repository on GitHub  
+- `D.` Public repository on GitHub  
+
+**Correct Answer:** `A, C`
+</details>
+
+<details>
+<summary>Why should secrets <u>not</u> be hard coded into Terraform code? (Choose two.)</summary>
+
+**Options:**
+
+- `A.` It makes the code less reusable.  
+- `B.` Terraform code is typically stored in version control, as well as copied to the systems from which it’s run. Any of these may not have robust security mechanisms.  
+- `C.` The Terraform code is copied to the target resources to be applied locally and could expose secrets if a target resource is compromised.  
+- `D.` All passwords should be rotated on a quarterly basis.  
+
+**Correct Answer:** `B, C`
+</details>
+
+<details>
+<summary>If a Terraform creation-time provisioner fails, what will occur by default?</summary>
+
+**Options:**
+
+- `A.` The resource will not be affected, but the provisioner will need to be applied again  
+- `B.` The resource will be destroyed  
+- `C.` The resource will be marked as "tainted"  
+- `D.` Nothing, provisioners will not show errors in the command line  
+
+**Correct Answer:** `C`
+</details>
+
+<details>
+<summary>When should Terraform configuration files be written when running <code>terraform import</code> on existing infrastructure?</summary>
+
+**Options:**
+
+- `A.` Infrastructure can be imported without corresponding Terraform code  
+- `B.` Terraform will generate the corresponding configuration files for you  
+- `C.` You should write Terraform configuration files after the next <code>terraform import</code> is executed  
+- `D.` Terraform configuration should be written before <code>terraform import</code> is executed  
+
+**Correct Answer:** `D`
+</details>
+
+<details>
+<summary>Which command lets you experiment with Terraform's built-in functions?</summary>
+
+**Options:**
+
+- `A.` terraform env  
+- `B.` terraform console  
+- `C.` terraform test  
+- `D.` terraform validate  
+
+**Correct Answer:** `B`
+</details>
+
+<details>  
+<summary>Why does this backend configuration not follow best practices?</summary>  
+
+**Options:**  
+
+- `A.` You should not store credentials in Terraform Configuration  
+- `B.` You should use the local enhanced storage backend whenever possible  
+- `C.` An alias meta-argument should be included in backend blocks whenever possible  
+- `D.` The backend configuration should contain multiple credentials so that more than one user can execute terraform plan and terraform apply  
+
+**Correct Answer:** `A`  
+
+</details>
+
+<details>  
+<summary>Open source Terraform can only import publicly-accessible and open-source modules.</summary>  
+
+**Options:**  
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`  
+
+</details>
+
