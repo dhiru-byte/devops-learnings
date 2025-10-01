@@ -1003,4 +1003,50 @@ Incorrect Options:
 
 </details>
 
+<details>
+<summary>Setting the `TF_LOG` environment variable to `DEBUG` causes debug messages to be logged into syslog.</summary>
 
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation**:  
+The `TF_LOG` environment variable controls Terraform's log level, such as `TRACE`, `DEBUG`, `INFO`, `WARN`, or `ERROR`. When set to `DEBUG`, debug messages are displayed directly in the terminal or the log file specified, but they are not logged into syslog. Terraform does not integrate directly with syslog for logging purposes. 
+
+To redirect the log messages to a specific destination, such as a file, you can use output redirection.
+
+**Incorrect Option:**
+- **A. True:** This is incorrect because Terraform debug messages are not logged into syslog automatically.
+
+**Reference:**  
+[Terraform Debugging Workflow Documentation](https://developer.hashicorp.com/terraform/internals/debugging)
+
+</details>
+
+<details>
+<summary>Where in your Terraform configuration do you specify a state backend?</summary>
+
+**Options:**
+- `A. The terraform block`
+- `B. The resource block`
+- `C. The provider block`
+- `D. The data source block`
+
+**Correct Answer:** `A. The terraform block`
+
+**Explanation**:  
+State backends in Terraform are configured within the top-level `terraform` block of your configuration file. The `backend` block allows you to specify how and where the state data is stored (e.g., locally, remotely on S3, Consul, etc.).
+
+**Example Configuration:**
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state-bucket"
+    key            = "path/to/my/state"
+    region         = "us-west-2"
+  }
+}
+```
+</details>
