@@ -1,3 +1,19 @@
+<details>
+<summary>The terraform.tfstate file always matches your currently built infrastructure.</summary><br><b>
+
+`False`
+
+**Explanation**:  
+The terraform.tfstate file is stored by default in a local file named `terraform.tfstate`, but it can also be stored remotely, which works better in a team environment.  
+Terraform uses this local state to create plans and make changes to your infrastructure. Prior to any operation, Terraform does a refresh to update the state with the real infrastructure.  
+The primary purpose of Terraform state is to store bindings between objects in a remote system and resource instances declared in your configuration. When Terraform creates a remote object in response to a change of configuration, it will record the identity of that remote object against a particular resource instance, and then potentially update or delete that object in response to future configuration changes.
+
+**Reference**:  
+[Terraform State Documentation](https://www.terraform.io/docs/language/state/index.html)
+
+</b></details>
+
+---
 ### Terraform
 
 <details>
