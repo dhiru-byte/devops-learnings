@@ -2984,7 +2984,6 @@ resource "kubernetes_namespace" "example" {
 - `D.` The backend configuration should contain multiple credentials so that more than one user can execute terraform plan and terraform apply  
 
 **Correct Answer:** `A`  
-
 </details>
 
 <details>  
@@ -2996,6 +2995,200 @@ resource "kubernetes_namespace" "example" {
 - `B.` False  
 
 **Correct Answer:** `B`  
+</details>
 
+<details>  
+<summary>What does terraform destroy do?</summary>  
+
+**Options:**  
+
+- `A.` Destroy all infrastructure in the Terraform state file  
+- `B.` Destroy all Terraform code files in the current directory while leaving the state file intact  
+- `C.` Destroy all infrastructure in the configured Terraform provider  
+- `D.` Destroy the Terraform state file while leaving infrastructure intact  
+
+**Correct Answer:** `A`  
+</details>
+
+<details>  
+<summary>Which environment variable must be configured to make Terraform's logging more verbose?</summary>  
+
+**Options:**  
+
+- `A.` TF_LOG_LEVEL  
+- `B.` TF_LOG_FILE  
+- `C.` TF_LOG  
+- `D.` TP_LOG_PATH  
+
+**Correct Answer:** `C`  
+</details>
+
+<details>  
+<summary>If a DevOps team adopts AWS CloudFormation as their standardized method for provisioning public cloud resources, which of the following scenarios poses a challenge for this team?</summary>  
+
+**Options:**  
+
+- `A.` The team is asked to build a service code base that can deploy resources into any AWS region  
+- `B.` The team is asked to manage a new application stack built on AWS-native services  
+- `C.` The organization decides to expand into Azure and wishes to deploy new infrastructure using their existing codebase  
+- `D.` The DevOps team is tasked with automating a manual provisioning process  
+
+**Correct Answer:** `C`  
+</details>
+
+<details>  
+<summary>You cannot install third-party plugins using terraform init.</summary>  
+
+**Options:**  
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`  
+</details>
+
+<details>  
+<summary>Which of the following can you do with terraform plan? (Choose two.)</summary>  
+
+**Options:**  
+
+- `A.` Save a generated execution plan to apply later  
+- `B.` Reexecute a plan in a different workspace  
+- `C.` View the execution plan and check if the changes match your expectations  
+- `D.` Schedule Terraform to run at a planned time in the future  
+
+**Correct Answers:** `A`, `C`  
+</details>
+
+<details>  
+<summary>Which are examples of infrastructure as code? (Choose two.)</summary>  
+
+**Options:**  
+
+- `A.` Cloned virtual machine images  
+- `B.` Change management database records  
+- `C.` Versioned configuration files  
+- `D.` Docker files  
+
+**Correct Answers:** `C`, `D`  
+</details>
+
+<details>  
+<summary>You need to migrate a workspace to use a remote backend. After updating your configuration, what command do you run to perform the migration?</summary>  
+
+**Correct Answer:** `terraform init`  
+</details>
+
+<details>  
+<summary>When using a module from the public Terraform Module Registry, the following parameters are required attributes in the module block. (Choose two.)</summary>  
+
+**Options:**  
+
+- `A.` Each of the module’s required inputs  
+- `B.` The module’s source address  
+- `C.` Terraform Module Registry account token  
+- `D.` Each of the module’s dependencies (example: submodules)  
+- `E.` The version of the module  
+
+**Correct Answers:** `B`, `E`  
+</details>
+
+<details>  
+<summary>As a developer, you want to ensure your plugins are up to date with the latest versions. Which Terraform command should you use?</summary>  
+
+**Options:**  
+
+- `A.` terraform init -upgrade  
+- `B.` terraform apply -upgrade  
+- `C.` terraform refresh -upgrade  
+- `D.` terraform providers -upgrade  
+
+**Correct Answer:** `A`  
+</details>
+
+<details>  
+<summary>You can access state stored with the local backend by using the terraform_remote_state data source.</summary>  
+
+**Options:**  
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`  
+</details>
+
+<details>  
+<summary>You updated the Terraform code to change the port from 80 to 443, but another team member manually updates the port to 443 through the Cloud provider console. What will happen when you terraform apply?</summary>  
+
+**Options:**  
+
+- `A.` Terraform will fail with an error because the state file is no longer accurate  
+- `B.` Terraform will change the load balancer port to 80, and then change it back to 443  
+- `C.` Terraform will not make any changes to the Load Balancer and will update the state file to reflect any changes made  
+- `D.` Terraform will change the port back to 80 in your code  
+
+**Correct Answer:** `C`  
+</details>
+
+<details>  
+<summary>In a Terraform Cloud workspace linked to a version control repository, speculative plan runs start automatically when you merge or commit changes to version control.</summary>  
+
+**Options:**  
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `A`  
+</details>
+
+<details>  
+<summary>You want to deploy the same Terraform code in the staging environment with a separate variable definition file and a separate state file. Which two actions should you perform? (Choose two.)</summary>  
+
+**Options:**  
+
+- `A.` Copy the existing terraform.tfstate file and save it as staging.terraform.tfstate  
+- `B.` Write a new staging.auto.tfvars variable definition file and run Terraform with the `-var-file="staging.auto.tfvars"` flag  
+- `C.` Create a new Terraform workspace for staging  
+- `D.` Create a new Terraform provider for staging  
+- `E.` Add new Terraform code (*.tf files) for staging in the same directory  
+
+**Correct Answers:** `B`, `C`  
+</details>
+
+<details>  
+<summary>The ________ determines how Terraform creates, updates, or deletes resources.</summary>  
+
+**Options:**  
+
+- `A.` Terraform configuration  
+- `B.` Terraform core  
+- `C.` Terraform provider  
+- `D.` Terraform provisioner  
+
+**Correct Answer:** `C`  
+</details>
+
+<details>  
+<summary>Terraform destroy is the only way to remove infrastructure.</summary>  
+
+**Options:**  
+
+- `A.` True  
+- `B.` False  
+
+**Correct Answer:** `B`  
+</details>
+
+<details>  
+<summary>Which of the following is the correct way to pass the value in the variable num_servers into a module with the input servers in HCL2?</summary>  
+
+**Options:**  
+
+- `A.` servers = var.num_servers  
+- `B.` servers = num_servers  
+- `C.` servers = var(num_servers)  
+- `D.` $(var.num_servers)  
+
+**Correct Answer:** `A`  
 </details>
 
