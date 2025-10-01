@@ -1050,3 +1050,52 @@ terraform {
 }
 ```
 </details>
+
+<details>
+<summary>Outside of the `required_providers` block, Terraform configurations always refer to providers by their local names.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Explanation**:  
+In Terraform configurations, providers are often defined in a `required_providers` block where an alias or local name is associated with the provider source (e.g., `hashicorp/aws`). Outside of the `required_providers` block, Terraform references providers using the local names defined in your configuration, such as `aws` or `azurerm`.
+
+**Example:**
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-west-2"
+}
+```
+</details>
+
+<details>
+<summary>What command should you run to display all workspaces for the current configuration?</summary>
+
+**Options:**
+- `A. terraform workspace`
+- `B. terraform workspace show`
+- `C. terraform workspace list`
+- `D. terraform show workspace`
+
+**Correct Answer:** `C. terraform workspace list`
+
+**Explanation**:  
+The `terraform workspace list` command is used to display all existing workspaces for the current configuration. Workspaces in Terraform allow you to manage multiple states for the same configuration, such as for different environments (e.g., dev, staging, production).
+
+**Example Command:**
+```bash
+terraform workspace list
+```
+</details>
