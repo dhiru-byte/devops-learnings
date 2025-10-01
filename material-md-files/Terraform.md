@@ -1099,3 +1099,82 @@ The `terraform workspace list` command is used to display all existing workspace
 terraform workspace list
 ```
 </details>
+
+<details>
+<summary>Terraform providers are always installed from the Internet.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation:**  
+Terraform configurations must declare which providers they require, so that Terraform can install and use them. Providers can also be installed locally if needed, rather than retrieving them from the Internet.
+
+**Reference:**  
+[Terraform Provider Configuration Documentation](https://www.terraform.io/docs/language/providers/configuration.html)
+
+</details>
+
+<details>
+<summary>Which of these is the best practice to protect sensitive values in state files?</summary>
+
+**Options:**
+- `A. Blockchain`
+- `B. Secure Sockets Layer (SSL)`
+- `C. Enhanced remote backends`
+- `D. Signed Terraform providers`
+
+**Correct Answer:** `C. Enhanced remote backends`
+
+**Explanation:**  
+Use of remote backends, and especially the availability of Terraform Cloud, ensures state encryption at rest and avoids storing state in clear text on local machines. Remote backends are the best practice for protecting sensitive data in state files.
+
+**Reference:**  
+[Terraform Best Practices for Sensitive State](https://www.terraform.io/docs/extend/best-practices/sensitive-state.html)
+
+</details>
+
+<details>
+<summary>When does `terraform apply` reflect changes in the cloud environment?</summary>
+
+**Options:**
+- `A. Immediately`
+- `B. However long it takes the resource provider to fulfill the request`
+- `C. After updating the state file`
+- `D. Based on the value provided to the -refresh command line argument`
+- `E. None of the above`
+
+**Correct Answer:** `B. However long it takes the resource provider to fulfill the request`
+
+**Explanation:**  
+When `terraform apply` is executed, Terraform sends requests to the resource provider (e.g., AWS, Azure) to create, update, or delete infrastructure. The time it takes for changes to reflect in the cloud environment depends on how long the resource provider needs to fulfill those requests. This process can vary depending on the type of resource and the provider's performance.
+
+**Reference:**  
+[Terraform Apply Documentation](https://developer.hashicorp.com/terraform/cli/commands/apply)
+
+</details>
+
+<details>
+<summary>How would you reference the "name" value of the second instance of this fictitious resource?</summary>
+
+**Terraform Configuration:**
+```hcl
+resource "aws_instance" "web" {
+  count = 2
+  name  = "terraform-${count.index}"
+}
+```
+**Options:**
+
+- A. element(aws_instance.web, 2)
+- B. aws_instance.web[1].name
+- C. aws_instance.web[1]
+- D. aws_instance.web[2].name
+- E. aws_instance.web.*.name
+
+**Correct Answer:** 
+- B. aws_instance.web[1].name
+
+</details>
