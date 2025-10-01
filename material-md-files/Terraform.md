@@ -909,20 +909,16 @@ resource "aws_instance" "web" {
 
 **Options:**
 
-- `A. aws_ami.ubuntu
-- `B. data.aws_ami.ubuntu
-- `C. data.aws_ami.ubuntu.id
-- `D. aws_ami.ubuntu.id
+- A. aws_ami.ubuntu
+- B. data.aws_ami.ubuntu
+- C. data.aws_ami.ubuntu.id
+- D. aws_ami.ubuntu.id
+
 **Correct Answer:** C. data.aws_ami.ubuntu.id
 
 Explanation:
 When referencing a data source in Terraform, you need to use the data.<type>.<name> syntax. To retrieve the id of the AMI from the aws_ami data source, the correct property is id. Thus, the correct reference for the ami attribute is data.aws_ami.ubuntu.id.
 
-Incorrect Options:
-
-A. aws_ami.ubuntu: This omits the data keyword, so it is invalid for referencing a data source.
-B. data.aws_ami.ubuntu: This references the data source but is incomplete because it does not specify the id attribute.
-D. aws_ami.ubuntu.id: Again, this omits the data keyword, which makes it invalid.
 Reference:
 Terraform Data Sources Documentation
 
