@@ -1,32 +1,35 @@
-<details>
-<summary>The terraform.tfstate file always matches your currently built infrastructure.</summary><br><b>
+# Terraform Questions and Answers
 
-`False`
+---# Terraform Questions and Answers
 
-**Explanation**:  
-The terraform.tfstate file is stored by default in a local file named `terraform.tfstate`, but it can also be stored remotely, which works better in a team environment.  
-Terraform uses this local state to create plans and make changes to your infrastructure. Prior to any operation, Terraform does a refresh to update the state with the real infrastructure.  
-The primary purpose of Terraform state is to store bindings between objects in a remote system and resource instances declared in your configuration. When Terraform creates a remote object in response to a change of configuration, it will record the identity of that remote object against a particular resource instance, and then potentially update or delete that object in response to future configuration changes.
-
-**Reference**:  
-[Terraform State Documentation](https://www.terraform.io/docs/language/state/index.html)
-
-</b></details>
+---
 
 <details>
 <summary>One remote backend configuration always maps to a single remote workspace.</summary><br><b>
 
-`False`
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
 
 **Explanation**:  
 A single remote backend configuration can support multiple remote workspaces. This allows for multiple states to be managed under the same backend configuration, enabling better organization of environments such as development, staging, and production.
 
 </b></details>
 
+---
+
 <details>
 <summary>How is the Terraform remote backend different than other state backends such as S3, Consul, etc.?</summary><br><b>
 
-`A. It can execute Terraform runs on dedicated infrastructure on premises or in Terraform Cloud`
+**Options:**
+- `A. It can execute Terraform runs on dedicated infrastructure on premises or in Terraform Cloud`
+- `B. It doesn't show the output of a terraform apply locally`
+- `C. It is only available to paying customers`
+- `D. All of the above`
+
+**Correct Answer:** `A. It can execute Terraform runs on dedicated infrastructure on premises or in Terraform Cloud`
 
 **Explanation**:  
 If you and your team are using Terraform to manage meaningful infrastructure, we recommend using the remote backend with Terraform Cloud or Terraform Enterprise.
@@ -35,6 +38,132 @@ If you and your team are using Terraform to manage meaningful infrastructure, we
 [Terraform Remote Backend Documentation](https://www.terraform.io/docs/language/settings/backends/index.html)
 
 </b></details>
+
+---
+
+<details>
+<summary>What is the workflow for deploying new infrastructure with Terraform?</summary><br><b>
+
+**Options:**
+- `A. terraform plan to import the current infrastructure to the state file, make code changes, and terraform apply to update the infrastructure.`
+- `B. Write a Terraform configuration, run terraform show to view proposed changes, and terraform apply to create new infrastructure.`
+- `C. terraform import to import the current infrastructure to the state file, make code changes, and terraform apply to update the infrastructure.`
+- `D. Write a Terraform configuration, run terraform init, run terraform plan to view planned infrastructure changes, and terraform apply to create new infrastructure.`
+
+**Correct Answer:** `D. Write a Terraform configuration, run terraform init, run terraform plan to view planned infrastructure changes, and terraform apply to create new infrastructure.`
+
+**Explanation**:  
+To deploy new infrastructure using Terraform, follow these steps:
+1. Write the Terraform configuration specifying the desired infrastructure resources.
+2. Run `terraform init` to initialize the configuration and download necessary provider plugins.
+3. Run `terraform plan` to see the execution plan and ensure the desired changes match your expectation.
+4. Run `terraform apply` to provision the specified resources and create the new infrastructure.
+
+</b></details>
+
+---
+
+<details>
+<summary>A provider configuration block is required in every Terraform configuration.</summary><br><b>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Explanation**:  
+In Terraform, a provider configuration block is essential as it specifies which provider (e.g., AWS, Azure) Terraform should use to interact with the underlying infrastructure. Without a provider configuration block, Terraform cannot manage resources associated with a specific provider.
+
+**Reference**:  
+[GitHub - HashiCorp Terraform Issues](https://github.com/hashicorp/terraform/issues/17928)
+
+</b></details>
+
+---
+
+<details>
+<summary>You run a local-exec provisioner in a null resource called null_resource.run_script and realize that you need to rerun the script. Which of the following commands would you use first?</summary><br><b>
+
+**Options:**
+- `A. terraform taint null_resource.run_script`
+- `B. terraform apply -target=null_resource.run_script`
+- `C. terraform validate null_resource.run_script`
+- `D. terraform plan -target=null_resource.run_script`
+
+**Correct Answer:** `B. terraform apply -target=null_resource.run_script`
+
+**Explanation**:  
+To rerun a specific resource in Terraform, the `-target` flag is used to isolate the execution onto that resource. Running `terraform apply -target=null_resource.run_script` ensures that the null resource (`run_script`) is executed again without impacting other resources defined in the configuration.
+
+</b></details>
+
+---
+
+<details>
+<summary>Which provisioner invokes a process on the resource created by Terraform?</summary><br><b>
+
+**Options:**
+- `A. remote-exec`
+- `B. null-exec`
+- `C. local-exec`
+- `D. file`
+
+**Correct Answer:** `A. remote-exec`
+
+**Explanation**:  
+The `remote-exec` provisioner allows Terraform to execute scripts or commands on a remote resource, such as a newly created virtual machine, after it has been provisioned. This is useful for performing post-provisioning tasks like software installation or configuration.
+
+**Reference**:  
+[Terraform Remote-Exec Provisioner Documentation](https://www.terraform.io/docs/language/resources/provisioners/remote-exec.html)
+
+</b></details>
+
+---
+
+<details>
+<summary>Which of the following is not true of Terraform providers?</summary><br><b>
+
+**Options:**
+- `A. Providers can be written by individuals`
+- `B. Providers can be maintained by a community of users`
+- `C. Some providers are maintained by HashiCorp`
+- `D. Major cloud vendors and non-cloud vendors can write, maintain, or collaborate on Terraform providers`
+- `E. None of the above`
+
+**Correct Answer:** `E. None of the above`
+
+**Explanation**:  
+All the statements about Terraform providers are true:
+- Providers can indeed be written by individuals.
+- Providers can also be maintained by a community of users.
+- Some providers are officially maintained by HashiCorp to ensure reliability and consistency.
+- Major cloud vendors, as well as non-cloud vendors, actively contribute to developing and maintaining Terraform providers, enabling better integration and usability.
+
+</b></details>
+
+---
+
+<details>
+<summary>What command does Terraform require the first time you run it within a configuration directory?</summary><br><b>
+
+**Options:**
+- `A. terraform import`
+- `B. terraform init`
+- `C. terraform plan`
+- `D. terraform workspace`
+
+**Correct Answer:** `B. terraform init`
+
+**Explanation**:  
+The `terraform init` command is used to initialize a working directory containing Terraform configuration files. This command prepares the directory for use by downloading the required provider plugins and setting up the Terraform environment.
+
+**Reference**:  
+[Terraform Init Command Documentation](https://www.terraform.io/docs/cli/commands/init.html)
+
+</b></details>
+
+
 
 ---
 ### Terraform
