@@ -769,13 +769,6 @@ When referencing modules stored on the public Terraform Module Registry (e.g., `
 - **B.** While appending `?ref=v1.0.0` is commonly used with Git source URLs, it is not applicable for modules from the public Terraform Module Registry.
 - **D.** Modules do not default to version 1.0.0 unless explicitly specified.
 
-**Example Usage:**
-```hcl
-module "consul" {
-  source  = "hashicorp/consul/aws"
-  version = "1.0.0"
-}
-
 </details>
 
 
@@ -804,3 +797,135 @@ Terraform Cloud offers the following key features:
 - [Terraform Cloud Overview](https://www.terraform.io/cloud)
 
 </details>
+
+<details>
+<summary>Where does the Terraform local backend store its state?</summary>
+
+**Options:**
+- `A. In the /tmp directory`
+- `B. In the terraform file`
+- `C. In the terraform.tfstate file`
+- `D. In the user's terraform.state file`
+
+**Correct Answer:** `C. In the terraform.tfstate file`
+
+**Explanation**:  
+The local backend stores the Terraform state file in a file named `terraform.tfstate` on the local filesystem. This file represents the current state of the infrastructure managed by Terraform. The state file is crucial for tracking resources, as it allows Terraform to know which resources already exist and whether changes need to be applied during future runs.
+
+**Incorrect Options:**
+- **A.** The `/tmp` directory is not used for state storage by default in Terraform.  
+- **B.** Terraform configurations are written in `.tf` files, but the state is not stored in these files.  
+- **D.** The state file is named `terraform.tfstate`, not `terraform.state`.  
+
+**Reference:**  
+[Terraform Local Backend Documentation](https://www.terraform.io/docs/language/settings/backends/local.html)
+
+</details>
+
+<details>
+<summary>Which option can not be used to keep secrets out of Terraform configuration files?</summary>
+
+**Options:**
+- `A. A Terraform provider`
+- `B. Environment variables`
+- `C. A -var flag`
+- `D. secure string`
+
+**Correct Answer:** `D. secure string`
+
+**Explanation**:  
+Terraform does not natively support a "secure string" type as a method to securely manage sensitive information directly in configuration files. Instead, secrets should be managed via other mechanisms, such as:  
+- **Using environment variables (B):** You can set sensitive data like credentials in environment variables and use `TF_VAR_` prefixes to reference them in configurations.  
+- **Using the `-var` flag (C):** You can pass sensitive values at runtime via the `-var` flag when running commands like `terraform plan` or `terraform apply`.  
+- **Through a Terraform provider (A):** Some providers enable integration with secret management systems (e.g., AWS Secrets Manager, HashiCorp Vault).
+
+**Incorrect Option:**
+- **D. secure string:** This is not a Terraform feature or supported mechanism to secure secrets.
+
+**Reference:**  
+[Terraform Variables Documentation](https://developer.hashicorp.com/terraform/language/values/variables)
+
+</details>
+
+<details>
+<summary>What is one disadvantage of using dynamic blocks in Terraform?</summary>
+
+**Options:**
+- `A. They cannot be used to loop through a list of values`
+- `B. Dynamic blocks can construct repeatable nested blocks`
+- `C. They make configuration harder to read and understand`
+- `D. Terraform will run more slowly`
+
+**Correct Answer:** `C. They make configuration harder to read and understand`
+
+**Explanation**:  
+Dynamic blocks are a powerful feature in Terraform that allow you to generate nested blocks programmatically, typically by looping through a list of values. However, their main disadvantage is that they can reduce the readability and clarity of the configuration, especially for users unfamiliar with the `dynamic` syntax. Clear and readable configurations are generally preferred for collaboration and maintainability.
+
+**Incorrect Options:**
+- **A.** Dynamic blocks can absolutely be used to loop through a list of values, which is one of their primary use cases.  
+- **B.** This statement is true, but it is not a disadvantage; it's a core feature of dynamic blocks.  
+- **D.** Using dynamic blocks does not have a significant impact on Terraform's runtime performance.
+
+**Reference:**  
+[Terraform Dynamic Blocks Documentation](https://developer.hashicorp.com/terraform/language/expressions/dynamic)
+
+</details>
+
+<details>
+<summary>Only the user that generated a plan may apply it.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation**:  
+Terraform does not require the same user who generated a plan to apply it. Terraform separates the `plan` and `apply` steps, but the saved plan file (`terraform plan -out=<file>`) can be used by any user with appropriate access to apply the changes. This flexibility allows teams to collaborate effectively, enabling one user to generate the plan and another user to apply it.
+
+**Incorrect Options:**
+- **A. True:** This is incorrect; there is no restriction that limits the application of a saved plan file to the same user who generated it.
+
+**Reference:**  
+[Terraform Plan and Apply Workflow Documentation](https://developer.hashicorp.com/terraform/cli/commands/apply)
+
+</details>
+
+<details>
+<summary>What value should you enter for the `ami` argument in the AWS instance resource to use the AWS AMI data source?</summary>
+
+**Terraform Configuration:**
+```hcl
+data "aws_ami" "ubuntu" {
+}
+resource "aws_instance" "web" {
+  ami             = _______________
+  instance_type   = "t2.micro"
+  tags = {
+    Name = "HelloWorld"
+  }
+}
+```
+
+**Options:**
+
+- `A. aws_ami.ubuntu
+- `B. data.aws_ami.ubuntu
+- `C. data.aws_ami.ubuntu.id
+- `D. aws_ami.ubuntu.id
+**Correct Answer:** C. data.aws_ami.ubuntu.id
+
+Explanation:
+When referencing a data source in Terraform, you need to use the data.<type>.<name> syntax. To retrieve the id of the AMI from the aws_ami data source, the correct property is id. Thus, the correct reference for the ami attribute is data.aws_ami.ubuntu.id.
+
+Incorrect Options:
+
+A. aws_ami.ubuntu: This omits the data keyword, so it is invalid for referencing a data source.
+B. data.aws_ami.ubuntu: This references the data source but is incomplete because it does not specify the id attribute.
+D. aws_ami.ubuntu.id: Again, this omits the data keyword, which makes it invalid.
+Reference:
+Terraform Data Sources Documentation
+
+</details>
+
+
