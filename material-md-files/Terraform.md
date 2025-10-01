@@ -964,3 +964,40 @@ Terraform manages resources defined in your configuration using the state file. 
 [Terraform Destroy Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/destroy)
 
 </details>
+
+<details>
+<summary>What is the name assigned by Terraform to reference this resource?</summary>
+
+**Terraform Configuration:**
+```hcl
+resource "azurerm_resource_group" "dev" {
+  name     = "test"
+  location = "westus"
+}
+```
+
+**Options:**
+
+A. dev
+B. azurerm_resource_group
+C. azurerm
+D. test
+
+**Correct Answer:** A. dev
+
+Explanation:
+In Terraform, the name assigned to reference a resource is defined in the resource block after the resource type. In this case:
+
+azurerm_resource_group is the resource type (Azure resource group).
+dev is the local name (or resource name) that you use to reference this specific resource in the configuration.
+To reference this resource elsewhere, you would use azurerm_resource_group.dev.
+
+Incorrect Options:
+
+B. azurerm_resource_group: This is the type of the resource, not the specific name assigned to it.
+C. azurerm: This is part of the provider name but not relevant to the specific resource's reference name.
+D. test: This is the value of the name attribute, not the name for referencing the resource in the configuration.
+Reference:
+Terraform Resource Documentation
+
+</details>
