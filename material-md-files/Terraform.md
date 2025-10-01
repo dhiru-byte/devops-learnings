@@ -919,9 +919,48 @@ resource "aws_instance" "web" {
 Explanation:
 When referencing a data source in Terraform, you need to use the data.<type>.<name> syntax. To retrieve the id of the AMI from the aws_ami data source, the correct property is id. Thus, the correct reference for the ami attribute is data.aws_ami.ubuntu.id.
 
-Reference:
-Terraform Data Sources Documentation
-
 </details>
 
+<details>
+<summary>You need to specify a dependency manually. What resource meta-parameter can you use to make sure Terraform respects the dependency?</summary>
 
+**Correct Answer:** `depends_on`
+
+**Explanation**:  
+The `depends_on` meta-parameter allows you to explicitly specify a dependency between resources in Terraform. This ensures that Terraform respects the order of operations by waiting for the dependent resource to finish its creation, update, or destruction before proceeding. It is useful in scenarios where Terraform might not automatically infer dependencies.
+
+**Example Usage:**
+```hcl
+resource "aws_instance" "example" {
+  # Resource configuration
+}
+
+resource "aws_eip" "example" {
+  depends_on = [aws_instance.example]
+  # Ensures the EIP is associated only after the instance is created
+}
+```
+
+<details>
+<summary>You have created a new virtual machine (VM) using Terraform and want to delete it. What should you do to delete the newly-created VM with Terraform?</summary>
+
+**Options:**
+- `A. The Terraform state file contains all 16 VMs in the team account. Execute terraform destroy and select the newly-created VM.`
+- `B. The Terraform state file only contains the one new VM. Execute terraform destroy.`
+- `C. Delete the Terraform state file and execute terraform apply.`
+- `D. Delete the VM using the cloud provider console and terraform apply to apply the changes to the Terraform state file.`
+
+**Correct Answer:** `B. The Terraform state file only contains the one new VM. Execute terraform destroy.`
+
+**Explanation**:  
+Terraform manages resources defined in your configuration using the state file. Since the state file for this configuration only tracks the newly-created VM, you can run `terraform destroy`. This command will use the state file to identify and delete the resources it manages—in this case, the one VM created by Terraform. There is no need to delete resources manually or interfere with the state file.
+
+**Incorrect Options:**
+- **A:** The Terraform state file does not include unmanaged resources (e.g., the other 15 VMs created outside of Terraform), so destroying all resources is unnecessary in this context.  
+- **C:** Deleting the state file would remove Terraform's ability to manage existing resources, such as the VM. This is not recommended.  
+- **D:** Using the cloud provider console to delete resources manually may leave the Terraform state file out of sync with the actual infrastructure unless properly reconciled, which requires additional steps.
+
+**Reference:**  
+[Terraform Destroy Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/destroy)
+
+</details>
