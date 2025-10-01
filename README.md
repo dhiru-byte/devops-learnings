@@ -4,9 +4,7 @@
 
 [Git](material-md-files/git.md) 
 
-[Terraform](material-md-files/Terraform.md) 
-
-[Terraform Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_vMDBAqQIjRxDgPO0yBOTM8)
+[Terraform](material-md-files/Terraform.md) / [Terraforminfo](material-md-files/Terraforminfo.md) / [Terraform Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_vMDBAqQIjRxDgPO0yBOTM8)
 
 [Docker](material-md-files/Docker.md)  
 
