@@ -1,7 +1,5 @@
 # Terraform Questions and Answers
 
----# Terraform Questions and Answers
-
 ---
 
 <details>
@@ -18,7 +16,6 @@ A single remote backend configuration can support multiple remote workspaces. Th
 
 </b></details>
 
----
 
 <details>
 <summary>How is the Terraform remote backend different than other state backends such as S3, Consul, etc.?</summary><br><b>
@@ -39,7 +36,6 @@ If you and your team are using Terraform to manage meaningful infrastructure, we
 
 </b></details>
 
----
 
 <details>
 <summary>What is the workflow for deploying new infrastructure with Terraform?</summary><br><b>
@@ -61,7 +57,6 @@ To deploy new infrastructure using Terraform, follow these steps:
 
 </b></details>
 
----
 
 <details>
 <summary>A provider configuration block is required in every Terraform configuration.</summary><br><b>
@@ -80,7 +75,6 @@ In Terraform, a provider configuration block is essential as it specifies which 
 
 </b></details>
 
----
 
 <details>
 <summary>You run a local-exec provisioner in a null resource called null_resource.run_script and realize that you need to rerun the script. Which of the following commands would you use first?</summary><br><b>
@@ -98,7 +92,6 @@ To rerun a specific resource in Terraform, the `-target` flag is used to isolate
 
 </b></details>
 
----
 
 <details>
 <summary>Which provisioner invokes a process on the resource created by Terraform?</summary><br><b>
@@ -119,7 +112,6 @@ The `remote-exec` provisioner allows Terraform to execute scripts or commands on
 
 </b></details>
 
----
 
 <details>
 <summary>Which of the following is not true of Terraform providers?</summary><br><b>
@@ -142,7 +134,6 @@ All the statements about Terraform providers are true:
 
 </b></details>
 
----
 
 <details>
 <summary>What command does Terraform require the first time you run it within a configuration directory?</summary><br><b>
@@ -160,10 +151,56 @@ The `terraform init` command is used to initialize a working directory containin
 
 **Reference**:  
 [Terraform Init Command Documentation](https://www.terraform.io/docs/cli/commands/init.html)
+</b></details>
+
+<details>
+<summary>You have deployed a new web app with a public IP address on a cloud provider. However, you did not create any outputs for your code. What is the best method to quickly find the IP address of the resource you deployed?</summary><br><b>
+
+**Options:**
+- `A. Run terraform output ip_address to view the result`
+- `B. In a new folder, use the terraform_remote_state data source to load in the state file, then write an output for each resource that you find in the state file`
+- `C. Run terraform state list to find the name of the resource, then terraform state show to find the attributes including public IP address`
+- `D. Run terraform destroy then terraform apply and look for the IP address in stdout`
+
+**Correct Answer:** `C. Run terraform state list to find the name of the resource, then terraform state show to find the attributes including public IP address`
+
+**Explanation**:  
+Using `terraform state list` allows you to identify all resources managed in the current state file. Once you find the name of the desired resource, you can run `terraform state show` to inspect its attributes, including the public IP address. This method avoids unnecessary operations like destroying or reapplying resources and enables quick discovery of resource details.
 
 </b></details>
 
+<details>
+<summary>Which of the following is not a key principle of infrastructure as code?</summary><br><b>
 
+**Options:**
+- `A. Versioned infrastructure`
+- `B. Golden images`
+- `C. Idempotence`
+- `D. Self-describing infrastructure`
+
+**Correct Answer:** `B. Golden images`
+
+**Explanation**:  
+Golden images are preconfigured disk images used to deploy environments and are not a core principle of infrastructure as code (IaC). The key principles of IaC include:
+- **Versioned infrastructure:** Treating infrastructure as version-controlled code.
+- **Idempotence:** Ensuring deployments produce the same results no matter how many times they are applied.
+- **Self-describing infrastructure:** Clearly defining the desired state within configuration files.
+
+</b></details>
+
+<details>
+<summary>Terraform variables and outputs that set the "description" argument will store that description in the state file.</summary><br><b>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation**:  
+The "description" argument set in Terraform variables or outputs is purely informational and is not stored in the state file. Terraform state files only contain essential resource attributes and metadata required for infrastructure management, not descriptive information.
+
+</b></details>
 
 ---
 ### Terraform
