@@ -940,6 +940,8 @@ resource "aws_eip" "example" {
   # Ensures the EIP is associated only after the instance is created
 }
 ```
+</details>
+
 
 <details>
 <summary>You have created a new virtual machine (VM) using Terraform and want to delete it. What should you do to delete the newly-created VM with Terraform?</summary>
@@ -964,6 +966,7 @@ Terraform manages resources defined in your configuration using the state file. 
 [Terraform Destroy Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/destroy)
 
 </details>
+
 
 <details>
 <summary>What is the name assigned by Terraform to reference this resource?</summary>
@@ -999,3 +1002,5 @@ Incorrect Options:
 - D. test: This is the value of the name attribute, not the name for referencing the resource in the configuration.
 
 </details>
+
+
