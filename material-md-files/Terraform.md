@@ -776,4 +776,31 @@ module "consul" {
   version = "1.0.0"
 }
 
+</details>
 
+
+<details>
+<summary>What features does the hosted service Terraform Cloud provide? (Choose two)</summary>
+
+**Options:**
+- `A. Automated infrastructure deployment visualization`
+- `B. Automatic backups`
+- `C. Remote state storage`
+- `D. A web-based user interface (UI)`
+
+**Correct Answers:** `C. Remote state storage` and `D. A web-based user interface (UI)`
+
+**Explanation**:  
+Terraform Cloud offers the following key features:  
+- **Remote state storage (C):** Terraform Cloud provides centralized state storage, making it easier to collaborate in a team environment by ensuring that state is securely stored and shared across team members.
+- **Web-based user interface (D):** Terraform Cloud includes a web UI for managing workspaces, user access, state versions, and other administrative controls.
+
+**Incorrect Options:**
+- **A.** Terraform Cloud does not provide automated infrastructure deployment visualization as a built-in feature.
+- **B.** While Terraform manages state safely, it does not provide general-purpose automatic backup functionality as a specific feature.
+
+**References:**  
+- [Terraform Cloud Remote State Documentation](https://www.terraform.io/docs/language/state/remote.html)  
+- [Terraform Cloud Overview](https://www.terraform.io/cloud)
+
+</details>
