@@ -1488,5 +1488,530 @@ resource "google_compute_instance" "main" {
 
 </details>
 
+<details>
+<summary>You write a new Terraform configuration and immediately run `terraform apply` in the CLI using the local backend. Why will the apply fail?</summary>
 
+**Options:**
+- `A. Terraform needs you to format your code according to best practices first`
+- `B. Terraform needs to install the necessary plugins first`
+- `C. The Terraform CLI needs you to log into Terraform cloud first`
+- `D. Terraform requires you to manually run terraform plan first`
+
+**Correct Answer:** `B. Terraform needs to install the necessary plugins first`
+
+**Explanation:**  
+When you execute a Terraform command for the first time, Terraform automatically looks for the necessary provider plugins. If they are not installed, the program will fail. Running `terraform init` ensures that all required plugins are downloaded.
+
+**Reference:**  
+[Terraform CLI Commands Documentation](https://www.terraform.io/docs/cli/index.html)
+</details>
+
+<details>
+<summary>What feature stops multiple admins from changing the Terraform state at the same time?</summary>
+
+**Options:**
+- `A. Version control`
+- `B. Backend types`
+- `C. Provider constraints`
+- `D. State locking`
+
+**Correct Answer:** `D. State locking`
+
+**Explanation:**  
+State locking ensures that only one operation modifies or accesses the state at a time. This prevents multiple admins or processes from making changes simultaneously, which could corrupt or disrupt the state file.
+
+**Reference:**  
+[Terraform State Locking Documentation](https://blog.gruntwork.io/how-to-manage-terraform-state-28f5697e68fa)
+</details>
+
+<details>
+<summary>A fellow developer on your team is asking for some help in refactoring their Terraform code. They need to tell Terraform to no longer manage a specific resource. What command should be used?</summary>
+
+**Options:**
+- `A. terraform apply rm aws_instance.ubuntu[1]`
+- `B. terraform state rm aws_instance.ubuntu[1]`
+- `C. terraform plan rm aws_instance.ubuntu[1]`
+- `D. terraform delete aws_instance.ubuntu[1]`
+
+**Correct Answer:** `B. terraform state rm aws_instance.ubuntu[1]`
+
+**Explanation:**  
+The `terraform state rm` command removes a resource from the Terraform state without deleting the actual infrastructure. This is useful when the resource needs to be managed outside of Terraform or temporarily excluded from Terraform's management.
+
+**Reference:**  
+[Terraform State RM Command Documentation](https://www.terraform.io/docs/cli/commands/state/rm.html)
+</details>
+
+<details>
+<summary>Terraform can only manage resource dependencies if you set them explicitly using the `depends_on` argument. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation:**  
+Terraform automatically manages resource dependencies by analyzing the configuration and determining resource relationships based on references to other resources, data sources, or variables. The `depends_on` argument is optional and only used to explicitly define dependencies when Terraform cannot automatically infer them.
+
+**Reference:**  
+[Terraform Resource Dependencies Documentation](https://www.terraform.io/docs/language/resources/relationships.html)
+</details>
+
+<details>
+<summary>A terraform apply can **not** __________ infrastructure.</summary>
+
+**Options:**
+- `A. change`
+- `B. destroy`
+- `C. provision`
+- `D. import`
+
+**Correct Answer:** `D. import`
+
+**Explanation:**  
+The `terraform apply` command is used to change, destroy, or provision infrastructure based on the current configuration. However, it cannot **import** existing infrastructure into the Terraform state. To import an existing resource, you must use the `terraform import` command.
+
+**Reference:**  
+[Terraform Apply Command Documentation](https://www.terraform.io/docs/cli/commands/apply.html)
+[Terraform Import Command Documentation](https://www.terraform.io/docs/cli/commands/import.html)
+</details>
+
+<details>
+<summary>You need to constrain the GitHub provider to version 2.1 or greater. Which of the following should you put into the Terraform configuration's provider block?</summary>
+
+**Options:**
+- `A. version >= 2.1`
+- `B. version ~> 2.1`
+- `C. version = "<= 2.1"`
+- `D. version => 2.1`
+
+**Correct Answer:** `A. version >= 2.1`
+
+**Explanation:**  
+To specify a version constraint in Terraform for a provider, the syntax `>= 2.1` ensures that the provider's version is 2.1 or greater. Careful consideration should be given to version constraints to avoid introducing breaking changes.
+
+**Reference:**  
+[Terraform Provider Version Constraints Documentation](https://developer.hashicorp.com/terraform/language/providers/requirements)
+</details>
+
+<details>
+<summary>You just scaled your VM infrastructure and realized you set the count variable to the wrong value. You correct the value and save your change. What do you do next to make your infrastructure match your configuration?</summary>
+
+**Options:**
+- `A. Run terraform apply and confirm the planned changes`
+- `B. Inspect your Terraform state because you want to change it`
+- `C. Reinitialize because your configuration has changed`
+- `D. Inspect all Terraform outputs to make sure they are correct`
+
+**Correct Answer:** `A. Run terraform apply and confirm the planned changes`
+
+**Explanation:**  
+After fixing the count variable and saving the configuration, you need to run `terraform apply` to implement the changes in your infrastructure. Terraform will refresh the state, show you a proposed plan of changes, and ask for confirmation before making updates.
+
+**Reference:**  
+[Terraform Apply Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/apply)
+</details>
+
+<details>
+<summary>Terraform provisioners that require authentication can use the ______ block.</summary>
+
+**Options:**
+- `A. connection`
+- `B. credentials`
+- `C. secrets`
+- `D. ssh`
+
+**Correct Answer:** `A. connection`
+
+**Explanation:**  
+The `connection` block in Terraform is used for configuring the authentication settings required by provisioners. It typically includes details such as the type of connection (e.g., SSH or WinRM) along with the credentials (username, password, or private key) required to access the resource.
+
+**Reference:**  
+[Terraform Provisioner Connection Settings Documentation](https://www.terraform.io/docs/language/resources/provisioners/connection.html)
+</details>
+
+<details>
+<summary>Terraform validate reports syntax check errors from which of the following scenarios?</summary>
+
+**Options:**
+- `A. Code contains tabs indentation instead of spaces`
+- `B. There is missing value for a variable`
+- `C. The state files do not match the current infrastructure`
+- `D. None of the above`
+
+**Correct Answer:** `D. None of the above`
+
+**Explanation:**  
+`terraform validate` checks the syntax and consistency of a Terraform configuration but does not perform validation for issues like code styling (e.g., tabs vs. spaces) or runtime errors such as missing variables or state file mismatches. These types of problems are addressed during `terraform plan` or `terraform apply` execution.
+
+**Reference:**  
+[Terraform Validate Command Documentation](https://www.terraform.io/docs/cli/commands/validate.html)
+</details>
+
+<details>
+<summary>Which of the following is allowed as a Terraform variable name?</summary>
+
+**Options:**
+- `A. count`
+- `B. name`
+- `C. source`
+- `D. version`
+
+**Correct Answer:** `B. name`
+
+**Explanation:**  
+Terraform reserves certain keywords (e.g., `count`, `source`, `version`, `lifecycle`, etc.) for its own use, and they cannot be used as variable names. However, `name` is not a reserved keyword and can be used as a valid variable name.
+
+**Reference:**  
+[Terraform Variable Names Documentation](https://developer.hashicorp.com/terraform/language/values/variables)
+</details>
+
+<details>
+<summary>What type of block is used to construct a collection of nested configuration blocks?</summary>
+
+**Options:**
+- `A. for_each`
+- `B. repeated`
+- `C. nesting`
+- `D. dynamic`
+
+**Correct Answer:** `D. dynamic`
+
+**Explanation:**  
+In Terraform, a `dynamic` block is used to create a collection of nested configuration blocks dynamically. This is particularly useful when the number of nested blocks or their content depends on external data. The `dynamic` block iterates over a collection and renders nested blocks based on its content.
+
+**Reference:**  
+[Terraform Dynamic Blocks Documentation](https://developer.hashicorp.com/terraform/language/expressions/dynamic-blocks)
+</details>
+
+<details>
+<summary>Module variable assignments are inherited from the parent module and you do **not** need to explicitly set them. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation:**  
+Variables in a Terraform module must be explicitly set when the module is called. They are **not** automatically inherited from the parent module. If a module variable is not provided, and no default value is defined in the module, Terraform will throw an error requiring that value to be set.
+
+**Reference:**  
+[Terraform Modules - Input Variables](https://developer.hashicorp.com/terraform/language/modules/inputs)
+</details>
+
+<details>
+<summary>What is the Terraform style convention for indenting a nesting level compared to the one above it?</summary>
+
+**Options:**
+- `A. With four spaces`
+- `B. With a tab`
+- `C. With three spaces`
+- `D. With two spaces`
+
+**Correct Answer:** `D. With two spaces`
+
+**Explanation:**  
+The recommended style convention for Terraform code is to indent by **two spaces** for each nesting level. This helps maintain consistency across configuration files and improves readability. Tabs, four spaces, or other styles are discouraged but not technically invalid.
+
+**Reference:**  
+[Terraform Style Conventions Documentation](https://developer.hashicorp.com/terraform/language/syntax/style)
+</details>
+
+<details>
+<summary>Which of the following is **not** an action performed by `terraform init`?</summary>
+
+**Options:**
+- `A. Create a sample main.tf file`
+- `B. Initialize a configured backend`
+- `C. Retrieve the source code for all referenced modules`
+- `D. Load required provider plugins`
+
+**Correct Answer:** `A. Create a sample main.tf file`
+
+**Explanation:**  
+The `terraform init` command is responsible for setting up the working directory. It initializes the backend for storing state, retrieves remote modules, and downloads the necessary provider plugins. However, it does **not** create any sample configuration files like `main.tf`. Users need to create configuration files manually.
+
+**Reference:**  
+[Terraform Init Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/init)
+</details>
+
+<details>
+<summary>HashiCorp Configuration Language (HCL) supports user-defined functions. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation:**  
+HCL does not support user-defined functions. It includes a set of built-in functions that allow transformation and combination of values, but it does not permit creating custom functions by users. Users can only use the predefined functions provided by Terraform.
+
+**Reference:**  
+[HCL Functions Documentation](https://developer.hashicorp.com/terraform/language/functions)
+</details>
+
+<details>
+<summary>How can you trigger a run in a Terraform Cloud workspace that is connected to a Version Control System (VCS) repository?</summary>
+
+**Options:**
+- `A. Only Terraform Cloud organization owners can set workspace variables on VCS connected workspaces`
+- `B. Commit a change to the VCS working directory and branch that the Terraform Cloud workspace is connected to`
+- `C. Only members of a VCS organization can open a pull request against repositories that are connected to Terraform Cloud workspaces`
+- `D. Only Terraform Cloud organization owners can approve plans in VCS connected workspaces`
+
+**Correct Answer:** `B. Commit a change to the VCS working directory and branch that the Terraform Cloud workspace is connected to`
+
+**Explanation:**  
+When a Terraform Cloud workspace is connected to a VCS repository, any commits made to the specified working directory and branch automatically trigger a Terraform Cloud run. This workflow allows changes to be tracked and infrastructure updates to be automated based on version-controlled changes.
+
+**Reference:**  
+[Terraform Cloud VCS Integration Documentation](https://www.terraform.io/docs/cloud/vcs/index.html)
+</details>
+
+<details>
+<summary>Terraform and Terraform providers must use the same major version number in a single configuration. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation:**  
+Terraform and its providers do not need to use the same major version number. Terraform Core (e.g., version 1.x) and providers (e.g., `aws` provider version 5.x) are versioned independently. Each provider version is specified and managed separately from the Terraform Core version, allowing flexibility in configuration.
+
+**Reference:**  
+[Terraform Version Constraints Documentation](https://developer.hashicorp.com/terraform/language/expressions/version-constraints)
+</details>
+
+<details>
+<summary>Which statement describes a goal of infrastructure as code?</summary>
+
+**Options:**
+- `A. An abstraction from vendor specific APIs`
+- `B. Write once, run anywhere`
+- `C. A pipeline process to test and deliver software`
+- `D. The programmatic configuration of resources`
+
+**Correct Answer:** `D. The programmatic configuration of resources`
+
+**Explanation:**  
+Infrastructure as Code (IaC) focuses on the programmatic configuration and management of infrastructure resources through code, treating infrastructure in the same way as application code. This approach allows for versioning, consistency, and automation of infrastructure deployments.
+
+**Reference:**  
+[Infrastructure as Code Documentation](https://developer.hashicorp.com/terraform/intro)
+</details>
+
+<details>
+<summary>When using Terraform to deploy resources into Azure, which scenarios are true regarding state files? (Choose two.)</summary>
+
+**Options:**
+- `A. When a change is made to the resources via the Azure Cloud Console, the changes are recorded in a new state file`
+- `B. When a change is made to the resources via the Azure Cloud Console, Terraform will update the state file to reflect them during the next plan or apply`
+- `C. When a change is made to the resources via the Azure Cloud Console, the current state file will not be updated`
+- `D. When a change is made to the resources via the Azure Cloud Console, the changes are recorded in the current state file`
+
+**Correct Answers:** `B, C`
+
+**Explanation:**  
+- **B:** Terraform detects changes made to resources outside of Terraform (e.g., via the Azure Cloud Console) during the next `plan` or `apply` command and updates the state file accordingly.
+- **C:** The state file does not automatically update when changes are made outside of Terraform. Until a plan or apply is run, the current state file remains outdated.
+
+**Incorrect Options:**
+- **A:** Terraform does not create a new state file for changes made outside of Terraform. It uses the existing state file and updates it after detecting changes.
+- **D:** Changes are not automatically reflected in the current state file when made outside of Terraform.
+
+**Reference:**  
+[Terraform State Documentation](https://developer.hashicorp.com/terraform/language/state)
+</details>
+
+<details>
+<summary>You need to deploy resources into two different cloud regions in the same Terraform configuration. What meta-argument do you need to configure in a resource block to deploy the resource to the `us-west-2` AWS region?</summary>
+
+**Options:**
+- `A. alias = west`
+- `B. provider = west`
+- `C. provider = aws.west`
+- `D. alias = aws.west`
+
+**Correct Answer:** `C. provider = aws.west`
+
+**Explanation:**  
+When using multiple provider configurations, the `alias` argument allows you to define alternate configurations for a single provider. To specify which provider configuration a resource should use, you must include the `provider` meta-argument in your resource block. In this case, `provider = aws.west` refers to the provider configuration with the `alias = "west"` (region `us-west-2`).
+
+**Incorrect Options:**
+- `A. alias = west`: The `alias` is defined in the provider block, not in the resource block.
+- `B. provider = west`: This is incorrect syntax. The provider name must be prefixed (e.g., `aws.west`).
+- `D. alias = aws.west`: The `alias` keyword cannot be used in a resource block—it is used only in provider configurations.
+
+**Reference:**  
+[Terraform Multiple AWS Provider Configurations Documentation](https://developer.hashicorp.com/terraform/language/providers/configuration#multiple-provider-configurations)
+</details>
+
+<details>
+<summary>You have declared an input variable called `environment` in your parent module. What must you do to pass the value to a child module in the configuration?</summary>
+
+**Options:**
+- `A. Add node_count = var.node_count`
+- `B. Declare the variable in a terraform.tfvars file`
+- `C. Declare a node_count input variable for the child module`
+- `D. Nothing, child modules inherit variables of parent module`
+
+**Correct Answer:** `C. Declare a node_count input variable for the child module`
+
+**Reference:**  
+[Terraform Modules - Input Variables](https://developer.hashicorp.com/terraform/language/modules/inputs)
+</details>
+
+<details>
+<summary>If a module declares a variable with a default, that variable must also be defined within the module. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Input Variables Documentation](https://developer.hashicorp.com/terraform/language/values/variables)
+</details>
+
+<details>
+<summary>Which option cannot be used to keep secrets out of Terraform configuration files?</summary>
+
+**Options:**
+- `A. Environment Variables`
+- `B. Mark the variable as sensitive`
+- `C. A Terraform provider`
+- `D. -var flag`
+
+**Correct Answer:** `C. A Terraform provider`
+
+**Reference:**  
+[Terraform Input Variables Documentation](https://developer.hashicorp.com/terraform/language/values/variables)
+</details>
+
+<details>
+<summary>Which of the following arguments are required when declaring a Terraform output?</summary>
+
+**Options:**
+- `A. sensitive`
+- `B. description`
+- `C. default`
+- `D. value`
+
+**Correct Answer:** `D. value`
+
+**Reference:**  
+[Terraform Output Values Documentation](https://developer.hashicorp.com/terraform/language/values/outputs)
+</details>
+
+<details>
+<summary>Your risk management organization requires that new AWS S3 buckets must be private and encrypted at rest. How can Terraform Enterprise automatically and proactively enforce this security control?</summary>
+
+**Options:**
+- `A. With a Sentinel policy, which runs before every apply`
+- `B. By adding variables to each TFE workspace to ensure these settings are always enabled`
+- `C. With an S3 module with proper settings for buckets`
+- `D. Auditing cloud storage buckets with a vulnerability scanning tool`
+
+**Correct Answer:** `A. With a Sentinel policy, which runs before every apply`
+
+**Reference:**  
+[Terraform Sentinel Documentation](https://developer.hashicorp.com/terraform/enterprise/sentinel)
+</details>
+
+<details>
+<summary>Most Terraform providers interact with _____________.</summary>
+
+**Options:**
+- `A. APIs`
+- `B. VCS Systems`
+- `C. Shell scripts`
+- `D. None of the above`
+
+**Correct Answer:** `A. APIs`
+
+**Reference:**  
+[Terraform Provider Documentation](https://developer.hashicorp.com/terraform/language/providers)
+</details>
+
+<details>
+<summary>`terraform validate` validates that your infrastructure matches the Terraform state file. True or False?</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Validate Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/validate)
+</details>
+
+<details>
+<summary>What does `terraform import` allow you to do?</summary>
+
+**Options:**
+- `A. Import a new Terraform module`
+- `B. Use a state file to import infrastructure to the cloud`
+- `C. Import provisioned infrastructure to your state file`
+- `D. Import an existing state file to a new Terraform workspace`
+
+**Correct Answer:** `C. Import provisioned infrastructure to your state file`
+
+**Reference:**  
+[Terraform Import Command Documentation](https://developer.hashicorp.com/terraform/cli/commands/import)
+</details>
+
+<details>
+<summary>In the below configuration, how would you reference the module output `vpc_id`?</summary>
+
+**Configuration:**
+```hcl
+module "vpc" {
+  source = "terraform-and-modules/vpc/aws"
+  cidr = "10.0.0.0/16"
+  name = "test-vpc"
+}
+```
+**Answer:**  module.vpc.vpc_id
+</details>
+
+<details>
+<summary>How would you reference the Volume IDs associated with the `ebs_block_device` blocks in this configuration?</summary>
+
+**Configuration:**
+```hcl
+resource "aws_instance" "example" {
+  ami           = "ami-abc123"
+  instance_type = "t2.micro"
+
+  ebs_block_device {
+    device_name = "sda2"
+    volume_size = 16
+  }
+
+  ebs_block_device {
+    device_name = "sda3"
+    volume_size = 20
+  }
+}
+```
+**Options:**
+
+A. aws_instance.example.ebs_block_device.[*].volume_id
+B. aws_instance.example.ebs_block_device.volume_
+C. aws_instance.example.ebs_block_device[sda2, sda3].volume_id
+D. aws_instance.example.ebs_block_device.*.volume_id
+
+**Correct Answer:**  A. aws_instance.example.ebs_block_device.[*].volume_id
+
+Reference:
+Terraform Resource Attributes Documentation
+
+</details>
 
