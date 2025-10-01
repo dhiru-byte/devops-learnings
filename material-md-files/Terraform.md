@@ -1178,3 +1178,315 @@ resource "aws_instance" "web" {
 - B. aws_instance.web[1].name
 
 </details>
+
+<details>
+<summary>A Terraform provider is <u>not</u> responsible for:</summary>
+
+**Options:**
+- `A. Understanding API interactions with some service`
+- `B. Provisioning infrastructure in multiple clouds`
+- `C. Exposing resources and data sources based on an API`
+- `D. Managing actions to take based on resource differences`
+
+**Correct Answer:** `B. Provisioning infrastructure in multiple clouds`
+
+</details>
+
+<details>
+<summary>Terraform provisioners can be added to any resource block.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Reference:**  
+[Terraform Provisioners Documentation](https://www.terraform.io/docs/language/resources/provisioners/syntax.html)
+
+</details>
+
+<details>
+<summary>What is `terraform refresh` intended to detect?</summary>
+
+**Options:**
+- `A. Terraform configuration code changes`
+- `B. Empty state files`
+- `C. State file drift`
+- `D. Corrupt state files`
+
+**Correct Answer:** `C. State file drift`
+
+**Reference:**  
+[Detecting and Managing Drift with Terraform](https://www.hashicorp.com/blog/detecting-and-managing-drift-with-terraform)
+
+</details>
+
+<details>
+<summary>What is the name of the flag you would add to `terraform plan` to save the execution plan to a file?</summary>
+
+**Correct Answer:** `-out=FILENAME`
+
+**Reference:**  
+[Terraform Plan Command Documentation](https://www.terraform.io/docs/cli/commands/plan.html)
+
+</details>
+
+<details>
+<summary>What is the name of the default file where Terraform stores the state?</summary>
+
+**Correct Answer:** `terraform.tfstate`
+
+**Reference:**  
+[Terraform State Documentation](https://www.terraform.io/docs/language/state/index.html)
+
+</details>
+
+<details>
+<summary>A Terraform local value can reference other Terraform local values.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Reference:**  
+[Terraform Local Values Documentation](https://www.terraform.io/docs/configuration-0-11/locals.html)
+
+</details>
+
+<details>
+<summary>Which of the following is <u>not</u> a valid Terraform collection type?</summary>
+
+**Options:**
+- `A. list`
+- `B. map`
+- `C. tree`
+- `D. set`
+
+**Correct Answer:** `C. tree`
+
+**Reference:**  
+[Terraform Type Constraints Documentation](https://www.terraform.io/docs/language/expressions/type-constraints.html)
+
+</details>
+
+<details>
+<summary>When running the command `terraform taint` against a managed resource you want to force recreation upon, Terraform will immediately destroy and recreate the resource.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Reference:**  
+[Terraform Taint and Untaint Explained](https://www.devopsschool.com/blog/terraform-taint-and-untaint-explained-with-example-programs-and-tutorials/)
+
+</details>
+
+<details>
+<summary>All standard backend types support state storage, locking, and remote operations like plan, apply, and destroy.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+</details>
+
+<details>
+<summary>How can `terraform plan` aid in the development process?</summary>
+
+**Options:**
+- `A. Validates your expectations against the execution plan without permanently modifying state`
+- `B. Initializes your working directory containing your Terraform configuration files`
+- `C. Formats your Terraform configuration files`
+- `D. Reconciles Terraform’s state against deployed resources and permanently modifies state using the current status of deployed resources`
+
+**Correct Answer:** `A. Validates your expectations against the execution plan without permanently modifying state`
+
+**Reference:**  
+[GitHub: Terraform Issues](https://github.com/hashicorp/terraform/issues/19235)
+
+</details>
+
+<details>
+<summary>You would like to reuse the same Terraform configuration for your development and production environments with a different state file for each. Which command would you use?</summary>
+
+**Options:**
+- `A. terraform import`
+- `B. terraform workspace`
+- `C. terraform state`
+- `D. terraform init`
+
+**Correct Answer:** `B. terraform workspace`
+
+</details>
+
+<details>
+<summary>What is the name assigned by Terraform to reference this resource?</summary>
+
+**Configuration:**
+```hcl
+resource "google_compute_instance" "main" {
+  name = "test"
+}
+```
+**Options:**
+
+- A. compute_instance
+- B. main
+- C. google
+- D. test
+
+**Correct Answer:** 
+- B. main
+
+</details>
+
+<details>
+<summary>You’re building a CI/CD pipeline and need to inject sensitive variables into your Terraform run. How can you do this safely?</summary>
+
+**Options:**
+- `A. Pass variables to Terraform with a -var flag`
+- `B. Copy the sensitive variables into your Terraform code`
+- `C. Store the sensitive variables in a secure_vars.tf file`
+- `D. Store the sensitive variables as plain text in a source code repository`
+
+**Correct Answer:** `A. Pass variables to Terraform with a -var flag`
+
+</details>
+
+<details>
+<summary>Your security team scanned some Terraform workspaces and found secrets stored in plaintext in state files. How can you protect that data?</summary>
+
+**Options:**
+- `A. Delete the state file every time you run Terraform`
+- `B. Store the state in an encrypted backend`
+- `C. Edit your state file to scrub out the sensitive data`
+- `D. Always store your secrets in a secrets.tfvars file`
+
+**Correct Answer:** `B. Store the state in an encrypted backend`
+
+**Reference:**  
+[Terraform Sensitive Data in State Documentation](https://www.terraform.io/docs/language/state/sensitive-data.html)
+
+</details>
+
+<details>
+<summary>In contrast to Terraform Open Source, when working with Terraform Enterprise and Cloud Workspaces, conceptually you could think about them as completely separate working directories.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+</details>
+
+<details>
+<summary>You want to know from which paths Terraform is loading providers referenced in your Terraform configuration (*.tf files). You need to enable debug messages to find this out. Which of the following would achieve this?</summary>
+
+**Options:**
+- `A. Set the environment variable TF_LOG=TRACE`
+- `B. Set verbose logging for each provider in your Terraform configuration`
+- `C. Set the environment variable TF_VAR_log=TRACE`
+- `D. Set the environment variable TF_LOG_PATH`
+
+**Correct Answer:** `A. Set the environment variable TF_LOG=TRACE`
+
+**Reference:**  
+[Terraform Environment Variables Documentation](https://www.terraform.io/docs/cli/config/environment-variables.html)
+
+</details>
+
+<details>
+<summary>How is `terraform import` run?</summary>
+
+**Options:**
+- `A. As a part of terraform init`
+- `B. As a part of terraform plan`
+- `C. As a part of terraform refresh`
+- `D. By an explicit call`
+- `E. All of the above`
+
+**Correct Answer:** `D. By an explicit call`
+
+</details>
+
+<details>
+<summary>You have a simple Terraform configuration containing one virtual machine (VM) in a cloud provider. You run `terraform apply` and the VM is created successfully. What will happen if you delete the VM using the cloud provider console and run `terraform apply` again without changing any Terraform code?</summary>
+
+**Options:**
+- `A. Terraform will remove the VM from the state file`
+- `B. Terraform will report an error`
+- `C. Terraform will not make any changes`
+- `D. Terraform will recreate the VM`
+
+**Correct Answer:** `D. Terraform will recreate the VM`
+
+</details>
+
+<details>
+<summary>Which of these options is the <u>most secure</u> place to store secrets for connecting to a Terraform remote backend?</summary>
+
+**Options:**
+- `A. Defined in Environment variables`
+- `B. Inside the backend block within the Terraform configuration`
+- `C. Defined in a connection configuration outside of Terraform`
+- `D. None of above`
+
+**Correct Answer:** `A. Defined in Environment variables`
+
+</details>
+
+<details>
+<summary>Your DevOps team is currently using the local backend for your Terraform configuration. You would like to move to a remote backend to begin storing the state file in a central location. Which of the following backends would not work?</summary>
+
+**Options:**
+- `A. Amazon S3`
+- `B. Artifactory`
+- `C. Git`
+- `D. Terraform Cloud`
+
+**Correct Answer:** `C. Git`
+
+</details>
+
+<details>
+<summary>Which backend does the Terraform CLI use by default?</summary>
+
+**Options:**
+- `A. Terraform Cloud`
+- `B. Consul`
+- `C. Remote`
+- `D. Local`
+
+**Correct Answer:** `D. Local`
+
+**Reference:**  
+[Terraform Backend Configuration Documentation](https://www.terraform.io/docs/language/settings/backends/configuration.html)
+
+</details>
+
+<details>
+<summary>When you initialize Terraform, where does it cache modules from the public Terraform Module Registry?</summary>
+
+**Options:**
+- `A. On disk in the /tmp directory`
+- `B. In memory`
+- `C. On disk in the .terraform sub-directory`
+- `D. They are not cached`
+
+**Correct Answer:** `C. On disk in the .terraform sub-directory`
+
+**Reference:**  
+[Terraform Module Sources Documentation](https://www.terraform.io/docs/language/modules/sources.html)
+
+</details>
+
+
+
