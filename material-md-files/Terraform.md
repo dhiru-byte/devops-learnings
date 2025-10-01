@@ -13,6 +13,29 @@ The primary purpose of Terraform state is to store bindings between objects in a
 
 </b></details>
 
+<details>
+<summary>One remote backend configuration always maps to a single remote workspace.</summary><br><b>
+
+`False`
+
+**Explanation**:  
+A single remote backend configuration can support multiple remote workspaces. This allows for multiple states to be managed under the same backend configuration, enabling better organization of environments such as development, staging, and production.
+
+</b></details>
+
+<details>
+<summary>How is the Terraform remote backend different than other state backends such as S3, Consul, etc.?</summary><br><b>
+
+`A. It can execute Terraform runs on dedicated infrastructure on premises or in Terraform Cloud`
+
+**Explanation**:  
+If you and your team are using Terraform to manage meaningful infrastructure, we recommend using the remote backend with Terraform Cloud or Terraform Enterprise.
+
+**Reference**:  
+[Terraform Remote Backend Documentation](https://www.terraform.io/docs/language/settings/backends/index.html)
+
+</b></details>
+
 ---
 ### Terraform
 
