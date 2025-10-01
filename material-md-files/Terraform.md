@@ -2003,15 +2003,12 @@ resource "aws_instance" "example" {
 ```
 **Options:**
 
-A. aws_instance.example.ebs_block_device.[*].volume_id
-B. aws_instance.example.ebs_block_device.volume_
-C. aws_instance.example.ebs_block_device[sda2, sda3].volume_id
-D. aws_instance.example.ebs_block_device.*.volume_id
+- A. aws_instance.example.ebs_block_device.[*].volume_id
+- B. aws_instance.example.ebs_block_device.volume_
+- C. aws_instance.example.ebs_block_device[sda2, sda3].volume_id
+- D. aws_instance.example.ebs_block_device.*.volume_id
 
 **Correct Answer:**  A. aws_instance.example.ebs_block_device.[*].volume_id
-
-Reference:
-Terraform Resource Attributes Documentation
 
 </details>
 
