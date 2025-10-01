@@ -508,3 +508,272 @@ Other features, such as support for multiple cloud providers, `terraform plan` f
 
 </b></details>
 
+<details>
+<summary>terraform validate validates the syntax of Terraform files.</summary><br><b>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Explanation**:  
+The `terraform validate` command is used to validate the syntax and arguments of Terraform configuration files. It checks whether the configuration is syntactically valid and internally consistent but does not interact with any APIs or create any resources.
+
+**Reference**:  
+[Terraform Validate Command Documentation](https://www.terraform.io/docs/cli/code/index.html)
+
+</b></details>
+
+<details>
+<summary>You have used Terraform to create an ephemeral development environment in the cloud and are now ready to destroy all the infrastructure described by your Terraform configuration. To be safe, you would like to first see all the infrastructure that will be deleted by Terraform. Which command should you use to show all of the resources that will be deleted? (Choose two.)</summary><br><b>
+
+**Options:**
+- `A. Run terraform plan -destroy.`
+- `B. This is not possible. You can only show resources that will be created.`
+- `C. Run terraform state rm *.`
+- `D. Run terraform destroy and it will first output all the resources that will be deleted before prompting for approval.`
+
+**Correct Answer:** `A. Run terraform plan -destroy.`  
+`D. Run terraform destroy and it will first output all the resources that will be deleted before prompting for approval.`
+
+**Explanation**:  
+- **`terraform plan -destroy`**: This command creates and displays an execution plan for destroying resources. It allows you to review the resources that will be deleted without actually destroying them.
+- **`terraform destroy`**: This command prompts for confirmation and outputs all the resources that will be destroyed before performing the action, allowing you to review the list of resources.
+
+**Incorrect Options:**
+- **B**: It is possible to preview deletions with the correct commands.
+- **C**: `terraform state rm` is used to remove resources from the state file without affecting the actual infrastructure, not to preview deletions.
+
+**Reference**:  
+[Terraform State RM Command Documentation](https://www.terraform.io/docs/cli/commands/state/rm.html)
+
+</b></details>
+
+<details>
+<summary>Which of the following is the correct way to pass the value in the variable `num_servers` into a module with the input `servers`?</summary>
+
+**Options:**
+- `A. servers = num_servers`
+- `B. servers = variable.num_servers`
+- `C. servers = var(num_servers)`
+- `D. servers = var.num_servers`
+
+**Correct Answer:** `D. servers = var.num_servers`
+
+**Explanation**:  
+- **`servers = var.num_servers`**: In Terraform, variables are referenced using the `var.` prefix, followed by the variable name (`num_servers`). This is the correct syntax for passing a variable value to module inputs or other configuration blocks.
+  
+**Incorrect Options:**  
+- **A**: Directly referencing `num_servers` without the `var.` prefix is invalid in Terraform syntax.  
+- **B**: Using `variable.num_servers` is incorrect because `variable` is not the correct usage in this context for variables in Terraform.  
+- **C**: Syntax like `var(num_servers)` is not recognized in Terraform; parentheses are not used for variable referencing.
+
+**Reference**:  
+[Terraform Variables Documentation](https://developer.hashicorp.com/terraform/language/values/variables)
+
+</details>
+
+<details>
+<summary>A Terraform provisioner must be nested inside a resource configuration block.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `A. True`
+
+**Explanation**:  
+Most provisioners in Terraform require access to the remote resource (typically using SSH or WinRM protocols) and must be defined within a resource block. Provisioners enable you to execute scripts or perform configuration tasks on the resources after they are created. Additionally, the resource block often includes a nested connection block to specify details about how Terraform communicates with the resource.
+
+**Reference**:  
+[Terraform Provisioners Documentation](https://www.terraform.io/docs/language/resources/provisioners/connection.html)
+
+</details>
+
+<details>
+<summary>Terraform can run on Windows or Linux, but it requires a Server version of the Windows operating system.</summary>
+
+**Options:**
+- `A. True`
+- `B. False`
+
+**Correct Answer:** `B. False`
+
+**Explanation**:  
+Terraform does not require a Server version of the Windows operating system to run. It is supported on both Windows (including non-server versions), Linux, and macOS. Terraform is a lightweight binary and works across multiple operating systems without requiring specialized versions.
+
+**Reference**:  
+[Terraform Downloads and Platform Support](https://developer.hashicorp.com/terraform/downloads)
+
+</details>
+
+<details>
+<summary>What does the default "local" Terraform backend store?</summary>
+
+**Options:**
+- `A. tfplan files`
+- `B. Terraform binary`
+- `C. Provider plugins`
+- `D. State file`
+
+**Correct Answer:** `D. State file`
+
+**Explanation**:  
+The default "local" backend in Terraform is responsible for storing the state file on the local filesystem. The state file tracks the current state of the infrastructure managed by Terraform and is critical for operations like detecting changes and applying updates. Additionally, the local backend locks the state during updates using system APIs to prevent concurrent modifications.
+
+**Reference**:  
+[Terraform Local Backend Documentation](https://www.terraform.io/docs/language/settings/backends/local.html)
+
+</details>
+
+<details>
+<summary>You have multiple team members collaborating on infrastructure as code (IaC) using Terraform, and want to apply formatting standards for readability. How can you format Terraform HCL (HashiCorp Configuration Language) code according to standard Terraform style convention?</summary>
+
+**Options:**
+- `A. Run the terraform fmt command during the code linting phase of your CI/CD process`
+- `B. Designate one person in each team to review and format everyone's code`
+- `C. Manually apply two spaces indentation and align equal sign "=" characters in every Terraform file (*.tf)`
+- `D. Write a shell script to transform Terraform files using tools such as AWK, Python, and sed`
+
+**Correct Answer:** `A. Run the terraform fmt command during the code linting phase of your CI/CD process`
+
+**Explanation**:  
+The `terraform fmt` command automatically formats Terraform code (*.tf files) to follow the standard style convention defined by Terraform. It ensures uniform indentation and alignment, making the code consistent and readable for all team members. Running this command regularly as part of the CI/CD process helps enforce code formatting across the team without requiring manual intervention.
+
+**Incorrect Options:**
+- **B**: Designating someone to manually review and format code is time-consuming and error-prone.
+- **C**: Manually formatting is inefficient and prone to inconsistencies.
+- **D**: Writing custom scripts is unnecessary since Terraform provides the `fmt` command for this purpose.
+
+**Reference**:  
+[Terraform Formatting Documentation](https://developer.hashicorp.com/terraform/cli/commands/fmt)
+
+</details>
+
+<details>
+<summary>What value does the Terraform Cloud/Terraform Enterprise private module registry provide over the public Terraform Module Registry?</summary>
+
+**Options:**
+- `A. The ability to share modules with public Terraform users and members of Terraform Enterprise Organizations`
+- `B. The ability to tag modules by version or release`
+- `C. The ability to restrict modules to members of Terraform Cloud or Enterprise organizations`
+- `D. The ability to share modules publicly with any user of Terraform`
+
+**Correct Answer:** `C. The ability to restrict modules to members of Terraform Cloud or Enterprise organizations`
+
+**Explanation**:  
+The private module registry in Terraform Cloud or Enterprise provides the capability to securely host and manage private modules. Unlike the public module registry, the private module registry allows you to restrict access to modules so that only authenticated members of specific Terraform Cloud or Enterprise organizations can fetch and use them. This is particularly useful for sensitive or proprietary infrastructure code.
+
+**Incorrect Options:**
+- **A**: Modules in the private registry are not shared publicly or with public Terraform users.
+- **B**: Module versioning is supported in both public and private registries, but it is not unique to the private registry.
+- **D**: The private module registry does not allow public sharing; it is specifically used for organizational access control.
+
+**Reference**:  
+[Terraform Private Module Registry](https://developer.hashicorp.com/terraform/cloud-docs/registry)
+
+</details>
+
+<details>
+<summary>Which task does terraform init <u>not</u> perform?</summary>
+
+**Options:**
+- `A. Sources all providers present in the configuration and ensures they are downloaded and available locally`
+- `B. Connects to the backend`
+- `C. Sources any modules and copies the configuration locally`
+- `D. Validates all required variables are present`
+
+**Correct Answer:** `D. Validates all required variables are present`
+
+**Explanation**:  
+The `terraform init` command is used to initialize a working directory containing a Terraform configuration. It handles tasks such as downloading providers, setting up the backend, and sourcing any modules used in the configuration. However, it does not validate the presence of required variables during initialization. Variable validation occurs at the `terraform plan` or `terraform apply` stages.
+
+**Incorrect Options:**
+- **A**: `terraform init` sources and downloads providers defined in the configuration.
+- **B**: It connects to the backend to allow for remote state storage if a backend is configured.
+- **C**: It fetches and copies any external modules defined in the configuration.
+
+**Reference**:  
+[Terraform Init Command Documentation](https://www.terraform.io/docs/cli/commands/init.html)
+
+</details>
+
+<details>
+<summary>You have declared a variable called `var.list` which is a list of objects that all have an attribute `id`. Which options will produce a list of the IDs? (Choose two.)</summary>
+
+**Options:**
+- `A. { for o in var.list : o => o.id }`
+- `B. var.list[*].id`
+- `C. [ var.list[*].id ]`
+- `D. [ for o in var.list : o.id ]`
+
+**Correct Answers:** `B. var.list[*].id` and `D. [ for o in var.list : o.id ]`
+
+**Explanation**:  
+- **`B. var.list[*].id`**: This uses Terraform's splat expression syntax to create a list of the `id` attributes from all objects in the `var.list`. The `[*].id` extracts the `id` for each element in the list.
+  
+- **`D. [ for o in var.list : o.id ]`**: This uses Terraform's for expressions to loop over each object in `var.list` and extract the `id` attribute, returning a new list of the `id` values.
+
+**Incorrect Options:**
+- **A**: This syntax is incorrect. The use of `{}` creates a map, not a list, and `=>` is not valid syntax in Terraform for constructing a map.
+- **C**: This syntax wraps the splat expression in additional brackets, producing a list containing a single element, which is itself another list. It does not flatten into a list of `id` values.
+
+**Reference**:  
+[Terraform Expressions Documentation](https://developer.hashicorp.com/terraform/language/expressions)
+
+</details>
+
+<details>
+<summary>Which argument(s) is (are) required when declaring a Terraform variable?</summary>
+
+**Options:**
+- `A. type`
+- `B. default`
+- `C. description`
+- `D. All of the above`
+- `E. None of the above`
+
+**Correct Answer:** `E. None of the above`
+
+**Explanation**:  
+When declaring a Terraform variable, none of the arguments (`type`, `default`, `description`) are strictly required. Terraform can infer the type of a variable based on its value or usage, and a default value or description is optional. If a variable does not have a default value, Terraform treats it as mandatory and expects the user to provide a value either via input or a `.tfvars` file.
+
+**Incorrect Options:**
+- **A. type**: While defining the type explicitly is helpful for clarity, it is not mandatory since Terraform can infer the type.
+- **B. default**: Providing a default value is optional. Without a default, the variable must be supplied as input.
+- **C. description**: The description is purely informative and optional.
+- **D. All of the above**: None of these are mandatory.
+
+**Reference**:  
+[Terraform Variables Documentation](https://developer.hashicorp.com/terraform/language/values/variables)
+
+</details>
+
+<details>
+<summary>When using a module block to reference a module stored on the public Terraform Module Registry, how do you specify version 1.0.0?</summary>
+
+**Options:**
+- `A. Modules stored on the public Terraform Module Registry do not support versioning`
+- `B. Append ?ref=v1.0.0 argument to the source path`
+- `C. Add version = "1.0.0" attribute to module block`
+- `D. Nothing – modules stored on the public Terraform Module Registry always default to version 1.0.0`
+
+**Correct Answer:** `C. Add version = "1.0.0" attribute to module block`
+
+**Explanation**:  
+When referencing modules stored on the public Terraform Module Registry (e.g., `hashicorp/consul/aws`), you specify the desired module version using the `version` argument in the module block. This ensures Terraform fetches and uses the correct version of the module, maintaining version control and consistency across deployments.
+
+**Incorrect Options:**
+- **A.** Modules in the public registry support versioning via the `version` attribute.
+- **B.** While appending `?ref=v1.0.0` is commonly used with Git source URLs, it is not applicable for modules from the public Terraform Module Registry.
+- **D.** Modules do not default to version 1.0.0 unless explicitly specified.
+
+**Example Usage:**
+```hcl
+module "consul" {
+  source  = "hashicorp/consul/aws"
+  version = "1.0.0"
+}
+
+
