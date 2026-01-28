@@ -14,7 +14,11 @@
 
 [DockerCheatsheet](https://github.com/wsargent/docker-cheat-sheet)
 
-[Kubernetes](material-md-files/Kubernetes.md)  
+- **Kubernetes**
+  - [Kubernetes.md](material-md-files/Kubernetes.md)
+  - [Overview](material-md-files/Kubernetes.md)
+  - [Architecture](material-md-files/architecture.md)
+  - [Components](material-md-files/components.md)
 
 [CKA](https://github.com/walidshaari/Kubernetes-Certified-Administrator) / [CKAD](https://github.com/dgkanatsios/CKAD-exercises)
 
