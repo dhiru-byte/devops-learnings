@@ -1,31 +1,30 @@
 
-# kube-apiserver Failures (L3)
-kube-apiserver crashes or becomes unreachable.
+## kube-apiserver Failures (L3) kube-apiserver crashes or becomes unreachable.
 
-## Symptoms
+### Symptoms
 - `kubectl` commands hang or fail
 - Deployments do not scale
 - New Pods are not created
 - Controllers stop reconciling
 
-## What Still Works
+### What Still Works
 - Existing Pods continue running
 - Node-level workloads stay alive
 - Service traffic continues
 
-## Root Causes
+### Root Causes
 - CPU / memory exhaustion
 - Expired TLS certificates
 - etcd connectivity issues
 - Load balancer misconfiguration
 
-## Fix
+### Fix
 - Restart API Server
 - Check certificates and rotate if expired
 - Validate etcd health
 - Ensure load balancer health checks are correct
 
-## Prevention
+### Prevention
 - Run multiple API servers behind a load balancer
 - Monitor API latency and error rates
 - Enable audit and health endpoints
@@ -33,26 +32,25 @@ kube-apiserver crashes or becomes unreachable.
 ### Interview Line
 > API Server failure blinds the control plane but does not immediately kill workloads.
 
-# etcd Failures (L3)
-etcd loses quorum or data corruption occurs.
+## etcd Failures (L3) etcd loses quorum or data corruption occurs.
 
-## Symptoms
+### Symptoms
 - API Server becomes read-only or fails
 - Writes to cluster state fail
 - Pods cannot be created or updated
 
-## Root Causes
+### Root Causes
 - Loss of majority etcd nodes
 - Disk latency or disk full
 - Network partition between etcd members
 - Improper snapshot restore
 
-## Fix
+### Fix
 - Restore quorum by bringing nodes back
 - Restore from snapshot if corruption occurs
 - Fix disk and network issues
 
-## Prevention
+### Prevention
 - Always use odd number of etcd nodes (3 or 5)
 - Regular automated snapshots
 - Dedicated disks for etcd
@@ -62,25 +60,24 @@ etcd loses quorum or data corruption occurs.
 > etcd favors consistency over availability; without quorum, Kubernetes refuses to lie.
 
 
-# Scheduler Failures (L3)
-kube-scheduler crashes or is unavailable.
+## Scheduler Failures (L3) kube-scheduler crashes or is unavailable.
 
-## Symptoms
+### Symptoms
 - Pods remain in Pending state
 - No node assignment in Pod spec
 - Existing workloads unaffected
 
-## Root Causes
+### Root Causes
 - Scheduler process crash
 - Resource starvation
 - Leader election issues
 
-## Fix
+### Fix
 - Restart scheduler
 - Check leader election lease
 - Validate RBAC permissions
 
-## Prevention
+### Prevention
 - Run multiple schedulers with leader election
 - Monitor scheduling latency
 - Ensure adequate CPU/memory
@@ -89,51 +86,49 @@ kube-scheduler crashes or is unavailable.
 > Scheduler failure stops future workloads, not current ones.
 
 
-# Controller Manager Failures (L3)
-Controller Manager crashes or reconciliation stops.
+## Controller Manager Failures (L3 Controller Manager crashes or reconciliation stops.
 
-## Symptoms
+### Symptoms
 - ReplicaSets stop healing Pods
 - Jobs never complete
 - Node failures not cleaned up
 
-## Root Causes
+### Root Causes
 - Controller crash
 - API Server communication issues
 - Leader election failure
 
-## Fix
+### Fix
 - Restart controller manager
 - Validate API Server connectivity
 - Check controller logs
 
-## Prevention
+### Prevention
 - Multiple controller managers with leader election
 - Alert on reconciliation lag
 
 ### Interview Line
 > Without controllers, Kubernetes stops correcting reality.
 
-# Node & Kubelet Failures (L3)
-Kubelet crashes or node becomes unreachable.
+## Node & Kubelet Failures (L3) Kubelet crashes or node becomes unreachable.
 
-## Symptoms
+### Symptoms
 - Node shows NotReady
 - Pods stop responding
 - New Pods not scheduled on that node
 
-## Root Causes
+### Root Causes
 - OS-level issues
 - Disk pressure
 - Kubelet crash
 - Network failure
 
-## Fix
+### Fix
 - Restart kubelet
 - Drain and reboot node
 - Replace node if unrecoverable
 
-## Prevention
+### Prevention
 - Node auto-repair
 - Health monitoring
 - Pod disruption budgets
@@ -142,25 +137,24 @@ Kubelet crashes or node becomes unreachable.
 > Kubelet failure removes a node from the cluster without killing the cluster.
 
 
-# Networking & kube-proxy Failures (L3)
-kube-proxy or CNI plugin misbehaves.
+## Networking & kube-proxy Failures (L3) kube-proxy or CNI plugin misbehaves.
 
-## Symptoms
+### Symptoms
 - Services exist but traffic fails
 - Pod-to-Pod communication breaks
 - DNS resolution works but connections fail
 
-## Root Causes
+### Root Causes
 - iptables/ipvs corruption
 - CNI misconfiguration
 - Node networking issues
 
-## Fix
+### Fix
 - Restart kube-proxy
 - Restart CNI pods
 - Flush and rebuild iptables rules
 
-## Prevention
+### Prevention
 - Monitor Service latency
 - Use proven CNI plugins
 - Limit custom iptables rules
@@ -169,29 +163,28 @@ kube-proxy or CNI plugin misbehaves.
 > Kubernetes networking failures are silent but deadly.
 
 
-# Multi-AZ Failure Scenarios (L3)
-Entire Availability Zone goes down.
+## Multi-AZ Failure Scenarios (L3) Entire Availability Zone goes down.
 
-## Symptoms
+### Symptoms
 - Nodes in one AZ disappear
 - Some Pods rescheduled
 - Possible etcd quorum loss (bad design)
 
-## Good Design Outcome
+### Good Design Outcome
 - Control plane survives
 - etcd maintains quorum
 - Traffic rerouted to healthy AZs
 
-## Bad Design Outcome
+### Bad Design Outcome
 - etcd loses quorum
 - API Server becomes unavailable
 
-## Fix
+### Fix
 - Ensure control plane spread across AZs
 - Use odd-numbered etcd members
 - Rebalance workloads
 
-## Prevention
+### Prevention
 - AZ-aware scheduling
 - Pod anti-affinity
 - Zone-spread node groups
