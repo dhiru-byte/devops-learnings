@@ -15,10 +15,16 @@
 [DockerCheatsheet](https://github.com/wsargent/docker-cheat-sheet)
 
 - **Kubernetes**
-  - [Kubernetes.md](material-md-files/Kubernetes.md)
+  - [Kubernetes](material-md-files/Kubernetes.md)
   - [Overview](material-md-files/Kubernetes.md)
   - [Architecture](material-md-files/architecture.md)
-  - [Components](material-md-files/components.md)
+  - [Components_Failures](material-md-files/components.md)
+  - [𝙎𝙘𝙝𝙚𝙙𝙪𝙡𝙞𝙣𝙜, 𝙍𝙚𝙨𝙤𝙪𝙧𝙘𝙚𝙨 & 𝙎𝙘𝙖𝙡𝙞𝙣𝙜](material-md-files/Scheduling.md)
+  - [𝙉𝙚𝙩𝙬𝙤𝙧𝙠𝙞𝙣𝙜 & 𝙄𝙣𝙜𝙧𝙚𝙨𝙨](materials-md-files/Networking.md)
+  - [𝘾𝙤𝙣𝙛𝙞𝙜, 𝙎𝙩𝙤𝙧𝙖𝙜𝙚 & 𝙎𝙩𝙖𝙩𝙚](materials-md-files/config_Stoage.md)
+  - [𝙎𝙚𝙘𝙪𝙧𝙞𝙩𝙮](materials-md-files/Security.md)
+  - [𝙐𝙥𝙜𝙧𝙖𝙙𝙚𝙨 & 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚](materials-md-files/Upgrade_Maintenance.md)
+  - [𝘼𝙙𝙫𝙖𝙣𝙘𝙚𝙙 𝘾𝙤𝙣𝙘𝙚𝙥𝙩𝙨](materials-md-files/Miscellaneous.md)
 
 [CKA](https://github.com/walidshaari/Kubernetes-Certified-Administrator) / [CKAD](https://github.com/dgkanatsios/CKAD-exercises)
 
