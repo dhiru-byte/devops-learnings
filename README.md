@@ -18,7 +18,7 @@
   - [Kubernetes](material-md-files/Kubernetes.md)
   - [Overview](material-md-files/Kubernetes.md)
   - [Architecture](material-md-files/architecture.md)
-  - [Components_Failures](material-md-files/components.md)
+  - [Components_Failures](material-md-files/components_failure.md)
   - [𝙎𝙘𝙝𝙚𝙙𝙪𝙡𝙞𝙣𝙜, 𝙍𝙚𝙨𝙤𝙪𝙧𝙘𝙚𝙨 & 𝙎𝙘𝙖𝙡𝙞𝙣𝙜](material-md-files/Scheduling.md)
   - [𝙉𝙚𝙩𝙬𝙤𝙧𝙠𝙞𝙣𝙜 & 𝙄𝙣𝙜𝙧𝙚𝙨𝙨](materials-md-files/Networking.md)
   - [𝘾𝙤𝙣𝙛𝙞𝙜, 𝙎𝙩𝙤𝙧𝙖𝙜𝙚 & 𝙎𝙩𝙖𝙩𝙚](materials-md-files/config_Stoage.md)
