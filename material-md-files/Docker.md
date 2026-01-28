@@ -544,6 +544,27 @@ No, it is not possible! A container MUST be in the stopped state before we can r
 </b></details>
 
 <details>
+<summary> Write a Dockerfile using ubuntu as Base Image has nothing but sql install only?</code></summary><br><b>
+
+FROM ubuntu:22.04                      # Base image: Ubuntu 22.04
+
+ENV DEBIAN_FRONTEND=noninteractive     # Disable interactive apt prompts
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends sqlite3 && \
+    rm -rf /var/lib/apt/lists/*        # Install sqlite3 only + cleanup
+
+ENTRYPOINT ["/usr/bin/sqlite3"]        # Use sqlite3 as entrypoint (no shell)
+
+CMD ["--help"]                         # Default argument on container start
+
+
+
+
+</b></details>
+
+
+<details>
 <summary> Deploy Minio.</code></summary><br><b>
 
 `docker run -d -p  9000:9000   -e "MINIO_ROOT_USER=admin"   -e "MINIO_ROOT_PASSWORD=123Dhiru!"   -v /mnt/data:/data   minio/minio server /data `
@@ -552,3 +573,4 @@ No, it is not possible! A container MUST be in the stopped state before we can r
 
 `mc find local/test --newer-than 2d0h0m --ignore '*.html'`
 </b></details>
+
