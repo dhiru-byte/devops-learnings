@@ -45,7 +45,7 @@ Operating system is an interface between user and the computer hardware. The har
  OS functions may include managing memory, files, processes, I/O system & devices, security, etc.
 
 <p align="center">
-<img src="./images/OS_functions.jpg" width="800" height="300" /> 
+<img src="/images/OS_functions.jpg" width="800" height="300" /> 
 </p>
 
 In an operating system software performs each of the function:
@@ -77,7 +77,7 @@ Linux is an operating system based on UNIX and was first introduced by Linus Tor
 
 * The architecture of UNIX can be divided into Four levels of functionality, as shown in Figure .  
 <p align="center">
-<img src="./images/LinuxArchitecture.jpg" width="500" height="450" /> 
+<img src="/images/LinuxArchitecture.jpg" width="500" height="450" /> 
 </p>
 
 #### Hardware  
@@ -124,11 +124,11 @@ The modern Internet is not based on OSI, but on the simpler TCP/IP model. Howeve
 
   * All --> People --> Seem --> To --> Need--> Data --> Processing "Application to physical"
 <p align="center">
-<img src="./images/OSI_Model3.jpg" width="500" height="450" /> 
+<img src="/images/OSI_Model3.jpg" width="500" height="450" /> 
 </p>
 
 <p align="center">
-<img src="./images/OSI_Model2.jpg" width="500" height="450" /> 
+<img src="/images/OSI_Model2.jpg" width="500" height="450" /> 
 </p>
 
 </b></details>
@@ -600,7 +600,7 @@ Symbolic Representation :
 <summary>  Understanding the /etc/passwd File in Linux?.</code></summary><br><b>
 
 <p align="center">
-<img src="./images/etc_passwd_file.jpg" width="800" height="300" /> 
+<img src="/images/etc_passwd_file.jpg" width="800" height="300" /> 
 </p>
 
 </b></details>
@@ -808,3 +808,4 @@ On a dual-core system this would mean:
 - `Map` : It is an associative container that stores elements in a mapped fashion. Each element has a key value and a mapped value. No two mapped values can have equal key values.
 
 </b></details>
+
