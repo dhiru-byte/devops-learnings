@@ -1,18 +1,20 @@
-### Preparation Material
+### Study Material
 
-[Linux](material-md-files/Linux.md)  /  [Linux Commands](material-md-files/Linux_commands.md)
+- **Linux**
+  - [Linux](linux/Linux.md) 
+  - [Linux Commands](linux/Commands.md)
 
-[Git](material-md-files/git.md) 
+- **Terraform**
+  - [Terraform](terraform/Terraform.md)
+  - [Terraforminfo](terraform/Terraforminfo.md)
+  - [Terraform Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_vMDBAqQIjRxDgPO0yBOTM8)
 
-[Terraform](material-md-files/Terraform.md) / [Terraforminfo](material-md-files/Terraforminfo.md) / [Terraform Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_vMDBAqQIjRxDgPO0yBOTM8)
-
-[Docker](material-md-files/Docker.md)  
-
-[Docker Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_urmkyf2WVWsejiEYpWWNO2)
-
-[Dockerlabs](https://github.com/collabnix/dockerlabs)
-
-[DockerCheatsheet](https://github.com/wsargent/docker-cheat-sheet)
+- **Docker**
+  - [Docker](docker/Docker.md)
+  - [Scenario_based](docker/Scenario.md)
+  - [Docker Youtube ](https://www.youtube.com/playlist?list=PLFune_RTbx_urmkyf2WVWsejiEYpWWNO2)
+  - [Dockerlabs](https://github.com/collabnix/dockerlabs)
+  - [DockerCheatsheet](https://github.com/wsargent/docker-cheat-sheet)
 
 - **Kubernetes**
   - [Kubernetes](kubernetes/md-files/Kubernetes.md)
@@ -25,14 +27,18 @@
   - [Security](kubernetes/md-files/Security.md)
   - [Upgrades & Maintenance](kubernetes/md-files/Upgrade_Maintenance.md)
   - [Advanced concepts](kubernetes/md-files/Miscellaneous.md)
+  - [CKA](https://github.com/walidshaari/Kubernetes-Certified-Administrator) 
+  - [CKAD](https://github.com/dgkanatsios/CKAD-exercises)
 
-[CKA](https://github.com/walidshaari/Kubernetes-Certified-Administrator) / [CKAD](https://github.com/dgkanatsios/CKAD-exercises)
+- **AWS**
+  - [AWS](aws/AWS.md) 
+  - [AWS_MLCA_01](aws/AWS_MLCA-01.md)
+  - [AWS-Kubeadm-Terraform](https://github.com/graykode/aws-kubeadm-terraform) 
 
-[AWS](material-md-files/AWS.md) [AWS_MLCA_01](material-md-files/AWS_MLCA-01.md)
+- **Git** 
+  - [Git](git/git.md) 
 
-[AWS-Kubeadm-terraform](https://github.com/graykode/aws-kubeadm-terraform) 
-
-[Interview](material-md-files/Interview_Q_N_A.md) 
+[Interview](Interview_Q_N_A.md) 
 
 [Devops HardWay](https://github.com/AdminTurnedDevOps/DevOps-The-Hard-Way-AWS)
 
