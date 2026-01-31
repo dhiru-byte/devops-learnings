@@ -193,3 +193,73 @@
 > Multi-AZ design is about surviving failure without losing quorum.
 
 
+# Kubernetes Production Troubleshooting: Scenarios & Solutions
+
+This guide covers common Kubernetes production failure scenarios, focusing on Control Plane components and common Pod/Node issues. Use this as a reference for SRE/DevOps technical interviews.
+
+---
+
+## 🏗️ Control Plane Failure Scenarios
+
+In a Kubernetes environment, the Control Plane is the "brain." If it isn't highly available (HA), a single component failure causes specific disruptions.
+
+### 1. kube-apiserver Failure
+*   **The Problem:** The API Server is down or unreachable.
+*   **Impact:** **Total Management Blackout.** `kubectl` commands fail. No new resources can be created. Worker nodes cannot report status.
+*   **Existing Workloads:** Continue to run normally but cannot be managed.
+*   **Solution:** 
+    *   Inspect logs on the master node (usually `/var/log/pods` or `journalctl -u kubelet`).
+    *   Verify [API Server Certificates](https://kubernetes.io) haven't expired.
+    *   **Proactive Fix:** Deploy multiple API Server replicas behind a [Load Balancer](https://kubernetes.io).
+
+### 2. etcd Quorum Loss
+*   **The Problem:** Majority of etcd nodes are down (e.g., 2 out of 3).
+*   **Impact:** **Cluster State Paralysis.** The API Server becomes read-only or unresponsive. No changes can be saved.
+*   **Existing Workloads:** Continue to run but cannot scale or self-heal.
+*   **Solution:** 
+    *   Restore the state using `etcdctl snapshot restore`.
+    *   **Proactive Fix:** Maintain an odd number of members (3, 5, or 7) for [etcd clusters](https://kubernetes.io) and schedule frequent snapshots.
+
+### 3. kube-scheduler Failure
+*   **The Problem:** The Scheduler process is crashed or unreachable.
+*   **Impact:** **Scheduling Halt.** New pods remain in `Pending` state indefinitely.
+*   **Existing Workloads:** Unaffected.
+*   **Solution:** 
+    *   Check for leader election issues in logs.
+    *   Verify the [Scheduler Configuration](https://kubernetes.io) for syntax errors.
+    *   **Proactive Fix:** Run replicas with `--leader-elect=true`.
+
+### 4. kube-controller-manager Failure
+*   **The Problem:** The Controller Manager is down.
+*   **Impact:** **Loss of Self-Healing.** If a node fails, pods aren't rescheduled. HPA stops working.
+*   **Existing Workloads:** Unaffected until a failure occurs.
+*   **Solution:** 
+    *   Check logs for RBAC/permission issues with the API server.
+    *   **Proactive Fix:** Ensure [High Availability](https://kubernetes.io) through leader election.
+
+---
+
+## 🛠️ Common Pod & Node Scenarios
+
+| Scenario | Symptom | Root Cause | Solution |
+| :--- | :--- | :--- | :--- |
+| **CrashLoopBackOff** | Pod restarts repeatedly | App bugs, missing env vars, or failed probes | Check `kubectl logs --previous` |
+| **Pending Pod** | Pod never starts | Insufficient CPU/Mem or unbound PVC | Check `kubectl describe pod` events |
+| **OOMKilled** | Exit Code 137 | Container hit memory `limit` | Increase [Resource Limits](https://kubernetes.io) |
+| **503 Service** | App unreachable | Selector/Label mismatch or failing Readiness probe | Verify [Service Endpoints](https://kubernetes.io) |
+| **Node NotReady** | Node goes offline | Kubelet crash or Disk/Memory pressure | Check `kubectl describe node` |
+
+---
+
+## 🔍 General Troubleshooting Workflow
+
+1.  **Level 1:** `kubectl get pods -A` (Identify the failing resource)
+2.  **Level 2:** `kubectl describe <resource> <name>` (Check Events and Status)
+3.  **Level 3:** `kubectl logs <pod-name> [-p]` (Inspect application/component output)
+4.  **Level 4:** `kubectl get events --sort-by=.metadata.creationTimestamp` (Timeline of cluster issues)
+
+---
+
+**Follow-up for Interview:** Would you like me to provide a step-by-step guide on **restoring an etcd snapshot** during a total cluster failure?
+
+
