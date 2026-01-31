@@ -112,4 +112,28 @@ Managed identities for Azure resources, also known as Managed Service Identity (
 [fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
 </b></details>
 
+## ☁️ Managed Database Scenarios (AWS RDS / Aurora)
 
+### 1. Connection Timeout (Security & Network)
+*   **The Problem:** The application fails to connect with "Network Unreachable" or "Connection Timeout."
+*   **Root Cause:** Security Group (SG) rules or Network ACLs are blocking the traffic on the DB port (e.g., 5432, 3306).
+*   **The Solution:** 
+    *   **Action:** Use the [AWS VPC Reachability Analyzer](https://aws.amazon.com) to trace the path between the App and DB.
+    *   **Resolution:** Update the DB Security Group to allow inbound traffic from the **Application's Security Group ID** rather than a static IP.
+
+### 2. CPU Utilization at 100% (The "Slow Query" Crisis)
+*   **The Problem:** CloudWatch shows a flat line at 100% CPU. The database becomes unresponsive.
+*   **Root Cause:** Missing indexes on large tables or a sudden spike in concurrent connections.
+*   **The Solution:** 
+    *   **Action:** Open [AWS RDS Performance Insights](https://aws.amazon.com) to identify the "Top SQL" causing the load.
+    *   **Emergency Fix:** Run `SHOW PROCESSLIST` and kill long-running queries using `CALL mysql.rds_kill(query_id)`.
+    *   **Long-term Fix:** Scale the instance class vertically or implement **Read Replicas** for read-heavy workloads.
+
+### 3. RDS "Storage Full" (Read-Only State)
+*   **The Problem:** The instance enters a `storage-full` state and stops accepting writes.
+*   **Root Cause:** Large temporary files from unoptimized joins or unexpected data growth.
+*   **The Solution:** 
+    *   **Immediate Fix:** Manually increase the allocated storage in the [RDS Console](https://console.aws.amazon.com).
+    *   **Prevention:** Enable [RDS Storage Autoscaling](https://docs.aws.amazon.com) to handle future growth automatically.
+
+---
