@@ -153,3 +153,83 @@ This document covers **GitOps concepts, Argo CD vs Flux, deployment sync, blue-g
 
   # Check rollout status
   kubectl rollout status deployment <deployment-name>
+
+# 🏷️ Kubernetes Annotations: The Complete Reference
+
+Annotations are key-value pairs used to attach non-identifying metadata to Kubernetes objects. While labels are used for selection and grouping, annotations are used by tools, libraries, and external controllers to modify behavior.
+
+---
+
+## 🏗️ 1. Core System & Metadata
+These annotations are often used for documentation or managed by the Kubernetes control plane.
+
+| Annotation | Description |
+| :--- | :--- |
+| `kubernetes.io/description` | Provides a human-readable description of the resource. |
+| `deployment.kubernetes.io/revision` | Tracks the specific rollout revision of a Deployment. |
+| `kubernetes.io/change-cause` | Records the command or reason for a change (e.g., used by `kubectl rollout history`). |
+| `a8r.io/owner` | Identifies the team or individual responsible for the service. |
+| `a8r.io/runbook` | A direct link to the operational runbook for the application. |
+
+---
+
+## 🌐 2. Ingress & Networking (Nginx Ingress)
+Used to configure behavior for the [NGINX Ingress Controller](https://kubernetes.github.io).
+
+| Annotation | Description |
+| :--- | :--- |
+| `kubernetes.io/ingress.class` | Specifies which ingress controller should handle this resource (e.g., `nginx`). |
+| `nginx.ingress.kubernetes.io/rewrite-target` | Rewrites the target URI for the backend service. |
+| `nginx.ingress.kubernetes.io/ssl-redirect` | Enforces a 301 redirect from HTTP to HTTPS. |
+| `nginx.ingress.kubernetes.io/proxy-body-size` | Sets the maximum allowed size of the client request body (e.g., `50m`). |
+| `nginx.ingress.kubernetes.io/affinity` | Enables session affinity (sticky sessions) via cookies. |
+| `nginx.ingress.kubernetes.io/whitelist-source-range` | Limits access to specific client IP ranges (CIDR). |
+
+---
+
+## ☁️ 3. AWS Load Balancer Controller (ALB/NLB)
+Used to configure [AWS Application and Network Load Balancers](https://kubernetes-sigs.github.io).
+
+| Annotation | Description |
+| :--- | :--- |
+| `alb.ingress.kubernetes.io/scheme` | Defines if the ALB is `internet-facing` or `internal`. |
+| `alb.ingress.kubernetes.io/certificate-arn` | Specifies the ARN of the SSL certificate from AWS Certificate Manager (ACM). |
+| `alb.ingress.kubernetes.io/listen-ports` | Defines which ports the ALB listens on (e.g., `'[{"HTTP": 80}, {"HTTPS": 443}]'`). |
+| `alb.ingress.kubernetes.io/target-type` | Sets backend targets as `instance` (NodePort) or `ip` (Pod IP). |
+| `service.beta.kubernetes.io/aws-load-balancer-type` | Specifies the NLB type, often set to `nlb-ip` or `external`. |
+
+---
+
+## 📊 4. Monitoring & Prometheus
+The de-facto standard for [Prometheus discovery](https://prometheus.io).
+
+| Annotation | Description |
+| :--- | :--- |
+| `prometheus.io/scrape` | Signals Prometheus whether to scrape this Pod (`"true"`). |
+| `prometheus.io/path` | Overrides the default metrics path (defaults to `/metrics`). |
+| `prometheus.io/port` | Specifies the container port to scrape. |
+| `prometheus.io/scheme` | Defines the protocol (`http` or `https`). |
+
+---
+
+## ⚙️ 5. Scaling & Infrastructure
+Common annotations for the [Cluster Autoscaler](https://github.com) and Helm.
+
+| Annotation | Description |
+| :--- | :--- |
+| `cluster-autoscaler.kubernetes.io/safe-to-evict` | If `"false"`, prevents the autoscaler from terminating the Pod during node drain. |
+| `helm.sh/hook` | Defines lifecycle hooks (e.g., `pre-install`, `post-upgrade`) for Helm. |
+| `helm.sh/resource-policy` | If set to `keep`, Helm will not delete this resource during an uninstall. |
+
+---
+
+## 💡 Best Practices
+* **Strings Only:** All annotation values must be **strings** (e.g., `"true"` instead of `true`).
+* **Metadata Context:** Always define annotations under the `metadata` section of your YAML.
+* **Size Limit:** Individual annotations can be up to **256KB**, far larger than labels.
+
+---
+
+**Next Interview Step:** Would you like a **YAML example** showing how to combine these annotations for an **AWS ALB with Prometheus monitoring**?
+
+  
