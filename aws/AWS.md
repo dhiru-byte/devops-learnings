@@ -301,3 +301,59 @@ In production environments, we measure the success of a Disaster Recovery (DR) s
 
 **Next Interview Question:** Would you like to explore **Aurora Multi-Master** clusters or how to perform a **Point-In-Time Recovery (PITR)**?
 
+# ☁️ Cloud Service Models: IaaS vs. PaaS vs. SaaS
+
+Understanding the difference between these models is essential for determining the **Shared Responsibility** between you and the cloud provider (AWS).
+
+---
+
+## 📊 1. The "Pizza as a Service" Analogy
+To simplify the management levels, think of making a pizza:
+*   **IaaS (Infrastructure):** You buy the ingredients (flour, cheese, toppings). You have to bake it at home in your own oven.
+*   **PaaS (Platform):** You order a pizza for delivery. The shop prepares and bakes it; you just provide the table and eat it.
+*   **SaaS (Software):** You go to a restaurant. Everything is managed for you; you simply consume the meal.
+
+---
+
+## ⚖️ 2. Comparison Table
+
+| Feature | **IaaS** (Infrastructure) | **PaaS** (Platform) | **SaaS** (Software) |
+| :--- | :--- | :--- | :--- |
+| **Full Name** | Infrastructure as a Service | Platform as a Service | Software as a Service |
+| **You Manage** | OS, Middleware, Data, Apps | **Code** and **Data** only | Nothing (User access only) |
+| **AWS Manages** | Virtualization, Servers, Disk | Runtime, OS, Hardware | The entire stack |
+| **Flexibility** | Highest | Moderate | Lowest |
+| **Complexity** | High (Maintenance heavy) | Low (Developer focused) | Zero (Consumer focused) |
+
+---
+
+## 🚀 3. AWS Service Examples
+
+### **IaaS: [Amazon EC2](https://aws.amazon.com)**
+*   **Context:** You get a virtual machine. You are responsible for patching the Linux/Windows OS, installing the web server, and managing the security of the instance.
+*   **Other Examples:** [Amazon VPC](https://aws.amazon.com), [Amazon EBS](https://aws.amazon.com).
+
+### **PaaS: [AWS Elastic Beanstalk](https://aws.amazon.com)**
+*   **Context:** You upload your code (`.zip` or `.jar`). AWS handles the deployment, capacity provisioning, load balancing, and auto-scaling automatically.
+*   **Other Examples:** [AWS Lambda](https://aws.amazon.com) (Serverless PaaS), [Amazon RDS](https://aws.amazon.com).
+
+### **SaaS: [Amazon Chime](https://aws.amazon.com)**
+*   **Context:** Ready-to-use application for video conferencing. You don't manage any servers or code; you just manage your user account.
+*   **External Examples:** Gmail, Slack, Salesforce, Microsoft 365.
+
+---
+
+## 💡 4. Interview "Pro-Answer"
+"When choosing between models, I consider the **Operational Overhead**. 
+
+I recommend **IaaS (EC2)** when the application requires a specific custom OS configuration or legacy software that isn't supported on managed platforms. 
+
+I prefer **PaaS (Lambda/App Runner)** for new microservices because it allows the team to focus on **Business Logic** rather than OS patching and infrastructure maintenance. 
+
+**SaaS** is my choice for non-core business functions like email or chat to reduce the total cost of ownership."
+
+---
+
+**Next Step:** Would you like to see how the **[AWS Shared Responsibility Model](https://aws.amazon.com)** specifically applies to security across these three types?
+
+
