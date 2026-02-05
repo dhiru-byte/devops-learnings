@@ -1,4 +1,4 @@
-# Kubernetes Networking – Interview Guide
+# Kubernetes Networking
 
 This document covers **pod-to-pod communication, kube-proxy, iptables/IPVS, DNS resolution, and service types**.
 
