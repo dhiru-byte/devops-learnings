@@ -96,6 +96,32 @@ When using **Spot Instances** for Kubernetes nodes, always mention using the [AW
 </b></details>
 
 <details>
+<summary> Reliability Metrics: SLI vs. SLO vs. SLA?.</code></summary><br><b>
+
+| Metric | Full Name | Definition | Analogy | Who cares? |
+| :--- | :--- | :--- | :--- | :--- |
+| **SLI** | **Service Level Indicator** | specific metric used to measure performance | **Speedometer** | Engineers/SREs |
+| **SLO** | **Service Level Objective** | target value or range for an SLI | **Speed Limit** | Engineers + Product |
+| **SLA** | **Service Level Agreement** | legal contract with consequences for missing SLOs | **Traffic Fine** | Business + Customers |
+
+### 🔍 Deep Dive with Examples
+**SLI (Measurement)**
+The actual "raw data" you are tracking.
+*   **Examples:** Request Latency, Error Rate, System Throughput, Availability (Uptime).
+*   **Formula:** `(Successful Events / Total Events) * 100`
+
+**SLO (Internal Goal)**
+The target your team agrees to meet to keep users happy.
+*   **Example:** "99.9% of requests should have a latency < 200ms over a 30-day window."
+*   **Pro-Tip:** If you meet your SLO, your users are happy. If you miss it, you stop new feature work to fix reliability (the **Error Budget**).
+
+**SLA (External Promise)**
+The commitment made to customers.
+*   **Example:** "If availability drops below 99.5%, we will refund 10% of your monthly bill."
+*   **Rule of Thumb:** Your **SLO** should always be stricter than your **SLA**. (e.g., Internal SLO 99.9%, External SLA 99.5%).
+</b></details>
+
+<details>
 <summary>  Diff. between fault tolerance and Disaster recovery ?.</code></summary><br><b>
 
 Fault tolerant design ensures that system is up and working even in faulty scenarios. When you app / business can afford some time otherwise High Availablity will be required if don’t want any downtime.
