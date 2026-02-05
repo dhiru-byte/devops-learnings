@@ -1,5 +1,3 @@
-# AWS 
-
 <details>
 <summary> How many Subnets can you have per VPC?.</code></summary><br><b>
 
@@ -51,13 +49,48 @@ Once deployed, serverless apps respond to demand and automatically scale up and 
 </b></details>
 
 <details>
-<summary>  Diff types of EC2 instances ?..</code></summary><br><b>
+<summary>  Diff types of EC2 instances ?.</code></summary><br><b>
 
 * `General Purpose`: The most popular; used for web servers, development environments, etc.
 * `Compute Optimized`: Good for compute-intensive applications such as some scientific modeling or high-performance web servers.
 * `Memory Optimized`: Used for anything that needs memory-intensive applications, such as real-time big data analytics, or running Hadoop or Spark.
 * `Accelerated Computing`: Include additional hardware (GPUs, FPGAs) to provide massive amounts of parallel processing for tasks such as graphics processing.
 * `Storage Optimized`: Ideal for tasks that require huge amounts of storage, specifically with sequential read-writes, such as log processing.
+
+📊 Instance Family Quick-Reference
+Use the mnemonic **"FIGHT DR MCP X"** to remember the different families.
+
+| Family | Prefix | Definition | Memory Hook | Ideal Workload |
+| :--- | :---: | :--- | :--- | :--- |
+| **General Purpose** | **M** | Main / Balanced | "M" for **M**id-range | Small/Med Databases, App Servers. |
+| **General Purpose** | **T** | Turbo / Burstable | "T" for **T**iny / **T**emporary | Dev/Test, Low-traffic Web. |
+| **Compute Optimized** | **C** | Compute | "C" for **C**PU | Batch Processing, High-perf Web. |
+| **Memory Optimized** | **R** | RAM | "R" for **R**AM | In-memory DBs (Redis/SAP HANA). |
+| **Memory Optimized** | **X** | Xtreme RAM | "X" for **X**tra Large Memory | Massive Enterprise DBs. |
+| **Storage Optimized** | **I** | I/O Speed | "I" for **I**/O (NVMe) | NoSQL, Data Warehousing. |
+| **Storage Optimized** | **D** | Density | "D" for **D**ense HDD | Hadoop, Log Processing. |
+| **Accelerated** | **P** | Pictures (GPU) | "P" for **P**ixels / **P**ower | Machine Learning, AI Training. |
+| **Accelerated** | **G** | Graphics | "G" for **G**raphics | Video Encoding, 3D Rendering. |
+| **Accelerated** | **F** | FPGA | "F" for **F**ield Programmable | Hardware Acceleration, Genomics. |
+
+💰 EC2 Pricing Models
+
+| Model | Cost Savings | Use Case | Commitment |
+| :--- | :--- | :--- | :--- |
+| **On-Demand** | 0% (Base) | Short-term, unpredictable workloads. | None. |
+| **Reserved (RI)** | Up to 72% | Steady-state, predictable workloads. | 1 or 3 Years. |
+| **Spot Instances** | **Up to 90%** | Fault-tolerant, stateless batch jobs. | None (AWS can reclaim). |
+
+💡Pro-Tip
+
+**The "g" Suffix (Graviton)**
+Mention that instances with a `g` (e.g., `M6g`) use [AWS Graviton Processors](https://aws.amazon.com). They offer up to **40% better price-performance** compared to Intel/AMD counterparts. This shows you are cost-conscious.
+
+**CPU Credits (T-Series)**
+Explain that `T` instances use a "credit" system. For production, you prefer `M` or `C` series because if a `T` instance runs out of [CPU Credits](https://docs.aws.amazon.com), its performance is throttled to a baseline, causing application latency.
+
+**Spot Termination Handling**
+When using **Spot Instances** for Kubernetes nodes, always mention using the [AWS Node Termination Handler](https://github.com). It catches the 2-minute interruption notice and gracefully drains pods before the node is reclaimed.
 
 [EC2 Instance Types](https://aws.amazon.com/ec2/instance-types/)
 </b></details>
