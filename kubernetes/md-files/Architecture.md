@@ -1,10 +1,9 @@
-# Kubernetes Cluster Architecture & Design (L2 Interview Guide)
+# Kubernetes Cluster Architecture & Design
 
-This document covers **Level-2 Kubernetes architecture and design questions**, focusing on how the control plane works, high availability, and multi-AZ design.
+This document covers Kubernetes architecture and design questions**, focusing on how the control plane works, high availability, and multi-AZ design.
 
----
-
-## 1. How Does the Kubernetes Control Plane Actually Work?
+<details>
+<summary>  How Does the Kubernetes Control Plane Actually Work? </summary><br><b>
 
 The Kubernetes control plane is a **state-driven control system**.
 
@@ -19,10 +18,11 @@ The Kubernetes control plane is a **state-driven control system**.
 ### Key Idea
 > Kubernetes does not “do” things directly — it **continuously reconciles desired state with current state**.
 
----
+</b></details>
 
-## 2. What Happens When kube-apiserver Goes Down?
-
+<details>
+<summary>  What Happens When kube-apiserver Goes Down? </summary><br><b>
+  
 ### Impact
 - `kubectl` stops working
 - No scaling, scheduling, or deployments
@@ -36,9 +36,10 @@ The Kubernetes control plane is a **state-driven control system**.
 ### Interview Summary
 > If the API Server is down, Kubernetes becomes **read-only and blind**, but **already-running workloads survive**.
 
----
+</b></details>
 
-## 3. How Does etcd Ensure Consistency and Quorum?
+<details>
+<summary>  How Does etcd Ensure Consistency and Quorum?. </summary><br><b>
 
 etcd uses the **Raft consensus algorithm**.
 
@@ -63,9 +64,10 @@ etcd uses the **Raft consensus algorithm**.
 ### Interview Gold Line
 > etcd prioritizes **consistency over availability**, which protects cluster correctness.
 
----
+</b></details>
 
-## 4. How Do You Design a Highly Available Kubernetes Cluster?
+<details>
+<summary>  How Do You Design a Highly Available Kubernetes Cluster?. </summary><br><b>
 
 ### Control Plane HA Design
 - Multiple **kube-apiserver** instances
@@ -78,11 +80,10 @@ etcd uses the **Raft consensus algorithm**.
 - Separate etcd from worker nodes (production)
 - Regular etcd backups
 
-### Architecture
+</b></details>
 
----
-
-## 5. Difference Between Single-Master and Multi-Master Clusters
+<details>
+<summary>  Difference Between Single-Master and Multi-Master Clusters. </summary><br><b>
 
 | Feature | Single-Master | Multi-Master |
 |------|--------------|--------------|
@@ -95,9 +96,10 @@ etcd uses the **Raft consensus algorithm**.
 ### Interview Verdict
 > Single-master is for learning. Multi-master is for real workloads.
 
----
+</b></details>
 
-## 6. How Do You Design Kubernetes Across Multiple AZs?
+<details>
+<summary>  How Do You Design Kubernetes Across Multiple AZs? </summary><br><b>
 
 ### Goals
 - Survive AZ failures
@@ -119,5 +121,5 @@ etcd uses the **Raft consensus algorithm**.
 - CNI supports multi-AZ routing
 - Service traffic is zone-aware
 
-### Example (3 AZs)
+</b></details>
 
