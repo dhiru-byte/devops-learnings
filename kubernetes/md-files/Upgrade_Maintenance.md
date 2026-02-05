@@ -1,8 +1,6 @@
-# Kubernetes Cluster Upgrades – Interview Guide
+# Kubernetes Cluster Upgrades
 
 This document covers **safe cluster upgrades, control plane vs worker node upgrades, cordon/drain, and zero-downtime strategies**.
-
----
 
 ## 1. How Do You Safely Upgrade a Kubernetes Cluster?
 
@@ -23,10 +21,7 @@ This document covers **safe cluster upgrades, control plane vs worker node upgra
    - Services reachable
    - Node status healthy
 
-**Interview Tip:**  
-> Always backup etcd, upgrade control plane first, then nodes, verifying cluster health after each step.
-
----
+💡Always backup etcd, upgrade control plane first, then nodes, verifying cluster health after each step.
 
 ## 2. Control Plane vs Worker Node Upgrade Strategy
 
@@ -36,10 +31,7 @@ This document covers **safe cluster upgrades, control plane vs worker node upgra
 | **Worker Nodes** | Upgrade later, one node at a time | Cordon and drain node, upgrade kubelet & container runtime, uncordon, move to next node |
 | **Key Principle** | Maintain cluster availability | Don’t upgrade all nodes at once to avoid downtime |
 
-**Interview One-liner:**  
-> Upgrade control plane first, then workers sequentially with cordon/drain.
-
----
+💡Upgrade control plane first, then workers sequentially with cordon/drain.
 
 ## 3. What is Cordon and Drain?
 
@@ -59,10 +51,8 @@ This document covers **safe cluster upgrades, control plane vs worker node upgra
     kubectl drain <node-name> --ignore-daemonsets
     ```
 
-**Interview One-liner:**  
-> Cordon = prevent new Pods, Drain = safely evict existing Pods.
+💡Cordon = prevent new Pods, Drain = safely evict existing Pods.
 
----
 
 ## 4. How Do You Perform Zero-Downtime Upgrades?
 
@@ -81,12 +71,9 @@ This document covers **safe cluster upgrades, control plane vs worker node upgra
    - Deploy updates without stopping entire service
 6. **Monitor cluster health** throughout
 
-**Interview One-liner:**  
-> Zero-downtime upgrades = sequential upgrades + cordon/drain + PodDisruptionBudgets + careful monitoring.
+💡Zero-downtime upgrades = sequential upgrades + cordon/drain + PodDisruptionBudgets + careful monitoring.
 
----
-
-## 🧠 Quick Interview Summary
+🧠 Quick Summary
 
 | Concept | Key Point |
 |---------|----------|
