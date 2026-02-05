@@ -1,9 +1,5 @@
 # Kubernetes Security & RBAC – Interview Guide
 
-This document covers **RBAC, ServiceAccounts, etcd security, Network Policies, and container security**.
-
----
-
 ## 1. How Does Kubernetes RBAC Work?
 
 - **RBAC (Role-Based Access Control)** manages **who can do what** in the cluster.
@@ -13,10 +9,7 @@ This document covers **RBAC, ServiceAccounts, etcd security, Network Policies, a
 - RBAC enforcement happens at the **API Server**.
 - Example: Limit a user to only view Pods in `dev` namespace.
 
-**One-liner:**  
-> RBAC is a way to enforce fine-grained access control in Kubernetes.
-
----
+💡RBAC is a way to enforce fine-grained access control in Kubernetes.
 
 ## 2. Role vs ClusterRole — Real-World Use Cases
 
@@ -27,10 +20,7 @@ This document covers **RBAC, ServiceAccounts, etcd security, Network Policies, a
 | **RoleBinding** | Namespace-level | Assign a Role to a user/serviceaccount in that namespace |
 | **ClusterRoleBinding** | Cluster-wide | Grant cluster-level permissions to a user/serviceaccount |
 
-**Interview Tip:**  
-> Roles = limited scope, ClusterRoles = global scope.
-
----
+💡Roles = limited scope, ClusterRoles = global scope.
 
 ## 3. How Do ServiceAccounts Work?
 
@@ -39,10 +29,7 @@ This document covers **RBAC, ServiceAccounts, etcd security, Network Policies, a
 - Used for **API authentication** (tokens mounted in Pods at `/var/run/secrets/kubernetes.io/serviceaccount/`).
 - RBAC can bind **Roles/ClusterRoles** to ServiceAccounts.
 
-**One-liner:**  
-> ServiceAccounts give Pods a secure identity to access the API.
-
----
+💡ServiceAccounts give Pods a secure identity to access the API.
 
 ## 4. How Do You Secure etcd?
 
@@ -55,10 +42,7 @@ This document covers **RBAC, ServiceAccounts, etcd security, Network Policies, a
   - Backup regularly
   - Isolate etcd nodes on dedicated machines or VMs
 
-**One-liner:**  
-> Secure etcd with encryption, TLS, and limited access — it’s the heart of your cluster.
-
----
+💡Secure etcd with encryption, TLS, and limited access — it’s the heart of your cluster.
 
 ## 5. How Do Network Policies Work?
 
@@ -69,10 +53,7 @@ This document covers **RBAC, ServiceAccounts, etcd security, Network Policies, a
   - Allow only frontend Pods to reach backend Pods
   - Block all other traffic
 
-**One-liner:**  
-> Network Policies implement Kubernetes firewall rules at the Pod level.
-
----
+💡Network Policies implement Kubernetes firewall rules at the Pod level.
 
 ## 6. How Do You Prevent Containers from Running as Root?
 
