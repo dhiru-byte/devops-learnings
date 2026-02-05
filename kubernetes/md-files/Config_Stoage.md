@@ -1,10 +1,7 @@
-# Kubernetes Stateful Workloads & Storage – Interview Guide
+# Kubernetes Stateful Workloads & Storage
 
-This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, Persistent Volumes, StorageClasses, and database workloads**.
-
----
-
-## 1. ConfigMaps vs Secrets — When to Use Which?
+<details>
+<summary>When to Use Which - ConfigMaps vs Secrets?.</summary><br><b>
 
 | Feature | ConfigMap | Secret |
 |---------|----------|-------|
@@ -13,12 +10,11 @@ This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, P
 | Consumption | Environment variables, volumes, command args | Environment variables, volumes, command args |
 | Example | `APP_MODE=prod`, `LOG_LEVEL=debug` | DB password, TLS certs, API keys |
 
-**Interview Tip:**  
-> Use ConfigMaps for general config, Secrets for anything sensitive. Always enable **encryption at rest** for Secrets in production.
+💡 Use ConfigMaps for general config, Secrets for anything sensitive. Always enable **encryption at rest** for Secrets in production.
+</b></details>
 
----
-
-## 2. How Are Secrets Stored in etcd?
+<details>
+<summary>How Are Secrets Stored in etcd?.</summary><br><b>
 
 - Secrets are stored **base64-encoded** by default (not encrypted).
 - Base64 is **not secure** — anyone with etcd access can decode.
@@ -26,12 +22,11 @@ This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, P
   - Enable **encryption at rest** for Secrets in etcd (`--encryption-provider-config`).
   - Limit access to API Server and etcd.
 
-**One-liner:**  
-> Secrets = base64 by default, encrypt at rest for production.
+💡Secrets = base64 by default, encrypt at rest for production.
+</b></details>
 
----
-
-## 3. How Do StatefulSets Work Internally?
+<details>
+<summary>How Do StatefulSets Work Internally?.</summary><br><b>
 
 - Designed for **stateful workloads** requiring stable identity.
 - Key features:
@@ -40,12 +35,11 @@ This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, P
   3. **Ordered deployment & scaling**: Pods are created, updated, and deleted sequentially.
 - Use cases: Databases, Kafka, Zookeeper, etc.
 
-**One-liner:**  
-> StatefulSets give Pods stable identity and persistent storage with ordered lifecycle management.
+💡StatefulSets give Pods stable identity and persistent storage with ordered lifecycle management.
+</b></details>
 
----
-
-## 4. Headless Services — Why and When?
+<details>
+<summary>Headless Services — Why and When?.</summary><br><b>
 
 - Created by setting `clusterIP: None`.
 - No ClusterIP is assigned; DNS returns Pod IPs directly.
@@ -54,12 +48,11 @@ This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, P
   - Service discovery for clustered applications
   - Avoiding load balancing (each Pod is addressed individually)
 
-**One-liner:**  
-> Headless Services give **direct Pod access** without load balancing.
+💡Headless Services give **direct Pod access** without load balancing.
+</b></details>
 
----
-
-## 5. How Do PVCs, PVs, and StorageClasses Work Together?
+<details>
+<summary>How Do PVCs, PVs, and StorageClasses Work Together?.</summary><br><b>
 
 | Component | Role |
 |-----------|------|
@@ -73,14 +66,12 @@ This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, P
 3. Pod mounts the PV via PVC
 4. Reclaim policy determines what happens after Pod deletion (`Retain`, `Delete`, `Recycle`)
 
-**One-liner:**  
-> PVC requests storage, PV provides it, StorageClass defines how it’s provisioned.
+💡PVC requests storage, PV provides it, StorageClass defines how it’s provisioned.
+</b></details>
 
----
+<details>
+<summary>How Do You Handle Database Workloads in Kubernetes?.</summary><br><b>
 
-## 6. How Do You Handle Database Workloads in Kubernetes?
-
-**Best Practices:**
 - Use **StatefulSets** for stable identity
 - Use **PersistentVolumes** with proper storage class (fast SSD for DBs)
 - Avoid using ephemeral storage (`emptyDir`) for DBs
@@ -88,16 +79,14 @@ This document covers **ConfigMaps vs Secrets, StatefulSets, Headless Services, P
 - Consider **Backup & Restore** solutions
 - For HA, use **multi-zone deployments** or managed operators (Postgres Operator, MySQL Operator)
 - Prefer **separate node pools** for database workloads to avoid noisy neighbors
+  
+💡Databases in Kubernetes = StatefulSets + PersistentVolumes + careful HA, backup, and performance tuning.
+</b></details>
 
-**One-liner:**  
-> Databases in Kubernetes = StatefulSets + PersistentVolumes + careful HA, backup, and performance tuning.
+🧠 Quick Summary
 
----
-
-## 🧠 Quick Interview Summary
-
-- ConfigMaps = non-sensitive config; Secrets = sensitive
-- Secrets must be **encrypted at rest**
+- ConfigMaps = non-sensitive config.
+- Secrets = sensitive. Secrets must be **encrypted at rest**
 - StatefulSets provide stable identity and storage
 - Headless Services allow **direct Pod DNS resolution**
 - PVC + PV + StorageClass = request → storage → provision
