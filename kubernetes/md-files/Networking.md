@@ -2,7 +2,6 @@
 
 This document covers **pod-to-pod communication, kube-proxy, iptables/IPVS, DNS resolution, and service types**.
 
----
 <details>
 <summary>  How Does Pod-to-Pod Communication Work? </summary><br><b>
 
