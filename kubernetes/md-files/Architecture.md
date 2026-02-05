@@ -1,4 +1,4 @@
-# Kubernetes Cluster Architecture & Design
+# ☸️ Kubernetes Architecture & Design
 
 This document covers Kubernetes architecture and design questions**, focusing on how the control plane works, high availability, and multi-AZ design.
 
@@ -101,25 +101,47 @@ etcd uses the **Raft consensus algorithm**.
 <details>
 <summary>  How Do You Design Kubernetes Across Multiple AZs? </summary><br><b>
 
-### Goals
+**Goals**
 - Survive AZ failures
 - Maintain quorum
 - Ensure traffic availability
 
-### Control Plane Design
+**Control Plane Design**
 - Spread control plane nodes across AZs
 - Place etcd nodes across AZs carefully
 - Avoid even-numbered etcd nodes
 
-### Worker Node Design
+**Worker Node Design**
 - Node groups per AZ
 - Pod anti-affinity rules
 - Zone-aware scheduling
 
-### Networking
+**Networking**
 - Load balancer spans AZs
 - CNI supports multi-AZ routing
 - Service traffic is zone-aware
-
 </b></details>
 
+## 🏗️The Request Flow
+1. **Request:** A user or script sends a command via `kubectl`.
+2. **Validate:** The `kube-apiserver` authenticates the user and validates the request.
+3. **Persist:** The desired state is saved into **etcd**.
+4. **Detect:** **Controllers** (e.g., Deployment Controller) notice the difference between etcd and reality.
+5. **Schedule:** The **`kube-scheduler`** selects a healthy node with enough resources.
+6. **Execute:** The **Kubelet** on the target node receives the instruction and starts the container.
+
+## 📊 Quick Reference Table
+
+| Category | Component / Concept | Interview-Ready Summary |
+| :--- | :--- | :--- |
+| **Source of Truth** | **etcd** | Distributed key-value store. If etcd is lost, the cluster state is lost. |
+| **The Brain** | **API Server** | The only component that talks to etcd. If it’s down, the cluster is "blind." |
+| **Consistency** | **Raft Quorum** | Rule: **$(N / 2) + 1$**. Always use odd numbers (3, 5) for etcd nodes. |
+| **Resilience** | **HA Design** | Load Balancer ➡️ 3x API Servers ➡️ 3x etcd ➡️ Redundant Controllers. |
+| **Multi-AZ** | **Zone Awareness** | Spread control plane nodes across AZs to survive a data centre outage. |
+| **Scheduling** | **Anti-Affinity** | Use rules to ensure replicas of the same app aren't all in one AZ. |
+
+💡 
+*   **On etcd:** "etcd prioritizes **consistency over availability**; it would rather stop accepting writes than allow corrupted data."
+*   **On Multi-AZ:** "Designing for Multi-AZ isn't just about nodes; it requires **topology-aware** routing and storage that understands zone boundaries."
+*   **On systemd:** "The API server is the entry point, but `systemd` is often what keeps the `kubelet` itself running on the host."
