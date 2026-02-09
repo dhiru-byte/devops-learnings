@@ -1,5 +1,60 @@
+<details>
+<summary> 🌐  Networking Fundamentals: Core Protocols.</code></summary><br><b>
 
+## 🏗️ 1. TCP (Transmission Control Protocol)
+TCP is a **connection-oriented** protocol that ensures the **reliable**, ordered, and error-checked delivery of a stream of data.
 
+*   **Mechanism:** Uses the **Three-Way Handshake** (SYN, SYN-ACK, ACK) to establish a session.
+*   **Key Features:**
+    *   **Reliability:** Retransmits lost packets.
+    *   **Flow Control:** Ensures the sender doesn't overwhelm the receiver.
+    *   **Ordering:** Packets are reassembled in the correct sequence.
+*   **Best For:** Web browsing (HTTP/S), File transfers (FTP), SSH, and Database connections.
+
+## 🚀 2. UDP (User Datagram Protocol)
+UDP is a **connectionless**, "fire-and-forget" protocol. It sends data without establishing a formal connection.
+
+*   **Mechanism:** No handshaking; it simply pours data onto the network.
+*   **Key Features:**
+    *   **Low Latency:** No overhead for retransmissions or acknowledgments.
+    *   **Speed:** Extremely fast compared to TCP.
+    *   **Unreliable:** If a packet is lost, it stays lost.
+*   **Best For:** Video streaming (YouTube/Netflix), VoIP (Zoom/Teams), Online Gaming, and **DNS** (Port 53).
+
+## 📧 3. SMTP (Simple Mail Transfer Protocol)
+SMTP is the industry standard protocol for **sending** email messages across IP networks.
+
+*   **Mechanism:** Operates at the **Application Layer (Layer 7)** over TCP ports 25, 465, or 587.
+*   **Key Features:**
+    *   **Push Protocol:** Used only to "push" mail from a client to a server or between servers.
+    *   **Authentication:** Modern SMTP uses TLS to secure the transmission of credentials.
+*   **Best For:** Outbound email communication (Note: POP3 or IMAP are used for *receiving*).
+
+## 🔒 4. HTTPS (Hypertext Transfer Protocol Secure)
+HTTPS is the secure version of HTTP. It uses **TLS (Transport Layer Security)** to encrypt communication.
+
+*   **Mechanism:** Operates over **TCP Port 443**.
+*   **Key Features:**
+    *   **Encryption:** Protects data from eavesdropping.
+    *   **Data Integrity:** Prevents data from being tampered with during transit.
+    *   **Authentication:** Uses SSL/TLS Certificates to verify the server's identity.
+*   **Best For:** Any modern web application, API communication, and E-commerce.
+
+## 📊 Summary Comparison Matrix
+
+| Protocol | OSI Layer | Port | Reliability | Primary Strength |
+| :--- | :---: | :---: | :--- | :--- |
+| **TCP** | 4 (Transport) | Variable | **High** | Guaranteed Delivery |
+| **UDP** | 4 (Transport) | Variable | **Low** | Speed & Low Latency |
+| **SMTP** | 7 (Application) | 25/587 | **High** | Email Transmission |
+| **HTTPS** | 7 (Application) | 443 | **High** | Secure Communication |
+
+## 💡
+
+*   **TCP vs. UDP:** "I use **TCP** when every single bit of data is critical, like a database transaction. I use **UDP** when a few dropped frames don't matter as much as real-time speed, like in a Zoom call."
+*   **On HTTPS:** "HTTPS is mandatory in modern DevOps; it provides the **Encryption** and **Trust** (via Certificates) necessary to protect user data from Man-in-the-Middle (MitM) attacks."
+*   **DNS & UDP:** "DNS traditionally uses UDP because it's fast. If a DNS query fails, the application just retries, which is more efficient than the overhead of a full TCP handshake."
+</b></details>
 
 <details>
 <summary> How many Subnets can you have per VPC?.</code></summary><br><b>
