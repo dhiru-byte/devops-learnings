@@ -40,6 +40,19 @@ HTTPS is the secure version of HTTP. It uses **TLS (Transport Layer Security)** 
     *   **Authentication:** Uses SSL/TLS Certificates to verify the server's identity.
 *   **Best For:** Any modern web application, API communication, and E-commerce.
 
+
+## 📁 5. FTP (File Transfer Protocol)
+FTP is a standard network protocol used to transfer files between a client and a server.
+
+*   **Mechanism:** Uses a **dual-channel** approach:
+    *   **Port 21 (Command):** For sending commands (login, list, delete).
+    *   **Port 20 (Data):** For the actual transfer of file data.
+*   **Key Features:**
+    *   **Stateful:** Maintains a session state.
+    *   **Modes:** Supports **Active** and **Passive** modes (Passive is preferred in modern cloud environments to avoid firewall issues).
+*   **Best For:** Bulk file uploads and website maintenance.
+*   **Note:** Standard FTP is **unsecured** (plaintext). In production, **SFTP** (FTP over SSH) or **FTPS** (FTP over SSL) is mandated.
+
 ## 📊 Summary Comparison Matrix
 
 | Protocol | OSI Layer | Port | Reliability | Primary Strength |
@@ -48,12 +61,17 @@ HTTPS is the secure version of HTTP. It uses **TLS (Transport Layer Security)** 
 | **UDP** | 4 (Transport) | Variable | **Low** | Speed & Low Latency |
 | **SMTP** | 7 (Application) | 25/587 | **High** | Email Transmission |
 | **HTTPS** | 7 (Application) | 443 | **High** | Secure Communication |
+| **FTP** | 7 | 20 / 21 | **High** | File Transfers |
+
 
 ## 💡
 
 *   **TCP vs. UDP:** "I use **TCP** when every single bit of data is critical, like a database transaction. I use **UDP** when a few dropped frames don't matter as much as real-time speed, like in a Zoom call."
 *   **On HTTPS:** "HTTPS is mandatory in modern DevOps; it provides the **Encryption** and **Trust** (via Certificates) necessary to protect user data from Man-in-the-Middle (MitM) attacks."
 *   **DNS & UDP:** "DNS traditionally uses UDP because it's fast. If a DNS query fails, the application just retries, which is more efficient than the overhead of a full TCP handshake."
+*   **On FTP Security:** "Standard FTP sends credentials in **plaintext**. In a secure DevOps pipeline, I would always advocate for **SFTP** to ensure data is encrypted via the SSH tunnel."
+*   **Passive vs. Active FTP:** "In AWS/Cloud environments, we use **Passive FTP** because it allows the client to initiate the data connection, which is more compatible with Security Groups and Firewalls."
+
 </b></details>
 
 <details>
