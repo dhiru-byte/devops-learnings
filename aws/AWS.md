@@ -1,4 +1,55 @@
 <details>
+<summary> How many Subnets can you have per VPC?.</code></summary><br><b>
+
+`200 Subnets per VPC`
+</b></details>
+
+<details>
+<summary> 🤝 TCP Three-Way Handshake .</code></summary><br><b>
+
+The **Three-Way Handshake** is the process used by **TCP (Transmission Control Protocol)** to establish a reliable connection between a client and a server. It ensures that both parties are ready to communicate and have synchronized their **Sequence Numbers**.
+
+### 📥 The Process (Step-by-Step)
+
+#### **1. SYN (Synchronize)**
+*   **Sender:** Client ➡️ Server
+*   **Action:** The client sends a packet with the `SYN` flag set. It includes a random **Initial Sequence Number (ISN)**, let's call it `X`.
+*   **Goal:** The client informs the server it wants to start a connection.
+*   **Status:** Client enters `SYN-SENT` state.
+
+#### **2. SYN-ACK (Synchronize-Acknowledge)**
+*   **Sender:** Server ➡️ Client
+*   **Action:** The server responds with both `SYN` and `ACK` flags set.
+*   **Goal:** 
+    *   **ACK:** It acknowledges the client's request by sending `X + 1`.
+    *   **SYN:** It sends its own random Sequence Number, let's call it `Y`.
+*   **Status:** Server enters `SYN-RECEIVED` state.
+
+#### **3. ACK (Acknowledge)**
+*   **Sender:** Client ➡️ Server
+*   **Action:** The client sends the final packet with the `ACK` flag set.
+*   **Goal:** It acknowledges the server's sequence number by sending `Y + 1`.
+*   **Status:** Both sides move to the `ESTABLISHED` state.
+
+### 📊 Summary Matrix
+
+| Step | Flag | Direction | Seq No | Ack No | Analogy |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | **SYN** | Client ➡️ Server | `X` | - | "Hey, can you hear me?" |
+| **2** | **SYN-ACK**| Server ➡️ Client | `Y` | `X + 1` | "Yes, I hear you! Can you hear me?" |
+| **3** | **ACK** | Client ➡️ Server | `X + 1` | `Y + 1` | "Yes, I hear you too! Let's talk." |
+
+### 🛠️ Production Troubleshooting Insights
+
+*   **SYN Flooding:** A common DDoS attack where an attacker sends thousands of `SYN` packets but never sends the final `ACK`. This exhausts the server's resources. Mitigation involves [TCP Syncookies](https://developers.cloudflare.com).
+*   **Retransmissions:** If a `SYN-ACK` is not received, the client will retry several times. High retransmission rates usually indicate **Firewall** interference (Security Groups dropping traffic) or **Network Congestion**.
+*   **MTU Issues:** While the handshake might succeed, actual data transfer can fail if the **Maximum Transmission Unit (MTU)** is mismatched across the network path.
+
+### 💡
+> "The Three-Way Handshake is what makes TCP **connection-oriented**. By exchanging and acknowledging sequence numbers, it guarantees that even if packets arrive out of order, the application can reassemble them into a perfect stream, which is why it's the backbone of the Web (HTTP/S)."
+</b></details>
+
+<details>
 <summary> 🌐  Networking Fundamentals: Core Protocols.</code></summary><br><b>
 
 ## 🏗️ 1. TCP (Transmission Control Protocol)
@@ -63,7 +114,6 @@ FTP is a standard network protocol used to transfer files between a client and a
 | **HTTPS** | 7 (Application) | 443 | **High** | Secure Communication |
 | **FTP** | 7 | 20 / 21 | **High** | File Transfers |
 
-
 ## 💡
 
 *   **TCP vs. UDP:** "I use **TCP** when every single bit of data is critical, like a database transaction. I use **UDP** when a few dropped frames don't matter as much as real-time speed, like in a Zoom call."
@@ -71,13 +121,6 @@ FTP is a standard network protocol used to transfer files between a client and a
 *   **DNS & UDP:** "DNS traditionally uses UDP because it's fast. If a DNS query fails, the application just retries, which is more efficient than the overhead of a full TCP handshake."
 *   **On FTP Security:** "Standard FTP sends credentials in **plaintext**. In a secure DevOps pipeline, I would always advocate for **SFTP** to ensure data is encrypted via the SSH tunnel."
 *   **Passive vs. Active FTP:** "In AWS/Cloud environments, we use **Passive FTP** because it allows the client to initiate the data connection, which is more compatible with Security Groups and Firewalls."
-
-</b></details>
-
-<details>
-<summary> How many Subnets can you have per VPC?.</code></summary><br><b>
-
-`200 Subnets per VPC`
 </b></details>
 
 <details>
