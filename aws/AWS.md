@@ -103,6 +103,15 @@ FTP is a standard network protocol used to transfer files between a client and a
     *   **Modes:** Supports **Active** and **Passive** modes (Passive is preferred in modern cloud environments to avoid firewall issues).
 *   **Best For:** Bulk file uploads and website maintenance.
 *   **Note:** Standard FTP is **unsecured** (plaintext). In production, **SFTP** (FTP over SSH) or **FTPS** (FTP over SSL) is mandated.
+  
+###  **FTPS (FTP over SSL/TLS)**
+*   **The Approach:** It adds a layer of encryption (SSL/TLS) to the standard FTP protocol, similar to how HTTPS secures HTTP.
+*   **The Complexity:** Like FTP, it still uses multiple ports, making it difficult to configure behind a **Network Address Translation (NAT)** or strict Security Groups.
+
+### **SFTP (SSH File Transfer Protocol)**
+*   **The Approach:** This is **NOT** FTP. It is a completely separate protocol built as an extension of **SSH**.
+*   **The Advantage:** It is the "Gold Standard" for DevOps. Since it runs over Port 22, it is easy to secure. It supports **SSH Key-based Authentication**, which is essential for passwordless **CI/CD pipelines**.
+
 
 ## 📊 Summary Comparison Matrix
 
