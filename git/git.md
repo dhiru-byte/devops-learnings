@@ -54,11 +54,23 @@ A Git stash is a temporary storage area for changes that are not ready to be com
 <details>
 <summary>What is cherry-picking in git?.</code></summary><br><b>
 
-`cherry-picking` refers to the process of selecting and applying a specific commit from one branch onto another branch. This allows you to pick a single commit and apply it to a different branch without merging the entire branch. Cherry-picking is useful when you want to selectively bring changes from one branch into another, perhaps to apply a bug fix or feature that exists in one branch but not in another.
+`git cherry-pick` allows you to pick specific commits from one branch and apply them to another. It is a powerful tool for hotfixes and selective feature migration.
 
-```shell
-git cherry-pick <commit-hash>
-```
+### 📍 Key Commands
+| Action | Command |
+| :--- | :--- |
+| **Apply one commit** | `git cherry-pick <hash>` |
+| **Apply multiple** | `git cherry-pick <hash1> <hash2>` |
+| **Apply range** | `git cherry-pick A..B` |
+| **Abort process** | `git cherry-pick --abort` |
+
+### ⚠️ Important Best Practices
+*   **New Hashes:** Cherry-picking creates a **new commit** with a new hash on your current branch, even though the content is the same as the source.
+*   **Avoid Overuse:** If you find yourself cherry-picking 10+ commits from the same branch, a **merge** or **rebase** is likely a better architectural choice.
+*   **Traceability:** Use `git cherry-pick -x <hash>` to append a line to the commit message saying "(cherry picked from commit...)", which helps teams track the origin of the change.
+
+### 💡
+"I use **cherry-pick** primarily for porting critical bug fixes across branches. It allows us to maintain a clean production branch by only pulling in verified fixes without merging unstable features from the development branch."
 </b></details>
 
 <details>
