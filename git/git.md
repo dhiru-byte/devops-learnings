@@ -61,14 +61,53 @@ A merge conflict occurs when Git cannot automatically merge changes from differe
 <summary>What are Git hooks, and how can they be useful in a Git workflow?.</code></summary><br><b>
 
 Git hooks are scripts that run at specific points in the Git workflow, such as pre-commit or post-receive. They can be used to enforce coding standards, perform tests, and trigger automated processes.
-
 </b></details>
-
 
 <details>
 <summary>What is a Git stash, and why would you use it?.</code></summary><br><b>
 
 A Git stash is a temporary storage area for changes that are not ready to be committed but need to be saved for later. Developers use it to switch to a different branch or to temporarily set aside work in progress.
+
+`git stash` is a powerful tool used to temporarily "shelve" (or archive) changes you've made to your working directory so you can work on something else, then come back and re-apply them later.
+
+## 🚀 1. Common Scenarios
+*   **The Urgent Hotfix:** You are mid-feature on `develop` when a critical bug hits `main`. You stash your current work, switch to `main`, fix the bug, then return to `develop` and pop your stash.
+*   **The "Dirty" Pull:** You try to `git pull` but Git refuses because your local changes would be overwritten. You stash, pull, and then pop to resolve any conflicts.
+*   **Wrong Branch:** You realize you've been coding on the `main` branch for 20 minutes by mistake. Stash your changes, switch to a new feature branch, and pop them there.
+
+## 🛠️ 2. Essential Commands
+
+| Action | Command |
+| :--- | :--- |
+| **Stash everything** | `git stash` |
+| **Stash with a message** | `git stash push -m "descriptive message"` |
+| **Include new (untracked) files** | `git stash -u` |
+| **List all stashes** | `git stash list` |
+| **Apply last stash & delete it** | `git stash pop` |
+| **Apply last stash & keep it** | `git stash apply` |
+| **View stash contents** | `git stash show -p stash@{0}` |
+| **Delete a specific stash** | `git stash drop stash@{0}` |
+| **Clear all stashes** | `git stash clear` |
+
+## 📊 3. Stash vs. Commit
+
+| Feature | `git stash` | `git commit` |
+| :--- | :--- | :--- |
+| **Storage** | Local-only "Stack". | Permanent part of Branch history. |
+| **Pushable?** | No, stays on your machine. | Yes, can be shared with the team. |
+| **Flexibility** | Can be "popped" onto any branch. | Tied to the specific branch. |
+| **Visibility** | Hidden from `git log`. | Visible in project history. |
+
+## 💡
+
+1. **On Context Switching:** "I use **git stash** as my primary tool for context switching. It allows me to handle production emergencies without cluttering our Git history with 'Work in Progress' (WIP) commits."
+2. **On Safety:** "I always prefer `git stash push -m` over a plain `git stash`. When working on multiple bug fixes, having a labeled stash list ensures I don't accidentally apply the wrong logic to the wrong branch."
+3. **On Portability:** "A great trick I use is stashing changes on one branch and popping them onto another. It’s the easiest way to move uncommitted work when I realize I've started coding in the wrong place."
+
+### ⚠️ Pro-Tip: The "Stash to Branch" Move
+If you have a large stash and your current branch has changed so much that `git stash pop` causes massive conflicts, use:
+
+git stash branch <new-branch-name> stash@{0}
 
 </b></details>
 
