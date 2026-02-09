@@ -5,6 +5,62 @@
 </b></details>
 
 <details>
+<summary> 🌐 How Browsers Work: From URL to Render?.</code></summary><br><b>
+
+High-level sequence of events that occurs when you type a URL like `https://www.google.com` into your browser.
+
+### 1. URL Parsing & HSTS Check
+*   **Parsing:** The browser breaks the URL into the **Protocol** (`https`), **Domain** (`www.google.com`), and **Resource** (`/`).
+*   **HSTS:** The browser checks its internal **HSTS (HTTP Strict Transport Security)** list. If the site is on the list, the browser automatically switches `http://` to `https://` before any network request is made.
+
+### 2. DNS Lookup (Finding the IP)
+Computers communicate via IP addresses, not names. The browser resolves the domain in this order:
+1.  **Browser Cache:** Checks recent DNS history.
+2.  **OS Cache:** Queries the local operating system.
+3.  **Router Cache:** Queries the local network gateway.
+4.  **ISP DNS Recursive Resolver:** If not found locally, a **Recursive Lookup** begins, querying **Root**, **TLD (.com)**, and **Authoritative** nameservers until the IP (e.g., `142.250.190.46`) is returned.
+
+### 3. TCP Three-Way Handshake
+Before sending data, a reliable connection must be established:
+*   **SYN:** Client sends a synchronization request.
+*   **SYN-ACK:** Server acknowledges and sends its own sync.
+*   **ACK:** Client confirms. The connection is now **ESTABLISHED**.
+
+### 4. TLS Handshake (Security Layer)
+Since the protocol is HTTPS, a secure "tunnel" is created:
+*   **Cipher Negotiation:** Client and server agree on encryption algorithms.
+*   **Certificate Validation:** The server sends its **SSL/TLS Certificate** to prove its identity.
+*   **Key Exchange:** They generate a shared **Symmetric Session Key** to encrypt all future traffic.
+
+### 5. HTTP Request & Response
+*   **Request:** The browser sends an HTTP GET request (e.g., `GET / HTTP/1.1`).
+*   **Processing:** A web server (like **Nginx** or **Apache**) receives the request and passes it to the backend application.
+*   **Response:** The server sends back a `200 OK` status along with the HTML content.
+
+### 6. The Rendering Path
+The browser engine (e.g., Blink or WebKit) transforms code into visuals:
+1.  **DOM Tree:** HTML is parsed into the **Document Object Model**.
+2.  **CSSOM Tree:** CSS is parsed into the **CSS Object Model**.
+3.  **Render Tree:** DOM and CSSOM combine to identify visible elements.
+4.  **Layout:** The browser calculates the exact coordinates for every element.
+5.  **Painting:** The engine fills in pixels (text, colors, images) on the screen.
+
+## 📊 Summary Matrix
+
+| Stage | Protocol / Tool | Key Action |
+| :--- | :--- | :--- |
+| **Identity** | [DNS (UDP 53)](https://www.cloudflare.com) | Resolves Domain to IP |
+| **Transport** | [TCP](https://www.cloudflare.com) | Reliable packet delivery |
+| **Security** | [TLS 1.3](https://www.cloudflare.com) | Encrypts the communication |
+| **Content** | [HTTP/2](https://www.cloudflare.com) | Transfers the application data |
+
+## 💡
+*   **On DNS:** "DNS is the phonebook of the internet. Without it, we'd have to memorize 12-digit IP addresses for every website."
+*   **On Latency:** "Latency in this process usually happens at the **DNS** or **TLS Handshake** stages. Using a CDN or **TLS Session Resumption** can significantly speed this up."
+*   **On Rendering:** "The **Critical Rendering Path** is why CSS should be at the top of the HTML (to build the CSSOM early) and non-critical JS at the bottom (to avoid blocking the DOM construction)."
+</b></details>
+
+<details>
 <summary> 🤝 TCP Three-Way Handshake .</code></summary><br><b>
 
 The **Three-Way Handshake** is the process used by **TCP (Transmission Control Protocol)** to establish a reliable connection between a client and a server. It ensures that both parties are ready to communicate and have synchronized their **Sequence Numbers**.
