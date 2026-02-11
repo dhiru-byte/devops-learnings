@@ -1,4 +1,4 @@
-## Informatica IDMC Deployment & Operations Architecture
+### Informatica IDMC Deployment & Operations Architecture
 
 This repository contains the **Infrastructure as Code (IaC)** and **CI/CD Pipelines** for managing the Informatica Intelligent Data Management Cloud (IDMC) ecosystem. 
 
@@ -56,7 +56,7 @@ resource "idmc_connection" "data_source" {
   }
 }
 ```
-## Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
+### Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
 
 ```
 image: hashicorp/terraform:latest
@@ -106,3 +106,14 @@ pipelines:
             - terraform init
             - terraform apply "prod.tfplan"
 ```
+
+### 2. How to Add Repository Variables
+* Navigate to your repository in Bitbucket Cloud.
+* Select Repository settings from the left-hand sidebar.
+* Scroll down to the Pipelines section and select Repository variables.
+* Enter the Variable:
+* **Name:** Must be all caps, e.g., **IDMC_PASSWORD** or **AWS_ACCESS_KEY_ID**.
+* **Value:** Paste your secret or configuration value.
+* **Secure It:** Check the Secured box (padlock icon). This encrypts the value and masks it with ******** in your CI/CD logs.
+* Click **Add**.
+  
