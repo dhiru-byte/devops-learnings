@@ -2,6 +2,8 @@
 *   **Terraform**: For repeatable, version-controlled management of cloud VMs (Secure Agents) and IDMC objects (Connections, Runtime Groups). [Terraform](https://registry.terraform.io/providers/Tzrlk/idmc/latest/docs)
 *   **Bitbucket Pipelines**: For automated CI/CD, reducing manual errors through automated testing and deployment gates.
 *   **Audit Logging**: For compliance and operational transparency via immutable logs of every infrastructure change.
+*   **AWS:** For Provisioning Infra Resources.
+*   **Informatica:** Informatica provides a comprehensive data management platform well-suited for organizations with complex enterprise data requirements and dedicated technical resources. Its strength lies in handling diverse data management challenges across multiple domains, from integration to governance to master data management. 
 ---
 ### Directory Structure Modular Approach
 ```text
