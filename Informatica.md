@@ -235,6 +235,60 @@ resource "aws_iam_role" "terraform_execution_role" {
 * **Zero Key Management:** You no longer need to store AWS_SECRET_ACCESS_KEY in Bitbucket variables. If the repo is compromised, there are no static keys to steal.
 * **Least Privilege:** The role is only valid for the duration of the pipeline step.
 * **Traceability:** AWS CloudTrail will show that the Bitbucket Identity performed the actions, linking the cloud change directly to a Git commit.
+
+#### Informatica Promotion Script **(scripts/promote_assets.py)**
+```python
+import requests
+import json
+import os
+
+# Configuration from Bitbucket Deployment Variables
+SOURCE_USER = os.getenv("IDMC_DEV_USER")
+SOURCE_PASS = os.getenv("IDMC_DEV_PASS")
+TARGET_USER = os.getenv("IDMC_PROD_USER")
+TARGET_PASS = os.getenv("IDMC_PROD_PASS")
+BASE_URL = "https://dm-us.informaticacloud.com" # Adjust for your region
+
+def login(user, password):
+    url = f"{BASE_URL}/user/login"
+    payload = {"@type": "login", "username": user, "password": password}
+    response = requests.post(url, json=payload)
+    response.raise_for_status()
+    return response.json()["icSessionId"]
+
+def export_object(session_id, object_id):
+    # Triggers an Export Task for specific Metadata
+    url = f"{BASE_URL}/export"
+    headers = {"icSessionId": session_id}
+    payload = {"@type": "export", "objects": [{"id": object_id}]}
+    res = requests.post(url, json=payload, headers=headers)
+    return res.json()["id"] # Returns Export ID
+
+def import_object(session_id, file_content):
+    # Uploads the exported ZIP to the Target Environment
+    url = f"{BASE_URL}/import"
+    headers = {"icSessionId": session_id}
+    files = {'file': ('export.zip', file_content)}
+    res = requests.post(url, files=files, headers=headers)
+    return res.status_code
+
+# Main CI/CD Logic
+if __name__ == "__main__":
+    print("🚀 Starting Informatica Asset Promotion...")
+    
+    # 1. Login to both environments
+    dev_session = login(SOURCE_USER, SOURCE_PASS)
+    prod_session = login(TARGET_USER, TARGET_PASS)
+    
+    # 2. Export from Dev (Example Object ID)
+    export_job_id = export_object(dev_session, "mt_bronze_to_silver_01")
+    print(f"✅ Export Job {export_job_id} Started.")
+    
+    # 3. Import to Prod (simplified flow)
+    # In a real pipeline, you would wait for export completion and download the ZIP here
+    print("✅ Promotion Complete.")
+```
+
   
 ---
 ### The CI/CD Process Flow
@@ -245,22 +299,18 @@ resource "aws_iam_role" "terraform_execution_role" {
 * **Provision:** Terraform interacts with the Informatica IDMC API and Cloud Provider (AWS/Azure) to apply changes.
 * **Audit:** Every action is recorded in the Bitbucket Audit Log and Informatica System Audit Logs.
 
-#### Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
+#### Informatica IDMC Infra via Terraform Bitbucket **(bitbucket-pipelines.yml)**:
 ```
-# bitbucket-pipelines.yml
 image: hashicorp/terraform:latest
 
-# 1. Define reusable logic (Anchors)
 definitions:
   steps:
     - step: &tf-plan
         name: "Terraform Plan"
         oidc: true
         script:
-          # Dynamic OIDC Auth using Deployment Variables
           - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
           - echo $BITBUCKET_STEP_OIDC_TOKEN > $AWS_WEB_IDENTITY_TOKEN_FILE
-          # Note: $AWS_ROLE_ARN and $ENV_DIR come from Deployment/Repo Variables
           - cd $ENV_DIR
           - terraform init
           - terraform plan -out=tfplan
@@ -270,7 +320,6 @@ definitions:
     - step: &tf-apply
         name: "Terraform Apply"
         oidc: true
-        trigger: manual # Safety gate for human review
         script:
           - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
           - echo $BITBUCKET_STEP_OIDC_TOKEN > $AWS_WEB_IDENTITY_TOKEN_FILE
@@ -278,9 +327,21 @@ definitions:
           - terraform init
           - terraform apply -auto-approve tfplan
 
+    - step: &inf-promote
+        name: "Promote Informatica ETL Metadata"
+        image: python:3.9
+        script:
+          - pip install requests
+          # This script handles the IDMC REST API Export/Import logic
+          - python scripts/promote_assets.py
+        condition:
+          changesets:
+            includePaths:
+              - "scripts/**"
+              - "environments/**"
+
 pipelines:
   branches:
-    # Development Environment (Automatic plan, Manual apply)
     develop:
       - step:
           <<: *tf-plan
@@ -289,11 +350,14 @@ pipelines:
             ENV_DIR: "environments/dev"
       - step:
           <<: *tf-apply
+          trigger: manual
           deployment: Development
           variables:
             ENV_DIR: "environments/dev"
+      - step:
+          <<: *inf-promote
+          deployment: Development
 
-    # Production Environment (Stricter gates)
     master:
       - step:
           <<: *tf-plan
@@ -302,9 +366,13 @@ pipelines:
             ENV_DIR: "environments/prod"
       - step:
           <<: *tf-apply
+          trigger: manual # Critical Production Gate
           deployment: Production
           variables:
             ENV_DIR: "environments/prod"
+      - step:
+          <<: *inf-promote
+          deployment: Production
 ```
 
 #### How to Add Repository Variables
