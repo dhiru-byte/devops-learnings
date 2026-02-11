@@ -1,4 +1,4 @@
-# Informatica IDMC Deployment & Operations Architecture
+## Informatica IDMC Deployment & Operations Architecture
 
 This repository contains the **Infrastructure as Code (IaC)** and **CI/CD Pipelines** for managing the Informatica Intelligent Data Management Cloud (IDMC) ecosystem. 
 
@@ -41,3 +41,68 @@ We follow a modular approach to separate resource definitions from environment-s
 * **Provision:** Terraform interacts with the Informatica IDMC API and Cloud Provider (AWS/Azure) to apply changes.
 * **Audit:** Every action is recorded in the Bitbucket Audit Log and Informatica System Audit Logs.
 
+### 4. Deployment Logic (Example)
+* **IDMC Connection Module:** abstract connection logic to ensure security (using sensitive variables) and reusability.
+
+```
+resource "idmc_connection" "data_source" {
+  name                = var.conn_name
+  type                = var.conn_type
+  runtime_environment = var.agent_group
+  
+  properties = {
+    "Username" = var.db_user
+    "Password" = var.db_password  # Sensitive: Managed via Bitbucket Secrets
+  }
+}
+```
+## Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
+
+```
+image: hashicorp/terraform:latest
+
+# Template for re-usable steps
+definitions:
+  steps:
+    - step: &lint-and-validate
+        name: "Security Scan & Lint"
+        script:
+          - terraform init -backend=false
+          - terraform validate
+          # Optional: Add TFLint or Checkov for enhanced security audits
+          # - tflint
+
+pipelines:
+  # 1. Automatic validation for all Pull Requests (Feature Branches)
+  branches:
+    feature/*:
+      - step: *lint-and-validate
+      - step:
+          name: "Plan Development"
+          script:
+            - cd environments/dev
+            - terraform init
+            - terraform plan
+
+  # 2. Main/Master Branch Deployment (Staging & Production)
+  branches:
+    master:
+      - step: *lint-and-validate
+      - step:
+          name: "Plan Production"
+          script:
+            - cd environments/prod
+            - terraform init
+            - terraform plan -out=prod.tfplan
+          artifacts:
+            - environments/prod/prod.tfplan
+      
+      - step:
+          name: "Manual Approval & Production Deploy"
+          trigger: manual # The "Gate" required for compliance & traceability
+          deployment: Production
+          script:
+            - cd environments/prod
+            - terraform init
+            - terraform apply "prod.tfplan"
+```
