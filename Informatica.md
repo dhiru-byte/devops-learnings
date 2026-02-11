@@ -33,6 +33,74 @@ We follow a modular approach to separate resource definitions from environment-s
 └── bitbucket-pipelines.yml     # CI/CD Pipeline Definition
 ```
 
+### Module samples designed for reusability.
+#### 1. Secure Agent Module **(modules/secure_agent/main.tf)**
+```
+resource "aws_instance" "informatica_agent" {
+  ami           = var.ami_id
+  instance_type = "t3.medium"
+  subnet_id     = var.subnet_id
+
+  # Automated Installation Script
+  user_data = templatefile("${path.module}/install_agent.sh", {
+    registration_token = var.registration_token
+    install_dir        = "/opt/informatica"
+  })
+
+  tags = { Name = "${var.env}-secure-agent" }
+}
+```
+### 2. IDMC Connection Module **(modules/idmc_connection/main.tf)**
+
+```
+resource "idmc_connection" "this" {
+  name                = var.conn_name
+  type                = var.conn_type # e.g., "Snowflake Cloud Data Warehouse"
+  runtime_environment = var.runtime_env_name
+
+  # Sensitive properties are passed as a map
+  properties = var.conn_properties
+}
+```
+### 3. IDMC User & Roles Module **(modules/idmc_iam/main.tf)**
+
+```
+resource "idmc_user" "data_engineer" {
+  username   = var.user_email
+  first_name = var.first_name
+  last_name  = var.last_name
+  roles      = ["Data Integration Developer", "Designer"]
+}
+```
+### How to call these modules in environments/prod/main.tf
+```
+# 1. Get the latest registration token from IDMC
+data "idmc_agent_registration_token" "prod_token" {}
+
+# 2. Deploy the Infrastructure
+module "prod_agent" {
+  source             = "../../modules/secure_agent"
+  env                = "prod"
+  registration_token = data.idmc_agent_registration_token.prod_token.token
+  ami_id             = "ami-0c55b159cbfafe1f0"
+}
+
+# 3. Provision the Connection
+module "snowflake_conn" {
+  source           = "../../modules/idmc_connection"
+  conn_name        = "SNOWFLAKE_PROD"
+  conn_type        = "Snowflake Cloud Data Warehouse"
+  runtime_env_name = "PROD_AGENT_GROUP"
+  
+  conn_properties = {
+    "Account"   = "corp_prod_account"
+    "Warehouse" = "DATA_LOAD_WH"
+    "Password"  = var.prod_snowflake_password # Injected from Bitbucket Variables
+  }
+}
+```
+
+
 ### 3. The CI/CD Process Flow
 * **Commit:** Developer pushes code to a feature branch.
 * **Lint & Validate:** The pipeline runs terraform validate and security scans (Checkov/TFLint).
@@ -41,21 +109,6 @@ We follow a modular approach to separate resource definitions from environment-s
 * **Provision:** Terraform interacts with the Informatica IDMC API and Cloud Provider (AWS/Azure) to apply changes.
 * **Audit:** Every action is recorded in the Bitbucket Audit Log and Informatica System Audit Logs.
 
-### 4. Deployment Logic (Example)
-* **IDMC Connection Module:** abstract connection logic to ensure security (using sensitive variables) and reusability.
-
-```
-resource "idmc_connection" "data_source" {
-  name                = var.conn_name
-  type                = var.conn_type
-  runtime_environment = var.agent_group
-  
-  properties = {
-    "Username" = var.db_user
-    "Password" = var.db_password  # Sensitive: Managed via Bitbucket Secrets
-  }
-}
-```
 ### Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
 
 ```
