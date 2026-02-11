@@ -1,19 +1,10 @@
 ### Informatica IDMC Deployment & Operations Architecture
 
-This repository contains the **Infrastructure as Code (IaC)** and **CI/CD Pipelines** for managing the Informatica Intelligent Data Management Cloud (IDMC) ecosystem. 
-
-### 1. Architectural Vision
-The goal of this layer is to automate infrastructure provisioning, code promotion, and deployment validation to ensure consistency, security, and traceability across all environments.
-
-### Core Technologies
 *   **Terraform**: For repeatable, version-controlled management of cloud VMs (Secure Agents) and IDMC objects (Connections, Runtime Groups).
 *   **Bitbucket Pipelines**: For automated CI/CD, reducing manual errors through automated testing and deployment gates.
 *   **Audit Logging**: For compliance and operational transparency via immutable logs of every infrastructure change.
-
 ---
-
-### 2. Directory Structure
-We follow a modular approach to separate resource definitions from environment-specific configurations.
+### Directory Structure Modular Approach
 
 ```text
 .
@@ -32,9 +23,9 @@ We follow a modular approach to separate resource definitions from environment-s
 │   └── agent_bootstrap.sh     # User-data script for agent installation
 └── bitbucket-pipelines.yml     # CI/CD Pipeline Definition
 ```
-
-### Module samples designed for reusability.
-#### 1. Secure Agent Module **(modules/secure_agent/main.tf)**
+---
+### Module Samples for reusability.
+#### 1. Secure Agent Module **(modules/secure_agent/main.tf)**.
 ```
 resource "aws_instance" "informatica_agent" {
   ami           = var.ami_id
@@ -50,7 +41,7 @@ resource "aws_instance" "informatica_agent" {
   tags = { Name = "${var.env}-secure-agent" }
 }
 ```
-### 2. IDMC Connection Module **(modules/idmc_connection/main.tf)**
+#### 2. IDMC Connection Module **(modules/idmc_connection/main.tf)**.
 
 ```
 resource "idmc_connection" "this" {
@@ -62,7 +53,7 @@ resource "idmc_connection" "this" {
   properties = var.conn_properties
 }
 ```
-### 3. IDMC User & Roles Module **(modules/idmc_iam/main.tf)**
+#### 3. IDMC User & Roles Module **(modules/idmc_iam/main.tf)**.
 
 ```
 resource "idmc_user" "data_engineer" {
@@ -72,7 +63,28 @@ resource "idmc_user" "data_engineer" {
   roles      = ["Data Integration Developer", "Designer"]
 }
 ```
-### How to call these modules in environments/prod/main.tf
+#### 4.S3 Backend State-Locking Config with DynamoDB **backend.tf**.
+```
+terraform {
+  backend "s3" {
+    bucket         = "your-company-terraform-state"
+    key            = "informatica/prod/terraform.tfstate"
+    region         = "us-east-1"
+    
+    # State Locking via DynamoDB (Prevents corruption)
+    dynamodb_table = "terraform-state-lock"
+    encrypt        = true
+  }
+}
+```
+#### Required Infrastructure for the Backend.
+
+Before your pipeline can run, you need this "foundation" infrastructure. You can create this manually or via a separate "bootstrap" Terraform script:
+
+* **S3 Bucket:** Versioning must be Enabled so you can roll back the state if a deployment fails. AWS S3 Versioning Guide.
+* **DynamoDB Table:** Must have a Partition Key named LockID (type: String). Terraform S3 Backend Locking.
+
+#### How to call these modules in environments/prod/main.tf
 ```
 # 1. Get the latest registration token from IDMC
 data "idmc_agent_registration_token" "prod_token" {}
@@ -99,9 +111,42 @@ module "snowflake_conn" {
   }
 }
 ```
+---
+#### AWS Side (OIDC Identity Provider) Config (modules/iam_oidc/main.tf) to avoid paasing **AWS
 
+```
+# 1. Define the OIDC Provider for Bitbucket
+resource "aws_iam_openid_connect_provider" "bitbucket" {
+  url             = "https://api.bitbucket.org{var.workspace_id}/pipelines-config/identity/oidc"
+  client_id_list  = ["https://bitbucket.org{var.workspace_id}/${var.repo_slug}"]
+  thumbprint_list = ["a031c46782e6e6c662c2c87c76da9aa62ccabd8e"] # Bitbucket's OIDC Thumbprint
+}
 
-### 3. The CI/CD Process Flow
+# 2. Create the Role that Terraform will assume
+resource "aws_iam_role" "terraform_execution_role" {
+  name = "BitbucketTerraformExecutionRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Effect = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.bitbucket.arn }
+      Condition = {
+        StringLike = {
+          "api.bitbucket.org/2.0/workspaces/${var.workspace_id}/pipelines-config/identity/oidc:sub": "{${var.repo_uuid}}:*"
+        }
+      }
+    }]
+  })
+}
+```
+#### Business & Security Rationale
+* **Zero Key Management:** You no longer need to store AWS_SECRET_ACCESS_KEY in Bitbucket variables. If the repo is compromised, there are no static keys to steal.
+* **Least Privilege:** The role is only valid for the duration of the pipeline step.
+* **Traceability:** AWS CloudTrail will show that the Bitbucket Identity performed the actions, linking the cloud change directly to a Git commit.
+---
+### The CI/CD Process Flow
 * **Commit:** Developer pushes code to a feature branch.
 * **Lint & Validate:** The pipeline runs terraform validate and security scans (Checkov/TFLint).
 * **Plan:** A terraform plan is generated and attached to the Bitbucket Pull Request for peer review.
@@ -109,8 +154,7 @@ module "snowflake_conn" {
 * **Provision:** Terraform interacts with the Informatica IDMC API and Cloud Provider (AWS/Azure) to apply changes.
 * **Audit:** Every action is recorded in the Bitbucket Audit Log and Informatica System Audit Logs.
 
-### Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
-
+#### Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
 ```
 image: hashicorp/terraform:latest
 
@@ -159,8 +203,7 @@ pipelines:
             - terraform init
             - terraform apply "prod.tfplan"
 ```
-
-### 2. How to Add Repository Variables
+#### How to Add Repository Variables
 * Navigate to your repository in Bitbucket Cloud.
 * Select Repository settings from the left-hand sidebar.
 * Scroll down to the Pipelines section and select Repository variables.
@@ -169,4 +212,4 @@ pipelines:
 * **Value:** Paste your secret or configuration value.
 * **Secure It:** Check the Secured box (padlock icon). This encrypts the value and masks it with ******** in your CI/CD logs.
 * Click **Add**.
-  
+---
