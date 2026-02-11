@@ -5,12 +5,14 @@
 ---
 ### Directory Structure Modular Approach
 ```text
-terraform-informatica/
+📂terraform-informatica/
 ├── modules/
-│   ├── s3_landing/           # Bronze Layer: S3 Bucket & Security
+|   ├── vpc/
 │   │   ├── main.tf
 │   │   ├── variables.tf
 │   │   └── outputs.tf
+│   ├── s3_landing/           # Bronze Layer: S3 Bucket & Security
+│   │   └── main.tf
 │   ├── redshift/             # Gold Layer: Redshift Cluster & IAM
 │   │   └── main.tf
 │   ├── secure_agent/         # Informatica Secure Agent VMs
@@ -28,7 +30,6 @@ terraform-informatica/
 ```
 ---
 ### Module Samples for reusability.
-
 
 #### 1. S3 Backend State-Locking Config with DynamoDB **backend.tf**.
 ```
@@ -49,8 +50,38 @@ Before your pipeline can run, you need this "foundation" infrastructure. You can
 * **S3 Bucket:** Versioning must be Enabled so you can roll back the state if a deployment fails. AWS S3 Versioning Guide.
 * **DynamoDB Table:** Must have a Partition Key named LockID (type: String). Terraform S3 Backend Locking.
 
+#### Highlights
+* **State Separation:** Each environment (Dev/Prod) maintains its own isolated state file via its respective backend.tf.
+* **Encapsulation:** Network logic (VPCs, Subnets) is defined once and passed into the Redshift and S3 modules as input variables, ensuring environment parity.
+* **Security:** The Public Access Block on S3 prevents accidental data exposure in the landing zone. 
+
+#### 1. VPC & Networking Module (modules/networking/main.tf)
+```
+resource "aws_vpc" "main" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags                 = { Name = "${var.env}-vpc" }
+}
+
+# Private Subnets for Redshift and Secure Agents
+resource "aws_subnet" "private" {
+  count             = 2
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_cidrs[count.index]
+  availability_zone = var.azs[count.index]
+  tags              = { Name = "${var.env}-private-${count.index}" }
+}
+
+# S3 Gateway Endpoint (Allows private S3 access without NAT costs)
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.${var.region}.s3"
+  route_table_ids = [aws_route_table.private.id]
+}
+```
+
 #### 2. S3 Landing Zone Module **(modules/s3_landing/main.tf)**.
-This module provisions a private S3 bucket with versioning and server-side encryption enabled for data protection. 
 ```
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
@@ -79,7 +110,27 @@ resource "aws_s3_bucket_public_access_block" "this" {
 }
 ```
 
-#### 3. Secure Agent Module **(modules/secure_agent/main.tf)**.
+#### 3. Redshift Cluster Module **(modules/redshift/main.tf)**
+```
+resource "aws_redshift_cluster" "this" {
+  cluster_identifier = "${var.env}-redshift-cluster"
+  database_name      = var.db_name
+  master_username    = var.db_user
+  master_password    = var.db_password # Injected from Bitbucket Secrets
+  node_type          = "ra3.xlplus"
+  cluster_type       = "multi-node"
+  number_of_nodes    = 2
+  
+  encrypted          = true
+  publicly_accessible = false
+  vpc_security_group_ids = [var.security_group_id]
+  cluster_subnet_group_name = var.subnet_group_name
+  
+  iam_roles = [var.redshift_role_arn]
+}
+```
+
+#### 4. Secure Agent Module **(modules/secure_agent/main.tf)**.
 ```
 resource "aws_instance" "informatica_agent" {
   ami           = var.ami_id
@@ -96,7 +147,7 @@ resource "aws_instance" "informatica_agent" {
 }
 ```
 
-#### 4. IDMC Connection Module **(modules/idmc_connection/main.tf)**.
+#### 5. IDMC Connection Module **(modules/idmc_connection/main.tf)**.
 ```
 resource "idmc_connection" "this" {
   name                = var.conn_name
@@ -120,30 +171,34 @@ resource "idmc_user" "data_engineer" {
 
 #### How to call these modules in environments/prod/main.tf
 ```
-# 1. Get the latest registration token from IDMC
-data "idmc_agent_registration_token" "prod_token" {}
-
-# 2. Deploy the Infrastructure
-module "prod_agent" {
-  source             = "../../modules/secure_agent"
-  env                = "prod"
-  registration_token = data.idmc_agent_registration_token.prod_token.token
-  ami_id             = "ami-0c55b159cbfafe1f0"
+# 1. Provision S3 Bronze Layer
+module "s3_landing" {
+  source      = "../../modules/s3_landing"
+  bucket_name = "corp-data-prod-landing"
+  env         = "prod"
 }
 
-# 3. Provision the Connection
-module "snowflake_conn" {
+# 2. Provision Redshift Gold Layer
+module "redshift_dw" {
+  source      = "../../modules/redshift"
+  env         = "prod"
+  db_password = var.prod_redshift_password # From Bitbucket Variables
+  # ... other network variables
+}
+
+# 3. Create IDMC Connection using S3 Bucket output
+module "idmc_s3_connection" {
   source           = "../../modules/idmc_connection"
-  conn_name        = "SNOWFLAKE_PROD"
-  conn_type        = "Snowflake Cloud Data Warehouse"
+  conn_name        = "S3_LANDING_ZONE"
+  conn_type        = "Amazon S3"
   runtime_env_name = "PROD_AGENT_GROUP"
-  
+
   conn_properties = {
-    "Account"   = "corp_prod_account"
-    "Warehouse" = "DATA_LOAD_WH"
-    "Password"  = var.prod_snowflake_password # Injected from Bitbucket Variables
+    "Bucket" = module.s3_landing.bucket_name
+    "Region" = "us-east-1"
   }
 }
+
 ```
 
 ---
