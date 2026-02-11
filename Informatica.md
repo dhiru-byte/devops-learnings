@@ -1,31 +1,85 @@
 ### Informatica IDMC Deployment & Operations Architecture
-
-*   **Terraform**: For repeatable, version-controlled management of cloud VMs (Secure Agents) and IDMC objects (Connections, Runtime Groups).
+*   **Terraform**: For repeatable, version-controlled management of cloud VMs (Secure Agents) and IDMC objects (Connections, Runtime Groups). [Terraform](https://registry.terraform.io/providers/Tzrlk/idmc/latest/docs)
 *   **Bitbucket Pipelines**: For automated CI/CD, reducing manual errors through automated testing and deployment gates.
 *   **Audit Logging**: For compliance and operational transparency via immutable logs of every infrastructure change.
 ---
 ### Directory Structure Modular Approach
-
 ```text
-.
+terraform-informatica/
 ├── modules/
-│   ├── secure_agent/          # Provisions Cloud VMs & Registers Agents
-│   ├── idmc_connection/       # Logic for IDMC Connectors (S3, Snowflake, etc.)
-│   └── idmc_runtime/          # Manages Runtime Environments/Groups
+│   ├── s3_landing/           # Bronze Layer: S3 Bucket & Security
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   ├── redshift/             # Gold Layer: Redshift Cluster & IAM
+│   │   └── main.tf
+│   ├── secure_agent/         # Informatica Secure Agent VMs
+│   │   └── main.tf
+│   └── idmc_connection/      # IDMC API Logic
+│       └── main.tf
 ├── environments/
 │   ├── dev/
-│   │   ├── main.tf            # Calls modules with DEV variables
-│   │   └── terraform.tfvars   # Dev-specific secrets & settings
+│   │   ├── main.tf           # Dev-specific configuration
+│   │   └── backend.tf        # S3 Remote State
 │   └── prod/
-│       ├── main.tf            # Calls modules with PROD variables
-│       └── terraform.tfvars   # Prod-specific secrets (Restricted)
-├── scripts/
-│   └── agent_bootstrap.sh     # User-data script for agent installation
-└── bitbucket-pipelines.yml     # CI/CD Pipeline Definition
+│       ├── main.tf           # Prod-specific configuration
+│       └── backend.tf
+└── bitbucket-pipelines.yml
 ```
 ---
 ### Module Samples for reusability.
-#### 1. Secure Agent Module **(modules/secure_agent/main.tf)**.
+
+
+#### 1. S3 Backend State-Locking Config with DynamoDB **backend.tf**.
+```
+terraform {
+  backend "s3" {
+    bucket         = "your-company-terraform-state"
+    key            = "informatica/prod/terraform.tfstate"
+    region         = "us-east-1"
+    
+    # State Locking via DynamoDB (Prevents corruption)
+    dynamodb_table = "terraform-state-lock"
+    encrypt        = true
+  }
+}
+```
+#### Required Infrastructure for the Backend.
+Before your pipeline can run, you need this "foundation" infrastructure. You can create this manually or via a separate "bootstrap" Terraform script:
+* **S3 Bucket:** Versioning must be Enabled so you can roll back the state if a deployment fails. AWS S3 Versioning Guide.
+* **DynamoDB Table:** Must have a Partition Key named LockID (type: String). Terraform S3 Backend Locking.
+
+#### 2. S3 Landing Zone Module **(modules/s3_landing/main.tf)**.
+This module provisions a private S3 bucket with versioning and server-side encryption enabled for data protection. 
+```
+resource "aws_s3_bucket" "this" {
+  bucket = var.bucket_name
+  tags   = { Environment = var.env }
+}
+
+resource "aws_s3_bucket_versioning" "this" {
+  bucket = aws_s3_bucket.this.id
+  versioning_configuration { status = "Enabled" }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+  rule {
+    apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
+  }
+}
+
+# Restrict all public access to the landing zone
+resource "aws_s3_bucket_public_access_block" "this" {
+  bucket = aws_s3_bucket.this.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+```
+
+#### 3. Secure Agent Module **(modules/secure_agent/main.tf)**.
 ```
 resource "aws_instance" "informatica_agent" {
   ami           = var.ami_id
@@ -41,8 +95,8 @@ resource "aws_instance" "informatica_agent" {
   tags = { Name = "${var.env}-secure-agent" }
 }
 ```
-#### 2. IDMC Connection Module **(modules/idmc_connection/main.tf)**.
 
+#### 4. IDMC Connection Module **(modules/idmc_connection/main.tf)**.
 ```
 resource "idmc_connection" "this" {
   name                = var.conn_name
@@ -53,7 +107,7 @@ resource "idmc_connection" "this" {
   properties = var.conn_properties
 }
 ```
-#### 3. IDMC User & Roles Module **(modules/idmc_iam/main.tf)**.
+#### 5. IDMC User & Roles Module **(modules/idmc_iam/main.tf)**.
 
 ```
 resource "idmc_user" "data_engineer" {
@@ -63,26 +117,6 @@ resource "idmc_user" "data_engineer" {
   roles      = ["Data Integration Developer", "Designer"]
 }
 ```
-#### 4.S3 Backend State-Locking Config with DynamoDB **backend.tf**.
-```
-terraform {
-  backend "s3" {
-    bucket         = "your-company-terraform-state"
-    key            = "informatica/prod/terraform.tfstate"
-    region         = "us-east-1"
-    
-    # State Locking via DynamoDB (Prevents corruption)
-    dynamodb_table = "terraform-state-lock"
-    encrypt        = true
-  }
-}
-```
-#### Required Infrastructure for the Backend.
-
-Before your pipeline can run, you need this "foundation" infrastructure. You can create this manually or via a separate "bootstrap" Terraform script:
-
-* **S3 Bucket:** Versioning must be Enabled so you can roll back the state if a deployment fails. AWS S3 Versioning Guide.
-* **DynamoDB Table:** Must have a Partition Key named LockID (type: String). Terraform S3 Backend Locking.
 
 #### How to call these modules in environments/prod/main.tf
 ```
@@ -111,9 +145,9 @@ module "snowflake_conn" {
   }
 }
 ```
+
 ---
 #### AWS Side (OIDC Identity Provider) Config (modules/iam_oidc/main.tf) to avoid paasing **AWS
-
 ```
 # 1. Define the OIDC Provider for Bitbucket
 resource "aws_iam_openid_connect_provider" "bitbucket" {
@@ -141,10 +175,12 @@ resource "aws_iam_role" "terraform_execution_role" {
   })
 }
 ```
+
 #### Business & Security Rationale
 * **Zero Key Management:** You no longer need to store AWS_SECRET_ACCESS_KEY in Bitbucket variables. If the repo is compromised, there are no static keys to steal.
 * **Least Privilege:** The role is only valid for the duration of the pipeline step.
 * **Traceability:** AWS CloudTrail will show that the Bitbucket Identity performed the actions, linking the cloud change directly to a Git commit.
+  
 ---
 ### The CI/CD Process Flow
 * **Commit:** Developer pushes code to a feature branch.
@@ -156,53 +192,66 @@ resource "aws_iam_role" "terraform_execution_role" {
 
 #### Informatica IDMC Infrastructure via Terraform Bitbucket Example (Yaml):
 ```
+# bitbucket-pipelines.yml
 image: hashicorp/terraform:latest
 
-# Template for re-usable steps
+# 1. Define reusable logic (Anchors)
 definitions:
   steps:
-    - step: &lint-and-validate
-        name: "Security Scan & Lint"
+    - step: &tf-plan
+        name: "Terraform Plan"
+        oidc: true
         script:
-          - terraform init -backend=false
-          - terraform validate
-          # Optional: Add TFLint or Checkov for enhanced security audits
-          # - tflint
+          # Dynamic OIDC Auth using Deployment Variables
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $AWS_WEB_IDENTITY_TOKEN_FILE
+          # Note: $AWS_ROLE_ARN and $ENV_DIR come from Deployment/Repo Variables
+          - cd $ENV_DIR
+          - terraform init
+          - terraform plan -out=tfplan
+        artifacts:
+          - "**/tfplan"
+
+    - step: &tf-apply
+        name: "Terraform Apply"
+        oidc: true
+        trigger: manual # Safety gate for human review
+        script:
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $AWS_WEB_IDENTITY_TOKEN_FILE
+          - cd $ENV_DIR
+          - terraform init
+          - terraform apply -auto-approve tfplan
 
 pipelines:
-  # 1. Automatic validation for all Pull Requests (Feature Branches)
   branches:
-    feature/*:
-      - step: *lint-and-validate
+    # Development Environment (Automatic plan, Manual apply)
+    develop:
       - step:
-          name: "Plan Development"
-          script:
-            - cd environments/dev
-            - terraform init
-            - terraform plan
+          <<: *tf-plan
+          deployment: Development
+          variables:
+            ENV_DIR: "environments/dev"
+      - step:
+          <<: *tf-apply
+          deployment: Development
+          variables:
+            ENV_DIR: "environments/dev"
 
-  # 2. Main/Master Branch Deployment (Staging & Production)
-  branches:
+    # Production Environment (Stricter gates)
     master:
-      - step: *lint-and-validate
       - step:
-          name: "Plan Production"
-          script:
-            - cd environments/prod
-            - terraform init
-            - terraform plan -out=prod.tfplan
-          artifacts:
-            - environments/prod/prod.tfplan
-      
-      - step:
-          name: "Manual Approval & Production Deploy"
-          trigger: manual # The "Gate" required for compliance & traceability
+          <<: *tf-plan
           deployment: Production
-          script:
-            - cd environments/prod
-            - terraform init
-            - terraform apply "prod.tfplan"
+          variables:
+            ENV_DIR: "environments/prod"
+      - step:
+          <<: *tf-apply
+          deployment: Production
+          variables:
+            ENV_DIR: "environments/prod"
 ```
+
 #### How to Add Repository Variables
 * Navigate to your repository in Bitbucket Cloud.
 * Select Repository settings from the left-hand sidebar.
