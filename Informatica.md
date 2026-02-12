@@ -327,20 +327,6 @@ definitions:
           - cd $ENV_DIR
           - terraform init
           - terraform apply -auto-approve tfplan
-
-    - step: &inf-promote
-        name: "Promote Informatica ETL Metadata"
-        image: python:3.9
-        script:
-          - pip install requests
-          # This script handles the IDMC REST API Export/Import logic
-          - python scripts/promote_assets.py
-        condition:
-          changesets:
-            includePaths:
-              - "scripts/**"
-              - "environments/**"
-
 pipelines:
   branches:
     develop:
@@ -386,6 +372,53 @@ pipelines:
 * **Secure It:** Check the Secured box (padlock icon). This encrypts the value and masks it with ******** in your CI/CD logs.
 * Click **Add**.
 ---
+
+#### YAML for deploying ETL configuration files and code, running tests, and triggering your ETL pipeline (Bitbucket)
+```yml
+image: python:3.10
+
+pipelines:
+  default:
+    - step:
+        name: Install Dependencies
+        caches:
+          - pip
+        script:
+          - pip install -r requirements.txt
+          - pip install awscli
+    - step:
+        name: Run Tests
+        script:
+          - pytest tests/
+    - step:
+        name: Deploy Configurations to S3
+        script:
+          - aws s3 cp path/to/configs/ingestion.yaml s3://your-s3-bucket-name/configs/ingestion.yaml
+          - aws s3 cp path/to/configs/bronze_to_silver.yaml s3://your-s3-bucket-name/configs/bronze_to_silver.yaml
+          - aws s3 cp path/to/configs/tests.yaml s3://your-s3-bucket-name/configs/tests.yaml
+    - step:
+        name: Deploy Code to S3
+        script:
+          - aws s3 cp path/to/code/parser.py s3://your-s3-bucket-name/code/parser.py
+    - step:
+        name: Trigger Informatica ETL Pipeline
+        script:
+          - >
+            curl -X POST https://dm-us.informaticacloud.com/saas/api/v2/job
+            -H 'Content-Type: application/json'
+            -d '{
+                  "taskId": "your-task-id",
+                  "taskType": "DSS",
+                  "runtimeEnvironmentId": "your-runtime-environment-id",
+                  "taskInstanceId": "your-task-instance-id",
+                  "taskInstanceName": "your-task-instance-name",
+                  "taskInstanceDescription": "Trigger ETL pipeline"
+                }'
+
+definitions:
+  caches:
+    pip: ~/.cache/pip
+```
 
 #### YAML configuration sample for reading from S3 using IAM role authentication. This structure is secure and production-ready, as it does not require any credentials in the YAML file. 
 ```yaml
