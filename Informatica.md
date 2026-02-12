@@ -34,7 +34,7 @@
 ### Module Samples for reusability.
 
 #### 1. S3 Backend State-Locking Config with DynamoDB **backend.tf**.
-```
+```hcl
 terraform {
   backend "s3" {
     bucket         = "your-company-terraform-state"
@@ -58,7 +58,7 @@ Before your pipeline can run, you need this "foundation" infrastructure. You can
 * **Security:** The Public Access Block on S3 prevents accidental data exposure in the landing zone. 
 
 #### 1. VPC & Networking Module (modules/networking/main.tf)
-```
+```hcl
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
@@ -84,7 +84,7 @@ resource "aws_vpc_endpoint" "s3" {
 ```
 
 #### 2. S3 Landing Zone Module **(modules/s3_landing/main.tf)**.
-```
+```hcl
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
   tags   = { Environment = var.env }
@@ -113,7 +113,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 ```
 
 #### 3. Redshift Cluster Module **(modules/redshift/main.tf)**
-```
+```hcl
 resource "aws_redshift_cluster" "this" {
   cluster_identifier = "${var.env}-redshift-cluster"
   database_name      = var.db_name
@@ -133,7 +133,7 @@ resource "aws_redshift_cluster" "this" {
 ```
 
 #### 4. Secure Agent Module **(modules/secure_agent/main.tf)**.
-```
+```hcl
 resource "aws_instance" "informatica_agent" {
   ami           = var.ami_id
   instance_type = "t3.medium"
@@ -150,7 +150,7 @@ resource "aws_instance" "informatica_agent" {
 ```
 
 #### 5. IDMC Connection Module **(modules/idmc_connection/main.tf)**.
-```
+```hcl
 resource "idmc_connection" "this" {
   name                = var.conn_name
   type                = var.conn_type # e.g., "Snowflake Cloud Data Warehouse"
@@ -161,8 +161,7 @@ resource "idmc_connection" "this" {
 }
 ```
 #### 5. IDMC User & Roles Module **(modules/idmc_iam/main.tf)**.
-
-```
+```hcl
 resource "idmc_user" "data_engineer" {
   username   = var.user_email
   first_name = var.first_name
@@ -172,7 +171,7 @@ resource "idmc_user" "data_engineer" {
 ```
 
 #### How to call these modules in environments/prod/main.tf
-```
+```hcl
 # 1. Provision S3 Bronze Layer
 module "s3_landing" {
   source      = "../../modules/s3_landing"
@@ -205,7 +204,7 @@ module "idmc_s3_connection" {
 
 ---
 #### AWS Side (OIDC Identity Provider) Config (modules/iam_oidc/main.tf) to avoid paasing **AWS
-```
+```hcl
 # 1. Define the OIDC Provider for Bitbucket
 resource "aws_iam_openid_connect_provider" "bitbucket" {
   url             = "https://api.bitbucket.org{var.workspace_id}/pipelines-config/identity/oidc"
@@ -302,7 +301,7 @@ if __name__ == "__main__":
 * **Audit:** Every action is recorded in the Bitbucket Audit Log and Informatica System Audit Logs.
 
 #### Informatica IDMC Infra via Terraform Bitbucket **(bitbucket-pipelines.yml)**:
-```
+```yml
 image: hashicorp/terraform:latest
 
 definitions:
@@ -389,7 +388,7 @@ pipelines:
 ---
 
 #### YAML configuration sample for reading from S3 using IAM role authentication. This structure is secure and production-ready, as it does not require any credentials in the YAML file. 
-```
+```yaml
 entity_name: sales_transactions
 
 source:
@@ -440,3 +439,22 @@ validation:
     error_message: "Transaction date must be in YYYY-MM-DD format"
 ```
 
+#### Example: IAM Role Policy (Attach to Your Compute Resource)
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-data-bucket",
+        "arn:aws:s3:::my-data-bucket/sales/transactions/*"
+      ]
+    }
+  ]
+}
+```
