@@ -387,3 +387,56 @@ pipelines:
 * **Secure It:** Check the Secured box (padlock icon). This encrypts the value and masks it with ******** in your CI/CD logs.
 * Click **Add**.
 ---
+
+#### YAML configuration sample for reading from S3 using IAM role authentication. This structure is secure and production-ready, as it does not require any credentials in the YAML file. 
+```
+entity_name: sales_transactions
+
+source:
+  type: s3
+  bucket: my-data-bucket
+  key_prefix: sales/transactions/
+  file_type: csv
+  aws_region: us-east-1
+  # No credentials block required—access is managed by the IAM role attached to the compute resource
+
+schema:
+  - source_field: transaction_id
+    target_field: transaction_id
+    data_type: integer
+    nullable: false
+  - source_field: product_id
+    target_field: product_id
+    data_type: integer
+    nullable: false
+  - source_field: quantity
+    target_field: quantity
+    data_type: integer
+    nullable: false
+  - source_field: price
+    target_field: price
+    data_type: float
+    nullable: false
+  - source_field: transaction_date
+    target_field: transaction_date
+    data_type: date
+    nullable: false
+
+validation:
+  - field: transaction_id
+    rule: not_null
+    error_message: "Transaction ID cannot be null"
+  - field: quantity
+    rule: min_value
+    value: 1
+    error_message: "Quantity must be at least 1"
+  - field: price
+    rule: min_value
+    value: 0.01
+    error_message: "Price must be greater than zero"
+  - field: transaction_date
+    rule: date_format
+    format: "YYYY-MM-DD"
+    error_message: "Transaction date must be in YYYY-MM-DD format"
+```
+
