@@ -45,5 +45,28 @@ image:
 * **Usage:** Useful for quick, one-off changes or for automation in CI/CD pipelines.
 * **Scope:** Only applies to the specific Helm command where it is used.
 * **Not Version Controlled:** Since it’s a CLI argument, it’s not stored in the chart’s files.
+```
+helm install my-release my-chart --set replicaCount=3,image.tag=latest
+```  
+</b></details>
+
+<details>
+<summary> Difference Between helm install, helm upgrade, helm rollback, & helm repo update?.</summary><br><b>
+
+```
+helm install <release-name> <chart> [flags]
+helm install my-app ./my-chart                      #Fails if a release with the same name already exists.
+helm upgrade <release-name> <chart> [flags]         #Applies changes to resources (e.g., new image, more replicas).
+helm upgrade my-app ./my-chart --set image.tag=2.0  #Can upgrade the chart version or override values.
+helm rollback <release-name> [revision]             #Restores the release to the specified previous state.
+helm rollback my-app 1                              #If no revision is specified, rolls back to the previous one.
+```
+
+| Command | Purpose | Typical Use Case |
+| :-- | :-- | :-- |
+| helm install | Deploy new release | First-time deployment |
+| helm upgrade | Update existing release | Change config, update image, etc. |
+| helm rollback | Revert to previous revision | Undo failed or unwanted upgrade |
+| helm repo update | Refresh chart repository index | Get latest chart versions from repo |
 
 </b></details>
