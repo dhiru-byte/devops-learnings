@@ -70,3 +70,19 @@ helm rollback my-app 1                              #If no revision is specified
 | helm repo update | Refresh chart repository index | Get latest chart versions from repo |
 
 </b></details>
+
+<details>
+<summary> What is Helm Diff?.</summary><br><b>
+
+Helm diff is a plugin for Helm that shows you the differences between your current deployed release and what would change if you ran a helm upgrade or helm install. It’s a powerful tool for previewing changes before actually applying them to your Kubernetes cluster.
+
+Helm diff is a Helm plugin that compares a Helm chart’s manifests against:
+
+* The currently deployed release (**helm diff upgrade**)
+* The chart’s default values (**helm diff install**)
+* Or between two chart versions (**helm diff revision**)
+Purpose:
+To preview and review changes (additions, deletions, modifications) in Kubernetes resources before deploying, helping prevent unintended consequences.
+
+</b></details>
+
