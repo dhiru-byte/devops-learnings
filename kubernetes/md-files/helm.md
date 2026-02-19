@@ -26,3 +26,24 @@ my-chart/
 
 * **Automated Management:** Helm handles installation, upgrades, and uninstallation of applications, reducing manual errors and operational complexity.
 </b></details>  
+
+<details>
+<summary> Difference Between values.yaml and --set Flag in Helm.</summary><br><b>
+
+* **Purpose:** The values.yaml file is used to define default configuration values for a Helm chart.
+* **Usage:** You edit this file to set the standard values for your application (e.g., image tags, replica counts, environment variables).
+* **Scope:** Applies to all installations of the chart unless overridden.
+* **Version Control:** Typically checked into your Git repository with the chart.
+```
+replicaCount: 2
+image:
+  repository: nginx
+  tag: stable
+```
+### --set Flag
+* **Purpose:** The --set flag is used to override values from values.yaml directly from the command line when installing or upgrading a Helm release.
+* **Usage:** Useful for quick, one-off changes or for automation in CI/CD pipelines.
+* **Scope:** Only applies to the specific Helm command where it is used.
+* **Not Version Controlled:** Since it’s a CLI argument, it’s not stored in the chart’s files.
+
+</b></details>
