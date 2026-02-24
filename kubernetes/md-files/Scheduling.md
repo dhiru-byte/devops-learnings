@@ -251,6 +251,30 @@ Cluster Autoscaler adjusts **number of nodes**, not Pods.
 **Key Point:**  Reacts to unschedulable Pods, not CPU usage.
 </b></details>
 
+<details>
+<summary>CrashLoopBackOff in Kubernetes.</summary><br><b>
+
+```
+# 1. Check events for OOMKilled or configuration errors
+kubectl describe pod <pod-name>
+
+# 2. View logs from the instance THAT JUST CRASHED (the most important step)
+kubectl logs <pod-name> --previous
+```
+🔍 Common Root Causes
+### 1. Application Failures
+* **Initialization Errors:** The app crashes during startup (e.g., a syntax error in code or a missing database connection).
+* **Missing Dependencies:** Your application is looking for a ConfigMap, Secret, or volume that hasn't been created or is incorrectly named.
+* **Incorrect Startup Commands:** Typops in the command or args fields in your deployment YAML.
+### 2. Resource & Environment Issues
+* **OOMKilled (Out of Memory):** The container tried to use more memory than its limits allowed. Check Kubernetes Resource Management for more details.
+* **Liveness Probe Failures:** A misconfigured health check is killing the pod because the app takes longer to start than the probe allows.
+* **Permissions:** The container user doesn't have read/write access to a mounted volume or a specific port.
+### 3. Image Issues
+* **Wrong Architecture:** Trying to run an arm64 image on an amd64 node.
+* **Empty Entrypoints:** The container starts but immediately exits because the main process finished (e.g., running a shell script that ends).
+</b></details>
+
 > Kubernetes schedules Pods by filtering out incompatible nodes and scoring the rest. Requests determine placement while limits enforce runtime behavior. CPU pressure throttles Pods, memory pressure kills them. HPA scales the number of Pods, VPA adjusts resource sizes, and Cluster Autoscaler adds or removes nodes when Pods cannot be scheduled.
 
 ## Quick Reference Table
