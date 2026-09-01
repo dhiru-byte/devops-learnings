@@ -1,83 +1,46 @@
-# DevOps Interview Study Guide
+# DevOps Interview Study Pointers
 
-Curated notes, interview questions, troubleshooting scenarios, and hands-on
-examples for DevOps and SRE preparation.
+Compact interview facts, commands, gotchas, scenarios, and links to official
+documentation. Start with the [interview checklist](docs/devops-interview-checklist.md).
 
-## Start here
+## Core topics
 
-1. Use the [interview checklist](docs/devops-interview-checklist.md) to identify weak areas.
-2. Read the canonical topic guide linked from each question.
-3. Practise explaining the answer in two minutes: definition, operation,
-   production example, and one failure mode.
-4. Work through the scenario guides without reading the solution first.
-5. Use the labs and examples only after understanding the underlying concept.
+| Topic | Local pointer guide | Official documentation |
+| :--- | :--- | :--- |
+| Linux and networking | [Linux](docs/linux-interview-guide.md) | [Linux man pages](https://man7.org/linux/man-pages/) · [Kernel docs](https://docs.kernel.org/) |
+| Git and delivery | [Git](docs/git-interview-guide.md) | [Git documentation](https://git-scm.com/doc) |
+| Containers | [Docker](docs/docker-interview-guide.md) | [Docker documentation](https://docs.docker.com/) |
+| Orchestration | [Kubernetes](docs/kubernetes-interview-guide.md) | [Kubernetes documentation](https://kubernetes.io/docs/) · [Helm docs](https://helm.sh/docs/) |
+| Infrastructure as code | [Terraform](docs/terraform-interview-guide.md) | [Terraform documentation](https://developer.hashicorp.com/terraform/docs) |
+| Cloud platform | [AWS](docs/aws-interview-guide.md) | [AWS documentation](https://docs.aws.amazon.com/) · [Well-Architected](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html) |
 
-## Core interview topics
+## Practice and certification
 
-### Linux and networking
+| Track | Use it for | Official documentation |
+| :--- | :--- | :--- |
+| [CKA lab pointers](docs/kubernetes-cka-labs.md) | `kubectl`, workloads, networking, RBAC, node and etcd tasks | [kubectl reference](https://kubernetes.io/docs/reference/kubectl/) |
+| [Kubernetes Secret recipes](docs/kubernetes-secrets-recipes.md) | Create, mount, rotate, and verify Secrets | [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) |
+| [Terraform Associate pointers](docs/terraform-certification-drills.md) | Exam domains, traps, commands, and recall scenarios | [Terraform Associate](https://developer.hashicorp.com/terraform/tutorials/certification-004) |
+| [AWS ML Associate pointers](docs/aws-ml-associate-study-guide.md) | MLA-C01 services, algorithms, deployment, and exam traps | [Certification page](https://aws.amazon.com/certification/certified-machine-learning-engineer-associate/) |
 
-- [Linux](docs/linux-interview-guide.md): processes, memory, filesystems, permissions,
-  networking, DNS, CIDR, HTTP, SSH, and a practical command reference
+## Study loop
 
-### Git and delivery
+1. Pick unchecked items in the [interview checklist](docs/devops-interview-checklist.md).
+2. Use the local guide for key facts, commands, and production gotchas.
+3. Follow its official links for complete behavior and version-specific details.
+4. Answer aloud: definition → decision → example → failure mode.
+5. Practise scenarios as: symptom → evidence → fix → prevention.
 
-- [Git](docs/git-interview-guide.md): merge, rebase, conflict resolution, recovery, hooks, tags,
-  and CI usage
-
-### Docker
-
-- [Docker](docs/docker-interview-guide.md): images, Dockerfiles, runtime isolation,
-  networking, storage, security, CI/CD, and troubleshooting scenarios
-
-### Kubernetes
-
-- [Kubernetes](docs/kubernetes-interview-guide.md): architecture, failures,
-  scheduling, networking, storage, security, upgrades, workloads, and Helm
-- [Secret recipes](docs/kubernetes-secrets-recipes.md)
-- [CKA lab recipes](docs/kubernetes-cka-labs.md)
-
-### Terraform
-
-- [Terraform](docs/terraform-interview-guide.md): interview concepts and operational
-  troubleshooting scenarios
-- [Terraform certification drills](docs/terraform-certification-drills.md):
-  deduplicated multiple-choice practice grouped by objective
-
-### AWS
-
-- [AWS core guide](docs/aws-interview-guide.md): VPC, security, compute, storage, databases,
-  identity, serverless, reliability, and CI/CD
-
-## Hands-on labs and examples
-
-These resources support the core guides but are not the recommended starting
-point.
-
-- [Kubernetes example manifests](kubernetes/task-official-k8s/)
-- [Python exercises](python-learning/)
-- [Kubernetes cheat sheet](kubernetes/cheatsheet-kubernetes-A4.pdf)
-
-## Supplemental material
-
-- [AWS Machine Learning Associate notes](docs/aws-ml-associate-study-guide.md)
-- [Informatica IDMC notes](docs/informatica-idmc-notes.md)
-
-These are preserved for specialised preparation and are intentionally separate
-from the core DevOps interview path.
-
-## External practice
+## Community practice
 
 - [DevOps Exercises](https://github.com/bregman-arie/devops-exercises)
 - [DevOps: The Hard Way on AWS](https://github.com/AdminTurnedDevOps/DevOps-The-Hard-Way-AWS)
 - [Docker Labs](https://github.com/collabnix/dockerlabs)
-- [Docker cheat sheet](https://github.com/wsargent/docker-cheat-sheet)
 - [CKA exercises](https://github.com/walidshaari/Kubernetes-Certified-Administrator)
 - [CKAD exercises](https://github.com/dgkanatsios/CKAD-exercises)
-- [Jenkins pipeline examples](https://github.com/jenkinsci/pipeline-examples)
 
-## Repository scope
+## Scope
 
-Markdown files under `docs/` are study notes. YAML, JSON, scripts, PDFs, and
-lab directories are runnable or reference artifacts; review them before using
-them in a real environment because example values and credentials are not
-production configuration.
+- `docs/*.md`: curated study pointers; verify current details in linked official docs.
+- Commands marked destructive require review before use.
+- Community links are practice material, not authoritative documentation.

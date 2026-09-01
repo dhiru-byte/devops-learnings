@@ -1,976 +1,463 @@
-# AWS Machine Learning Associate (MLA-C01)
+# AWS Machine Learning Engineer – Associate (MLA-C01)
 
-Supplemental certification study material: AWS machine learning services,
-SageMaker components and built-in algorithms, and practice questions. General
-AWS interview notes are in the
-[AWS interview guide](aws-interview-guide.md).
+- Pointer-style certification notes: domain map, decision tables, service
+  pickers, and exam traps.
+- Each section links to official AWS documentation.
+- Core VPC, IAM, S3, KMS, and CloudWatch material:
+  [AWS interview guide](aws-interview-guide.md).
 
-Sections in this file:
+Official sources:
 
-- Services, Glue components, SageMaker components and algorithms, and ML problem
-  framing (below)
-- [SageMaker questions and answers](#aws-machine-learning-associate-exam---sagemaker-questions-and-answers)
-- [Built-in algorithms questions and answers](#aws-machine-learning-associate-exam---sagemaker-built-in-algorithms-questions-and-answers)
-- Feature engineering and data transformation questions (end of file)
+- [Certification page](https://aws.amazon.com/certification/certified-machine-learning-engineer-associate/)
+- [MLA-C01 exam guide](https://docs.aws.amazon.com/aws-certification/latest/machine-learning-engineer-associate-01/machine-learning-engineer-associate-01.html)
+- [Amazon SageMaker AI Developer Guide](https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html)
+- [Well-Architected Machine Learning Lens](https://docs.aws.amazon.com/wellarchitected/latest/machine-learning-lens/machine-learning-lens.html)
 
-<details>
-<summary>ML Problem Framing: The ML Lifecycle</summary><br><b>
+- **Exam version (dated 1 Sep 2026):** this guide is **MLA-C01** until a C02
+  guide exists. English MLA-C01 last day is **28 Sep 2026**.
+- MLA-C02 beta registration opens **1 Sep 2026** (exam code ME1-C02). Confirm
+  dates on the [certification page](https://aws.amazon.com/certification/certified-machine-learning-engineer-associate/).
+- **Naming:** at re:Invent 2024 the ML platform became **Amazon SageMaker AI**;
+  "Amazon SageMaker" now names the wider data-and-AI platform.
+- Exam items still use "Amazon SageMaker" for the ML platform, so both names
+  mean the same product here.
+- Check [Retired and renamed services](#retired-and-renamed-services) before
+  trusting an older practice question.
 
-Four phases, with feature stores and a model registry in the middle.
+## Contents
 
-| Phase | What happens |
+**Framing:** [Exam domain map](#exam-domain-map) · [ML lifecycle](#ml-lifecycle) · [Service picker](#service-picker) · [Retired and renamed services](#retired-and-renamed-services)
+
+**Data:** [Data processing and Glue](#data-processing-and-glue) · [Feature engineering](#feature-engineering)
+
+**Model:** [SageMaker components](#sagemaker-components) · [Built-in algorithms](#built-in-algorithms) · [Training data inputs and compute](#training-data-inputs-and-compute) · [Evaluation and tuning](#evaluation-and-tuning)
+
+**Operations:** [Deployment and inference](#deployment-and-inference) · [Monitoring governance and security](#monitoring-governance-and-security) · [Cost control](#cost-control)
+
+**Practice:** [High-yield exam traps](#high-yield-exam-traps) · [Recall questions](#recall-questions)
+
+## Exam domain map
+
+Docs: [MLA-C01 exam guide](https://docs.aws.amazon.com/aws-certification/latest/machine-learning-engineer-associate-01/machine-learning-engineer-associate-01.html) · [Certification page](https://aws.amazon.com/certification/certified-machine-learning-engineer-associate/) · [Exam policies](https://aws.amazon.com/certification/policies/)
+
+65 questions (50 scored, 15 unscored), 130 minutes, scaled score 100–1000,
+pass mark 720. Question types are multiple choice, multiple response, ordering,
+and matching.
+
+| Domain | Weight | What it actually asks |
+| :--- | :--- | :--- |
+| 1. Data preparation for ML | 28% | Ingest and store data, transform it, validate quality, fix imbalance and leakage |
+| 2. ML model development | 26% | Choose an algorithm or pre-trained model, train, tune, evaluate, version |
+| 3. Deployment and orchestration of ML workflows | 22% | Pick an endpoint type, provision infrastructure as code, build CI/CD and pipelines |
+| 4. ML solution monitoring, maintenance, and security | 24% | Drift monitoring, cost, IAM/KMS/VPC, logging and audit |
+
+Scope boundary the exam enforces: you are an **ML engineer**, not a research
+scientist. Questions reward managed services, least operational overhead, and
+pre-trained models over hand-written training loops.
+
+## ML lifecycle
+
+Docs: [ML lifecycle](https://docs.aws.amazon.com/wellarchitected/latest/machine-learning-lens/machine-learning-lens.html) · [SageMaker Pipelines](https://docs.aws.amazon.com/sagemaker/latest/dg/pipelines.html)
+
+| Phase | Work | Primary services |
+| :--- | :--- | :--- |
+| Process data | Collect, clean, label, engineer features | S3, Glue, EMR, Athena, Data Wrangler, Ground Truth, Feature Store |
+| Develop model | Train, tune, evaluate, explain | Training jobs, Automatic Model Tuning, Autopilot, Experiments, Clarify |
+| Deploy | Version, approve, serve | Model Registry, endpoints, Batch Transform, Pipelines |
+| Monitor | Detect drift, alarm, retrain | Model Monitor, Clarify, CloudWatch, EventBridge |
+
+Two stores and one registry sit in the middle:
+
+- **Offline feature store** — S3-backed for training and batch inference, with
+  point-in-time correct queries so you do not leak future values.
+- **Online feature store** — low-latency reads for real-time inference. Writes
+  fan out to both stores, which is what prevents training/serving skew.
+- **Model registry** — versioned artifacts plus approval status; deploy stages
+  read a specific approved version, not the latest training job.
+
+Two feedback loops the exam names explicitly: **performance feedback** (monitor
+results change preprocessing) and **active learning** (low-confidence
+predictions get human labels and rejoin training).
+
+## Service picker
+
+Docs: [AWS AI services](https://docs.aws.amazon.com/whitepapers/latest/aws-overview/machine-learning.html) · [SageMaker AI](https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html)
+
+Default rule: **pre-trained AI service → SageMaker JumpStart or Bedrock →
+SageMaker built-in algorithm → custom container.** Pick the first that meets the
+requirement.
+
+| Need | Service | Docs |
+| :--- | :--- | :--- |
+| Text sentiment, entities, PII, topics | Amazon Comprehend | [dg](https://docs.aws.amazon.com/comprehend/latest/dg/what-is.html) |
+| Text, tables, forms from scanned documents | Amazon Textract | [dg](https://docs.aws.amazon.com/textract/latest/dg/what-is.html) |
+| Images and video labels, moderation, faces | Amazon Rekognition | [dg](https://docs.aws.amazon.com/rekognition/latest/dg/what-is.html) |
+| Speech to text | Amazon Transcribe | [dg](https://docs.aws.amazon.com/transcribe/latest/dg/what-is.html) |
+| Text to speech | Amazon Polly | [dg](https://docs.aws.amazon.com/polly/latest/dg/what-is.html) |
+| Machine translation | Amazon Translate | [dg](https://docs.aws.amazon.com/translate/latest/dg/what-is.html) |
+| Chatbot or IVR intents and slots | Amazon Lex | [dg](https://docs.aws.amazon.com/lexv2/latest/dg/what-is.html) |
+| Semantic enterprise search over documents | Amazon Kendra | [dg](https://docs.aws.amazon.com/kendra/latest/dg/what-is-kendra.html) |
+| Recommendations without building a model | Amazon Personalize | [dg](https://docs.aws.amazon.com/personalize/latest/dg/what-is-personalize.html) |
+| Online fraud / fake-account scoring | SageMaker (AutoGluon) or AWS WAF Fraud Control | [availability note](https://docs.aws.amazon.com/frauddetector/latest/ug/frauddetector-availability-change.html) |
+| Foundation models, RAG, agents, guardrails | Amazon Bedrock | [ug](https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html) |
+| Human review of low-confidence predictions | Amazon A2I | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/a2i-use-augmented-ai-a2i-human-review-loops.html) |
+| Human labelling of a training set | SageMaker Ground Truth | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/sms.html) |
+| Custom model, full control of training | SageMaker AI | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html) |
+| Metric anomaly detection | CloudWatch anomaly detection | [ug](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Anomaly_Detection.html) |
+| ML on highly connected graph data | Amazon Neptune ML | [ug](https://docs.aws.amazon.com/neptune/latest/userguide/machine-learning.html) |
+
+Disambiguations the exam leans on:
+
+- **Ground Truth vs A2I** — Ground Truth labels data *before* training; A2I
+  routes *inference* results to humans when confidence is low.
+- **Comprehend vs Kendra** — Comprehend extracts structure from text; Kendra
+  answers natural-language questions across a document corpus.
+- **Personalize vs Factorization Machines** — Personalize for "no ML expertise"
+  or "least operational overhead"; Factorization Machines when a SageMaker
+  built-in algorithm is required.
+- **Bedrock vs JumpStart** — a serverless API to hosted foundation models vs
+  models deployed into *your* SageMaker account and endpoints.
+
+## Retired and renamed services
+
+Docs: [AWS service documentation index](https://docs.aws.amazon.com/) · Check the service page before relying on any entry below.
+
+| Name in older material | Current status | Use instead |
+| :--- | :--- | :--- |
+| Amazon CodeWhisperer | **Renamed** Amazon Q Developer (April 30, 2024) | Amazon Q Developer |
+| Amazon Kinesis Data Firehose | **Renamed** Amazon Data Firehose (2024) | Amazon Data Firehose |
+| Amazon Kinesis Data Analytics | **Renamed** Amazon Managed Service for Apache Flink | Managed Service for Apache Flink |
+| Amazon SageMaker (ML platform) | **Renamed** Amazon SageMaker AI (re:Invent 2024) | Amazon SageMaker AI |
+| SageMaker Edge Manager | **Discontinued** (April 26, 2024) | SageMaker Neo plus IoT Greengrass |
+| AWS DeepLens | **Ended support** (January 31, 2024) | IoT Greengrass on supported hardware |
+| Amazon Lookout for Vision | **Ended support** (October 31, 2025) | SageMaker AI computer-vision model |
+| Amazon Lookout for Metrics | **Ended support** (October 10, 2025) | CloudWatch anomaly detection, OpenSearch, or RCF |
+| Amazon Lookout for Equipment | **Closed to new customers**; support ending October 7, 2026 | IoT SiteWise or a custom anomaly detector |
+| Amazon Forecast | **Closed to new customers** (2024) | SageMaker Canvas time-series forecasting, or DeepAR |
+| Amazon Fraud Detector | **Closed to new customers** (7 Nov 2025) | SageMaker, AutoGluon, or AWS WAF Fraud Control |
+| AWS Panorama | **End of support announced** | IoT Greengrass with a SageMaker Neo-compiled model |
+| SageMaker Data Wrangler | Capabilities folded into **SageMaker Canvas**; still named on the exam | Canvas data prep, or Processing/Glue for code |
+
+Answer strategy: if a retired service and a current service both fit, the
+current service is intended; if the whole question is built on a retired
+service, answer as that service behaved.
+
+## Data processing and Glue
+
+Docs: [AWS Glue](https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html) · [Glue components](https://docs.aws.amazon.com/glue/latest/dg/components-overview.html) · [Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html) · [EMR](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-what-is-emr.html)
+
+| Service | Use when | Avoid when |
+| :--- | :--- | :--- |
+| **AWS Glue ETL** | Serverless Spark ETL, joins across sources, scheduled batch | You need long-lived clusters or non-Spark frameworks |
+| **AWS Glue DataBrew** | No-code visual cleaning and normalisation by analysts | Transformation must live in versioned pipeline code |
+| **AWS Glue Data Catalog** | Central schema for Athena, EMR, Redshift Spectrum | — |
+| **Glue crawlers** | Infer schema and partitions from S3, JDBC, DynamoDB | Schema is already known and stable |
+| **Glue Data Quality** | Rule-based profiling and validation (DQDL) | Ad-hoc one-off checks |
+| **Glue Schema Registry** | Enforce schema evolution on streams | Batch-only pipelines |
+| **Amazon Athena** | SQL over S3, ad-hoc exploration, CTAS to Parquet | Sub-second serving, heavy iterative jobs |
+| **Amazon EMR** | Existing Spark/Hive/Presto code, custom libraries, Spot fleets | Team wants zero cluster management |
+| **SageMaker Processing** | Preprocessing that must run inside a training pipeline | General-purpose enterprise ETL |
+| **Amazon Data Firehose** | Near-real-time delivery to S3/Redshift/OpenSearch with buffering | Sub-second per-record processing |
+| **Kinesis Data Streams** | Ordered, replayable, low-latency stream with custom consumers | You only need managed delivery |
+| **Managed Service for Apache Flink** | Stateful streaming transforms, windowed aggregation | Simple format conversion Firehose can do |
+| **Lake Formation** | Central data-lake permissions, row/column-level access | Single-team bucket with plain IAM |
+| **Step Functions** | Orchestration spanning Glue, Lambda, SageMaker, EMR | Orchestration confined to SageMaker steps (use Pipelines) |
+
+Operational details that appear as answers:
+
+- **Job bookmarks** make Glue jobs incremental by tracking processed data, and
+  are the answer to "avoid reprocessing the whole dataset". **Glue workflows
+  and triggers** orchestrate crawlers and jobs *within* Glue; Step Functions
+  crosses service boundaries.
+- **Athena CTAS** or a Glue job converts CSV/JSON to **Parquet or ORC**:
+  columnar, compressed, partitioned storage is the standard cost and
+  performance answer for repeated queries and training reads. Partition by date
+  or tenant; fix small files by compaction, not more DPUs.
+- Storage tiers: S3 Standard for hot training data, Intelligent-Tiering for
+  unknown access patterns, Glacier classes for archived raw data only.
+
+## Feature engineering
+
+Docs: [Feature Store](https://docs.aws.amazon.com/sagemaker/latest/dg/feature-store.html) · [Data Wrangler](https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler.html) · [Processing jobs](https://docs.aws.amazon.com/sagemaker/latest/dg/processing-job.html)
+
+| Problem | Standard fix |
 | :--- | :--- |
-| Process data | Collect data, then prepare it: preprocess and engineer features |
-| Develop model | Train, tune, and evaluate using features fetched from the stores |
-| Deploy | Fetch versioned artifacts from the model registry and serve them |
-| Monitor | Watch live quality; alarm on drift; feed results back into data prep and retraining |
-
-Feature stores split **offline** (batch training and batch inference) from
-**online** (low-latency real-time inference used by the application). Features
-engineered during preparation are written to both; the online store can copy
-into the offline store.
-
-The **model registry** stores trained artifacts. Deploy fetches a specific
-version; a scheduler can retrain or roll forward from that registry.
-
-Two feedback loops:
-
-- **Performance feedback:** monitor results change how you preprocess data.
-- **Active learning:** monitor results send new labelled examples back into
-  train, tune, and evaluate.
-
-</b></details>
-
-<details>
-<summary>AWS Machine Learning Services</summary><br><b>
-
-| Service | Category | What It Does | When to Use |
-|----------|-----------|--------------|-------------|
-| **Amazon Augmented AI (A2I)** | Human-in-the-Loop Machine Learning | Integrates human review into ML predictions | When model outputs need human verification (sensitive documents, low-confidence predictions) |
-| **Amazon Bedrock** | Generative AI | Run and scale generative AI models like GPT, Claude, and others on AWS infrastructure | Build generative AI apps without training your own large model |
-| **Amazon CodeGuru** | Developer Productivity | Automated code reviews and performance recommendations | Optimize application performance and detect security issues |
-| **Amazon Comprehend** | NLP/Text Analytics | Text analytics, sentiment analysis, entity recognition, and language processing | Extract meaning from unstructured text like reviews or emails |
-| **Amazon Comprehend Medical** | Healthcare NLP | Extracts medical entities and codes (ICD-10, RxNorm) from unstructured medical text | Analyze clinical notes or health records in a HIPAA-compliant way |
-| **Amazon DevOps Guru** | Operational Intelligence | Uses ML to automatically detect operational issues and anomalies in applications | Proactive monitoring and anomaly detection for app performance |
-| **Amazon Fraud Detector** | Fraud Detection | Detect and prevent online fraud in real time | Transaction fraud, fake account sign-ups, or suspicious logins |
-| **Amazon Forecast** | Time Series Forecasting | Predict future outcomes like financial metrics, inventory, and demand planning | Demand planning, resource allocation, and forecasting trends |
-| **AWS HealthLake** | Healthcare AI | Process and analyze health-related data, store and transform data in HL7 FHIR format | Centralize, normalize, and analyze large volumes of healthcare data |
-| **Amazon Kendra** | Enterprise Search | Enhances enterprise productivity with machine learning-powered contextual search across large data sources | Intelligent search across internal docs, FAQs, manuals |
-| **Amazon Lex** | Conversational AI | Conversational AI for creating chatbots or voice bots for customer service and virtual assistants | Build chatbots or IVR systems integrated with AWS |
-| **Amazon Lookout for Equipment** *(ending support October 7, 2026)* | Predictive Maintenance | Analyzes industrial sensor data to predict equipment failures; closed to new customers | Legacy workloads only; migrate to AWS IoT SiteWise or a custom anomaly-detection solution |
-| **Amazon Lookout for Metrics** *(ended support October 10, 2025)* | Anomaly Detection | Former managed anomaly detection for business and operational metrics | Historical exam context only; use CloudWatch anomaly detection, OpenSearch, or SageMaker for new designs |
-| **Amazon Lookout for Vision** *(ended support October 31, 2025)* | Computer Vision | Former managed visual-defect detection service | Historical exam context only; use SageMaker or a partner computer-vision solution for new designs |
-| **Amazon Mechanical Turk** | Human Workforce / Data Labeling | Provides a global workforce for data labeling and human intelligence tasks | Human labeling, surveys, or manual data verification tasks |
-| **Amazon Personalize** | Recommendations | Build personalized recommendations for users (e-commerce, media) | Personalized product/content recommendations |
-| **Amazon Polly** | Speech AI | Text-to-speech conversion with lifelike voices for interactive applications | Add spoken audio to apps, IVR systems, or accessibility tools |
-| **Amazon Q Developer** *(formerly Amazon CodeWhisperer)* | Developer Assistant | Generates code, explains and transforms code, scans for vulnerabilities, and assists with AWS development and operations | Current name for the coding-assistant capabilities that moved from CodeWhisperer on April 30, 2024 |
-| **Amazon Rekognition** | Computer Vision | Image/video analysis, object detection, facial recognition, and label detection | Image/video classification, surveillance, and moderation |
-| **Amazon SageMaker** | End-to-End ML Platform | Build, train, and deploy custom machine learning models | Full ML development lifecycle without managing servers |
-| **Amazon Textract** | Document Processing | Extract text, tables, and forms from scanned documents | Digitize paper forms, invoices, or contracts |
-| **Amazon Transcribe** | Speech-to-Text Conversion | Automatic transcription of spoken language from audio files | Transcribe calls, create subtitles, convert voice notes |
-| **Amazon Translate** | NLP/Language Translation | Language translation across multiple languages | Real-time or batch translation of text or documents |
-| **AWS Panorama** | Edge AI | Edge computer vision for analyzing on-premises video streams locally in low-latency environments | On-premise video analytics without sending data to the cloud |
-| **Amazon CodeWhisperer** *(renamed)* | Developer Productivity | Former product name for coding suggestions and security scans | Use the name **Amazon Q Developer** in current answers |
-| **Amazon Q Business** *(legacy; closed to new customers)* | Enterprise Generative AI | Permissions-aware assistant that answers questions, summarizes and creates content, and performs tasks using enterprise data | Existing deployments; AWS recommends Amazon Quick for new customers |
-| **AWS DeepLens** *(ended support January 31, 2024)* | Computer Vision/Hardware | Former edge camera and development device for computer-vision inference | Historical exam context only; use AWS IoT Greengrass and supported edge hardware |
-| **AWS Glue DataBrew** | Data Preparation | No-code data preparation for machine learning workflows and analytics | Clean and prepare data quickly for analytics or ML |
-| **Amazon Neptune ML** | Graph Machine Learning | Use graph machine learning models to analyze relationships in highly connected data | Social networks, fraud detection, recommendation engines |
-
-</b></details>
-
-<details>
-<summary>Analytics Services: Data Transformation, Integration, and Feature Engineering</summary><br><b>
-
-# AWS Data Analytics & Processing Services
-
-| **Component**                                 | **Purpose**                                               | **Use Cases**                                                                                               |
-|----------------------------------------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| **Amazon Athena**                            | Serverless interactive query service                      | Run SQL queries directly on data stored in Amazon S3 without setting up infrastructure; ad-hoc analytics.   |
-| **Amazon Data Firehose (Kinesis Data Firehose)** | Reliable streaming data delivery                         | Capture, transform, and load streaming data into data lakes, warehouses, and analytics services (e.g., S3, Redshift, OpenSearch). |
-| **Amazon EMR**                               | Managed big data processing                               | Run large-scale data processing frameworks like Apache Spark, Hadoop, HBase, and Presto for analytics.       |
-| **AWS Glue**                                 | Serverless data integration                               | Automate ETL (Extract, Transform, Load) for batch and streaming data pipelines.                              |
-| **AWS Glue DataBrew**                        | No-code data preparation                                  | Visually clean, normalize, and transform datasets without coding for analytics and ML workflows.             |
-| **AWS Glue Data Quality**                    | Data profiling and validation                             | Measure, monitor, and improve data quality with built-in rules and metrics.                                  |
-| **Amazon Kinesis (Data Streams)**            | Real-time data ingestion and processing                   | Collect and process real-time streaming data like clickstreams, logs, and IoT telemetry.                     |
-| **AWS Lake Formation**                       | Secure data lake creation and governance                  | Quickly build and manage secure data lakes with centralized access control and cataloging.                   |
-| **Amazon Managed Service for Apache Flink**  | Real-time stream processing                               | Build and run stream-processing applications using Apache Flink without managing infrastructure.             |
-| **Amazon OpenSearch Service**                | Managed search and analytics                               | Search, monitor, and analyze log or operational data with Elasticsearch-compatible APIs.                     |
-| **Amazon QuickSight**                        | Business Intelligence (BI) and dashboards                 | Create interactive dashboards, reports, and embedded analytics with serverless scaling.                      |
-| **Amazon Redshift**                          | Data warehouse for analytics                              | Run complex analytical queries on structured and semi-structured data at scale.                              |
-
-</b></details>
-
-
-<details>
-<summary>AWS Glue Components and Use Cases</summary><br><b>
-# AWS Glue Components and Their Use Cases
-
-| **Component**              | **Purpose**                                | **Use Cases**                                                                                 |
-|----------------------------|--------------------------------------------|---------------------------------------------------------------------------------------------|
-| **AWS Glue Data Catalog**  | Centralized metadata repository            | Stores metadata for all datasets, used for managing schemas and querying datasets with tools like Athena. |
-| **AWS Glue Crawlers**      | Automatic schema discovery                 | Identifies and categorizes the structure and format of data in storage (e.g., S3, RDS, Redshift). |
-| **AWS Glue ETL Jobs**      | Extract, Transform, Load (ETL) Operations  | Automates the process of extracting, transforming, and loading data with serverless functionality. |
-| **AWS Glue Studio**        | Visual Interface for ETL Jobs              | Simplifies ETL job creation through a drag-and-drop interface designed for ease of use.       |
-| **AWS Glue DataBrew**      | No-Code Data Preparation                   | Allows users to clean, normalize, and transform datasets visually without coding.             |
-| **AWS Glue Workflows**     | Workflow Orchestration                     | Orchestrates complex ETL jobs, crawlers, and triggers in sequence or parallel workflows.      |
-| **AWS Glue Triggers**      | Event-Based ETL Job Automation             | Automates running ETL, crawling, or workflows based on specific events or schedules.          |
-| **AWS Glue Streaming ETL** | Real-Time Data Transformation              | Processes streaming data from sources like Amazon Kinesis or Apache Kafka for real-time transformations. |
-| **AWS Glue Developer/API Access** | Programmatic ETL Job Creation       | Provides APIs and SDKs for developers to create custom ETL workflows using Python or Scala code. |
-| **AWS Glue DPU (Data Processing Units)** | Scalable compute for jobs     | Provides distributed and scalable compute for handling large-scale data processing operations. |
-| **AWS Glue Connections**   | Data Source Integration                    | Allows connectivity to external data stores like RDS, JDBC, or on-premises databases.         |
-| **AWS Glue ML Transforms** | Machine Learning Transforms                | Automates significant transformations using machine learning techniques (e.g., deduplication, linkage). |
-| **AWS Glue Schema Registry** | Schema Evolution Management             | Enables management, validation, and enforcement of schemas for streaming and batch data workflows. |
-| **AWS Glue Partition Indexing** | Partition Optimization               | Optimizes querying large S3-based datasets with high granularity for faster performance.       |
-
-</b></details>
-
-<details>
-<summary>Amazon SageMaker Components and Use Cases</summary><br><b>
-# Amazon SageMaker Components and Their Use Cases
-
-| SageMaker Tool/Feature | Category | Use Case | Key Features |
-| :-- | :-- | :-- | :-- |
-| SageMaker Studio | Integrated Development Environment (IDE) | Allows data scientists and developers to build, train, debug, and deploy ML models in a unified interface. | A single web-based IDE for end-to-end machine learning workflows. |
-| SageMaker Data Wrangler | Data Preparation and Feature Engineering | Simplifies data preparation, cleaning, and feature engineering for machine learning workflows. | Provides a GUI to transform and analyze data without writing code. |
-| SageMaker Autopilot | Build Models Automatically | Automatically trains and tunes the best ML model based on your data while providing visibility into the process. | Full automation combined with transparency via generated notebooks showing every step. |
-| SageMaker Training | Model Training | Trains ML models at scale with support for distributed training and custom training scripts. | Supports distributed training across GPUs/CPUs, customizable training jobs. |
-| SageMaker Processing | Data Preprocessing and Post-processing | Run data preprocessing, post-processing tasks, or batch inference workloads using managed infrastructure. | Useful for handling data transformation tasks before and after ML training/inference. |
-| SageMaker Feature Store | Feature Management | Centralize, create, and reuse features for ML models across teams and projects. | Enables real-time access to feature values for models during inference and provides lineage/history for feature creation. |
-| SageMaker Debugger | Debugging and Insights | Analyzes and debugs training jobs by identifying performance bottlenecks and providing actionable insights. | Tracks resource utilization, gradients, loss curves, etc., for optimizing training performance. |
-| SageMaker Model Monitor | Model Monitoring in Production | Detects deviations, concept drift, and anomalies in model predictions to ensure accurate and reliable production models. | Simplifies post-deployment monitoring to maintain model performance. |
-| SageMaker Pipelines | Machine Learning Pipelines | Automates and orchestrates workflows for data preparation, model building, training, optimization, and deployment. | Streamlined ML workflow automation for enterprise-level scaling. |
-| SageMaker Ground Truth | Data Labeling | Builds accurate ground truth datasets for supervised learning by enabling human labeling tasks or semi-automation. | Supports human labeling tasks and active learning frameworks. |
-| SageMaker Neo | Model Optimization for Edge | Optimizes machine learning models to run faster and at lower latency on edge devices and hardware. | Converts models for compatibility across edge devices and enables hardware acceleration. |
-| SageMaker JumpStart | Prebuilt Solutions and Models | Provides pre-trained models, solution templates, and example notebooks for various ML use cases. | Speeds up development with prebuilt templates for common use cases like recommendation systems, fraud detection, etc. |
-| SageMaker Inference Recommender | Recommendation for Deployment | Automates the selection of the best resources for deploying machine learning models. | Analyzes deployment requirements to recommend EC2 instances or configurations for optimal performance and cost-effectiveness. |
-| SageMaker Hosting/Inferences | Model Deployment and Inference | Deploys trained models as endpoints for real-time, batch, and asynchronous inference. | Fully managed service for scalable model inference in production settings. |
-| SageMaker Clarify | Data Bias and Model Explainability | Detects bias in your data and explains model predictions for fairness and transparency. | Provides fairness metrics for datasets/models and interprets how features impact predictions. |
-| SageMaker Model Registry | Centralized Model Repository | Tracks and manages ML models and their versions for streamlined deployment and governance. | Keeps detailed history of models and versioning for repeatable and auditable deployments. |
-| SageMaker Marketplace | External Model Use | Allows you to use and deploy pre-trained machine learning models and algorithms from third-party vendors. | Facilitates the use of third-party professional models for niche domains or large-scale applications. |
-| SageMaker Edge Manager | Edge Device Management | Deploys, manages, and monitors models on thousands of edge devices. | Enables large-scale model deployment and monitoring for IoT and edge devices. |
-| SageMaker Experiment | Experiment Management | Organizes and tracks experiments to compare model performance across different runs and configurations. | Allows you to log and compare training jobs' metrics (e.g., hyperparameters, accuracy) for optimizing model development processes. |
-
-</b></details>
-
-<details>
-<summary>Amazon SageMaker Built-in Algorithms and Use Cases</summary><br><b>
-
-# AWS SageMaker Built-In Algorithms and Their Use Cases
-
-| Algorithm | Category | Use Case | Key Features |
-| :-- | :-- | :-- | :-- |
-| Linear Learner | Regression/Classification | Predicting trends, pricing models, fraud detection, and binary/multi-class classification problems. | Optimizes linear models and supports both regression and binary/multi-class classification tasks. |
-| XGBoost | Regression/Classification | Predicting churn, forecasting, and natural language processing (NLP). | Highly efficient, scalable implementation of gradient-boosted decision trees for tabular datasets. |
-| Factorization Machines | Recommendation Systems | Personalizing product recommendations, predicting customer behavior. | Used for recommendation engines (e.g., collaborative filtering) for sparse datasets. |
-| Image Classification | Computer Vision | Classifying objects in images (e.g., face recognition, product categorization). | Pre-trained models optimized for image datasets; supports transfer learning. |
-| Object Detection | Computer Vision | Detecting and locating objects in digital images and videos. | Detects bounding boxes and classes for objects in images (e.g., autonomous vehicles or scene detection). |
-| Semantic Segmentation | Computer Vision | Image segmentation for medical imagery, self-driving cars, and video analysis. | Detects pixel-level segmentation for more precise visual understanding. |
-| BlazingText | Natural Language Processing | Sentiment analysis, document categorization, and word embedding. | Optimized for word embedding tasks and text classification; supports fast text algorithms. |
-| Sequence-to-Sequence | Natural Language Processing | Language translation, text summarization, and chatbot creation. | Translates or summarizes sequences, such as converting articles to abstracts using encoder-decoder models. |
-| DeepAR | Time Series Forecasting | Forecasting stock prices, sales forecasting, and demand planning. | Designed for time-series forecasting on large volumes of historical data with probabilistic predictions. |
-| K-Means Clustering | Clustering | Customer segmentation, anomaly detection, and data grouping. | Finds clusters within datasets for unsupervised learning tasks. |
-| Principal Component Analysis | Dimensionality Reduction | Reducing dimensions in datasets for visualization and preprocessing. | Extracts principal components to reduce the dimensionality of datasets while retaining key information. |
-| Neural Topic Modeling | Unsupervised Learning | Generating topics from text datasets and document collections. | Uses unsupervised learning to identify abstract topics in datasets based on text patterns. |
-| Random Cut Forest (RCF) | Anomaly Detection | Fraud detection, network monitoring, and identifying unusual patterns. | Detects anomalies in time-series or tabular datasets automatically. |
-| IP Insights | Fraud Detection | Identifying suspicious IP addresses in fraud detection workflows. | Learns IP address embeddings for detecting problematic or unauthorized activity. |
-| K-Nearest Neighbors (k-NN) | Classification/Regression | Classifying or predicting a target from nearby examples. | Index-based algorithm for tabular data with exact or approximate neighbour search. |
-| Object2Vec | Embeddings | Learning low-dimensional embeddings of high-dimensional objects. | Supports matching, recommendation, and similarity tasks for pairs of objects. |
-
-| Use Case | Mnemonic | Algorithms |
-| :-- | :-- | :-- |
-| Prediction Tasks | "Let's X-Ray the Data Deeply" | Linear Learner, XGBoost, DeepAR |
-| Recommendation Systems / Similarity | "Factors and Objects Recommend" | Factorization Machines, Object2Vec |
-| Computer Vision | "Images Objectively help Segment Vision" | Image Classification, Object Detection, Semantic Segmentation |
-| Natural Language Processing (NLP) | "Blazing Sequences of Text" | BlazingText, Sequence-to-Sequence |
-| Time Series Forecasting | "Time Runs Deep" | DeepAR |
-| Dimensionality Reduction / Clustering | "Components Cluster" | Principal Component Analysis (PCA), K-Means Clustering |
-| Anomaly and Fraud Detection | "Random IP Fraud" | Random Cut Forest (RCF), IP Insights |
-
-</b></details>
-
-<details>
-<summary>ML Model Evaluation and Optimization Techniques</summary><br><b>
-
-| Technique | Type | When to Use |
-| :-- | :-- | :-- |
-| Confusion Matrix | Evaluation (Classification) | Use for evaluating models that perform classification tasks. Best for binary/multi-class classification metrics like accuracy, precision, recall, and F1-score. |
-| Accuracy | Evaluation (Classification) | Use as a summary metric when the dataset is balanced (equal representation of classes). |
-| Precision | Evaluation (Classification) | Use when false positives matter more (e.g., fraud detection). |
-| Recall (Sensitivity) | Evaluation (Classification) | Use when false negatives matter more (e.g., cancer diagnosis). |
-| F1-Score | Evaluation (Classification) | Use when there is an imbalance between precision and recall trade-off (harmonic mean of both). |
-| AUC-ROC Curve | Evaluation (Classification) | Use for binary classification problems to evaluate the trade-off between sensitivity (recall) and specificity. |
-| Mean Absolute Error (MAE) | Evaluation (Regression) | Use to evaluate how far predictions are from actual values in regression tasks when all errors are treated equally. |
-| Mean Squared Error (MSE) | Evaluation (Regression) | Use for regression when larger errors need to be penalized higher (squared losses). |
-| R^2 (Coefficient of Determination) | Evaluation (Regression) | Use to measure how much variance in the output is explained by the input features. |
-| Cross-Validation | Evaluation/Optimization | Use to validate model performance across multiple data splits (e.g., k-fold CV). Helps ensure generalization. |
-| Grid Search | Optimization | Use to systematically find the best hyperparameters when manually defining a small hyperparameter space. |
-| Random Search | Optimization | Use when hyperparameter optimization needs to balance exploration and efficiency over a large search space. |
-| Bayesian Optimization | Optimization | Use for efficient hyperparameter tuning with probabilistic models to balance exploration/exploitation. |
-| Gradient Descent Variants (SGD, Adam, etc.) | Optimization | Use to optimize a model’s weights during training (e.g., neural network optimization). |
-| Hyperparameter Tuning (Manual) | Optimization | Use when testing a few configurations manually for small models (often combined with domain knowledge). |
-| Early Stopping | Optimization | Use to stop training when the validation loss stops improving to avoid overfitting. |
-| Ensemble Methods (Bagging, Boosting) | Optimization | Use when improving performance by combining multiple models (e.g., Random Forest, XGBoost). |
-| Transfer Learning | Optimization | Use when reusing pre-trained models for similar tasks to improve performance without training from scratch. |
-| Regularization (L1, L2) | Optimization | Use to prevent overfitting by penalizing large weights during model training (adds constraints). |
-| Feature Engineering | Optimization (Preprocessing) | Use to improve model performance by transforming, selecting, or extracting relevant features from raw data. |
-| Dimensionality Reduction (PCA) | Optimization (Preprocessing) | Use to remove redundant features or reduce noise in datasets with high-dimensional inputs. |
-| Model Monitoring | Post-Deployment | Use to monitor model performance in production over time (concept drift, data drift). |
-| Bias and Fairness Detection | Evaluation (Explainability) | Use to ensure fairness across demographic groups or prevent discrimination in predictions (e.g., SageMaker Clarify). |
-| SHAP/Feature Importance | Evaluation (Explainability) | Use when needing interpretability to understand the impact of individual features on predictions. |
-| Batch Normalization | Optimization | Use for scaling and normalizing inputs in deep learning models to stabilize and improve training speed. |
-| Data Augmentation | Optimization (Preprocessing) | Use to increase the size and diversity of training data, especially for computer vision and NLP tasks. |
-
-</b></details>
-
-<details>
-<summary>ML Problem-Framing Checklist</summary><br><b>
-  
-### Establish ML Roles and Responsibilities
-- SageMaker Role Manager
-
-### Prepare an ML Profile Template
-- Document the resources required
-
-### Establish Model Improvement Strategies
-- SageMaker Experiments
-- Hyper-parameter optimization
-- AutoML
-
-### Establish a Lineage Tracker System
-- SageMaker Lineage Tracking
-- Pipelines
-- Studio
-- Feature Store
-- Model Registry
-
-### Establish Feedback Loops Across ML Lifecycle Phases
-- SageMaker Model Monitor
-- CloudWatch
-- Amazon Augmented AI (A2I)
-
-### Review Fairness and Explainability
-- SageMaker Clarify
-
----
-
-### Design Data Encryption and Obfuscation
-- Glue DataBrew
-
-### Use APIs to Abstract Change from Model Consuming Applications
-- SageMaker + API Gateway
-
-### Adopt a Machine Learning Microservice Strategy
-- Lambda
-- AWS Fargate
-
-### Use Purpose-Built AI and ML Services and Resources
-- SageMaker
-- JumpStart
-- Marketplace
-
-### Define Relevant Evaluation Metrics
-
-### Identify if Machine Learning is the Right Solution
-
-### Tradeoff Analysis on Custom versus Pre-trained Models
-
-</b></details>
-
-
----
-# AWS Machine Learning Associate Exam - SageMaker Questions and Answers
-<details>
-<summary>Which SageMaker component is used to visually prepare and transform datasets without writing code?</summary><br><b>
-
-**Options:**
-- **A.** SageMaker Processing  
-- **B.** SageMaker Studio  
-- **C.** SageMaker Data Wrangler  
-- **D.** SageMaker Autopilot  
-
-**Answer:**  
-**C. SageMaker Data Wrangler**
-
-**Explanation:**  
-SageMaker Data Wrangler provides a visual, no-code interface to prepare, clean, and transform datasets for machine learning workflows.
-
-</b></details>
-
-<details>
-<summary>What is the primary purpose of SageMaker Model Monitor?</summary><br><b>
-
-**Options:**
-- **A.** Automate data labeling for supervised learning.  
-- **B.** Debug model training jobs for performance bottlenecks.  
-- **C.** Detect model prediction drift and anomalies in production.  
-- **D.** Optimize models for edge devices.  
-
-**Answer:**  
-**C. Detect model prediction drift and anomalies in production**
-
-**Explanation:**  
-SageMaker Model Monitor detects changes in incoming data, concept drift, or anomalies in model predictions, ensuring the deployed model's accuracy over time.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker feature allows you to orchestrate an end-to-end machine learning workflow, including data preparation, training, and deployment?</summary><br><b>
-
-**Options:**
-- **A.** SageMaker Autopilot  
-- **B.** SageMaker Processing Jobs  
-- **C.** SageMaker Pipelines  
-- **D.** SageMaker Debugger  
-
-**Answer:**  
-**C. SageMaker Pipelines**
-
-**Explanation:**  
-SageMaker Pipelines is used to automate and orchestrate the entire ML workflow, including data preparation, feature engineering, model training, tuning, and deployment.
-
-</b></details>
-
-<details>
-<summary>Which feature in SageMaker is specifically designed for training jobs to detect performance issues during model training?</summary><br><b>
-
-**Options:**
-- **A.** SageMaker Debugger  
-- **B.** SageMaker Processing  
-- **C.** SageMaker Pipelines  
-- **D.** SageMaker Model Monitor  
-
-**Answer:**  
-**A. SageMaker Debugger**
-
-**Explanation:**  
-SageMaker Debugger provides tools to debug and monitor training jobs, identifying performance issues like underfitting, overfitting, and hardware bottlenecks during training.
-
-</b></details>
-
-<details>
-<summary>What is the purpose of the SageMaker Feature Store?</summary><br><b>
-
-**Options:**
-- **A.** To preprocess data for machine learning models.  
-- **B.** To store, share, and reuse features across teams and workflows.  
-- **C.** To automate model training.  
-- **D.** To deploy models to edge devices.  
-
-**Answer:**  
-**B. To store, share, and reuse features across teams and workflows**
-
-**Explanation:**  
-The SageMaker Feature Store allows you to create, manage, and share reusable features across different teams and ML projects, ensuring consistency and efficiency.
-
-</b></details>
-
-<details>
-<summary>You need filesystem-style access to a large S3 training dataset without downloading it first. Which input mode should you prefer?</summary><br><b>
-
-**Options:**
-- **A.** File mode
-- **B.** Pipe mode
-- **C.** FastFile mode
-- **D.** Local mode
-
-**Answer:**  
-**C. FastFile mode**
-
-**Explanation:**  
-**FastFile** streams objects from S3 on demand but exposes them through a
-read-only POSIX filesystem, so most code written for File mode works unchanged
-and can use random access. It starts training without downloading the full
-dataset and is the preferred general replacement for the older Pipe mode.
-
-**Pipe mode** streams sequentially into named FIFO pipes. Training code must be
-written to read those pipes, but Pipe mode supports managed shuffling and
-sharding and supports augmented manifests. **FastFile does not support manifest
-or augmented-manifest inputs** and works best when reads are sequential.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker feature should you use to automatically generate an ML model without writing custom algorithms?</summary><br><b>
-
-**Options:**
-- **A.** SageMaker Studio  
-- **B.** SageMaker Data Wrangler  
-- **C.** SageMaker Autopilot  
-- **D.** SageMaker Feature Store  
-
-**Answer:**  
-**C. SageMaker Autopilot**
-
-**Explanation:**  
-SageMaker Autopilot automatically trains and tunes models based on your dataset while providing transparency into the models and underlying processes.
-
-</b></details>
-
-<details>
-<summary>How do RecordIO and augmented manifests relate to SageMaker input modes?</summary><br><b>
-
-**Options:**
-- **A.** RecordIO is required for all distributed training.
-- **B.** FastFile automatically converts every object to RecordIO.
-- **C.** Pipe mode can stream RecordIO or augmented-manifest records; FastFile exposes ordinary S3 files and does not support augmented manifests.
-- **D.** An augmented manifest is a subtype of RecordIO.
-
-**Answer:**  
-**C. Pipe mode can stream RecordIO or augmented-manifest records; FastFile exposes ordinary S3 files and does not support augmented manifests.**
-
-**Explanation:**  
-**RecordIO** is a record-delimited data format, not a training mode and not a
-wrapper around an augmented manifest. For a Pipe channel, set
-`RecordWrapperType=RecordIO` only when raw S3 objects must be wrapped for an
-algorithm that expects RecordIO; leave it unset when the objects are already
-RecordIO. An **augmented manifest** is an alternative way to stream labelled
-records in Pipe mode without first creating RecordIO files. There is no single
-file format that is universally best for distributed training: use the format
-and input mode supported by the chosen algorithm and access pattern.
-
-</b></details>
-
-<details>
-<summary>How can you deploy a trained SageMaker model for real-time inference?</summary><br><b>
-
-**Options:**
-- **A.** Use SageMaker Processing  
-- **B.** Deploy the model to a SageMaker Endpoint  
-- **C.** Use SageMaker Data Wrangler  
-- **D.** Integrate the model with Lambda directly  
-
-**Answer:**  
-**B. Deploy the model to a SageMaker Endpoint**
-
-**Explanation:**  
-SageMaker Endpoints allow you to deploy trained models for real-time inference and handle production workloads efficiently.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker component can be used to label datasets for supervised machine learning?</summary><br><b>
-
-**Options:**
-- **A.** SageMaker Model Monitor  
-- **B.** SageMaker Ground Truth  
-- **C.** SageMaker Autopilot  
-- **D.** SageMaker JumpStart  
-
-**Answer:**  
-**B. SageMaker Ground Truth**
-
-**Explanation:**  
-SageMaker Ground Truth is used to label datasets either through human annotation or semi-automated processes, which is critical for building supervised learning models.
-
-</b></details>
-
-<details>
-<summary>What is SageMaker Neo used for?</summary><br><b>
-
-**Options:**
-- **A.** Optimizing models for deployment to edge devices.  
-- **B.** Debugging underperforming training jobs.  
-- **C.** Preprocessing raw data for model training.  
-- **D.** Managing the storage of feature data.  
-
-**Answer:**  
-**A. Optimizing models for deployment to edge devices**
-
-**Explanation:**  
-SageMaker Neo helps optimize ML models to run on edge devices with reduced latency and lower resource consumption.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker feature is recommended for batch inference use cases?</summary><br><b>
-
-**Options:**
-- **A.** SageMaker Training  
-- **B.** SageMaker Processing  
-- **C.** SageMaker Transform Jobs  
-- **D.** SageMaker Debugger  
-
-**Answer:**  
-**C. SageMaker Transform Jobs**
-
-**Explanation:**  
-SageMaker Transform Jobs are specifically designed for non-real-time batch inference tasks where predictions need to be made on large datasets.
-
-</b></details>
-
-<details>
-<summary>What is the purpose of SageMaker JumpStart?</summary><br><b>
-
-**Options:**
-- **A.** Automate and deploy prebuilt ML models for common business problems.  
-- **B.** Debug training pipelines for faster iteration cycles.  
-- **C.** Store reusable ML features for later use.  
-- **D.** Create end-to-end workflows for data preprocessing and training.  
-
-**Answer:**  
-**A. Automate and deploy prebuilt ML models for common business problems**
-
-**Explanation:**  
-SageMaker JumpStart provides pre-trained models, examples, and templates to help you quickly build and deploy machine learning solutions for common use cases.
-
-</b></details>
-
----
-# AWS Machine Learning Associate Exam - SageMaker Built-In Algorithms Questions and Answers
-
-<details>
-<summary>Which SageMaker algorithm is best suited for creating product recommendation systems using sparse datasets?</summary><br><b>
-
-**Options:**
-- **A.** Linear Learner  
-- **B.** Factorization Machines  
-- **C.** K-Means Clustering  
-- **D.** Random Cut Forest  
-
-**Answer:**  
-**B. Factorization Machines**
-
-**Explanation:**  
-Factorization Machines are designed for sparse datasets and are frequently used in recommendation systems, predicting user preferences based on historical data.
-
-</b></details>
-
-<details>
-<summary>You want to segment customers into groups based on purchasing behavior. Which SageMaker algorithm should you use?</summary><br><b>
-
-**Options:**
-- **A.** Principal Component Analysis (PCA)  
-- **B.** K-Means Clustering  
-- **C.** Neural Topic Modeling  
-- **D.** DeepAR  
-
-**Answer:**  
-**B. K-Means Clustering**
-
-**Explanation:**  
-K-Means Clustering is an unsupervised learning algorithm used for customer segmentation, grouping similar customers based on shared behaviors.
-
-</b></details>
-
-<details>
-<summary>Which algorithm would you use to forecast sales trends or stock prices using time-series data in SageMaker?</summary><br><b>
-
-**Options:**
-- **A.** DeepAR Forecasting  
-- **B.** Neural Topic Modeling  
-- **C.** Linear Learner  
-- **D.** K-Nearest Neighbors
-
-**Answer:**  
-**A. DeepAR Forecasting**
-
-**Explanation:**  
-DeepAR is specifically designed for probabilistic time-series forecasting and is well-suited for predicting trends in sales, stock prices, and demand planning.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker algorithm is best used to identify anomalous patterns in data, such as fraud detection or network monitoring?</summary><br><b>
-
-**Options:**
-- **A.** Random Cut Forest  
-- **B.** XGBoost
-- **C.** K-Means Clustering  
-- **D.** PCA  
-
-**Answer:**  
-**A. Random Cut Forest**
-
-**Explanation:**  
-Random Cut Forest (RCF) is optimized for anomaly detection in tabular and time-series datasets, making it ideal for identifying fraudulent activities or network anomalies.
-
-</b></details>
-
-<details>
-<summary>Which built-in algorithm is the most suitable for multi-class classification tasks?</summary><br><b>
-
-**Options:**
-- **A.** Linear Learner  
-- **B.** XGBoost
-- **C.** BlazingText  
-- **D.** Factorization Machines  
-
-**Answer:**  
-**A. Linear Learner**
-
-**Explanation:**  
-SageMaker's built-in **Linear Learner** supports multiclass classification.
-Multinomial logistic regression is a modelling technique, but it is not a
-separate SageMaker built-in algorithm.
-
-</b></details>
-
-<details>
-<summary>You're working with image classification on SageMaker to label objects in photos. Which algorithm should be used?</summary><br><b>
-
-**Options:**
-- **A.** Object Detection  
-- **B.** BlazingText  
-- **C.** Image Classification  
-- **D.** Semantic Segmentation  
-
-**Answer:**  
-**C. Image Classification**
-
-**Explanation:**  
-The Image Classification algorithm is built to categorize objects into predefined labels using image datasets.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker algorithm is used when predicting the relationship between features and a continuous numeric target variable?</summary><br><b>
-
-**Options:**
-- **A.** XGBoost  
-- **B.** Linear Learner  
-- **C.** DeepAR Forecasting  
-- **D.** Sequence-to-Sequence  
-
-**Answer:**  
-**B. Linear Learner**
-
-**Explanation:**  
-Linear Learner is well-suited for regression problems that involve predicting a continuous target variable based on input features.
-
-</b></details>
-
-<details>
-<summary>Which algorithm is suitable for reducing the dimensionality of large datasets while retaining key information?</summary><br><b>
-
-**Options:**
-- **A.** Neural Topic Modeling  
-- **B.** Principal Component Analysis (PCA)  
-- **C.** K-Means Clustering  
-- **D.** Random Cut Forest  
-
-**Answer:**  
-**B. Principal Component Analysis (PCA)**
-
-**Explanation:**  
-PCA is designed for dimensionality reduction, simplifying large datasets while keeping the most important statistical information.
-
-</b></details>
-
-<details>
-<summary>You need to predict customer churn using tabular datasets with a high number of features. Which SageMaker algorithm is most appropriate?</summary><br><b>
-
-**Options:**
-- **A.** Neural Topic Modeling  
-- **B.** XGBoost  
-- **C.** Factorization Machines  
-- **D.** DeepAR  
-
-**Answer:**  
-**B. XGBoost**
-
-**Explanation:**  
-XGBoost is highly efficient for tabular data and performs well in predictive modeling tasks such as customer churn and forecasting.
-
-</b></details>
-
-<details>
-<summary>Which SageMaker algorithm should you use for word embedding and text classification tasks?</summary><br><b>
-
-**Options:**
-- **A.** Sequence-to-Sequence  
-- **B.** BlazingText  
-- **C.** Neural Topic Modeling  
-- **D.** Linear Learner  
-
-**Answer:**  
-**B. BlazingText**
-
-**Explanation:**  
-BlazingText is optimized for word embeddings and text classification tasks, such as document categorization or sentiment analysis.
-
-</b></details>
-
-<details>
-<summary>A logistics company needs to optimize delivery routes and reduce costs. Which SageMaker algorithm can be applied?</summary><br><b>
-
-**Options:**
-- **A.** Linear Learner  
-- **B.** Factorization Machines  
-- **C.** Sequence-to-Sequence  
-- **D.** Reinforcement Learning  
-
-**Answer:**  
-**D. Reinforcement Learning**
-
-**Explanation:**  
-Reinforcement Learning is perfect for decision-making tasks, such as optimizing delivery routes or dynamic logistics planning.
-
-</b></details>
-
-<details>
-<summary>Which algorithm is appropriate for extracting topics from text datasets or collections of documents?</summary><br><b>
-
-**Options:**
-- **A.** Neural Topic Modeling  
-- **B.** BlazingText  
-- **C.** Sequence-to-Sequence  
-- **D.** Random Cut Forest  
-
-**Answer:**  
-**A. Neural Topic Modeling**
-
-**Explanation:**  
-Neural Topic Modeling identifies abstract topics in text datasets using unsupervised learning techniques.
-
-</b></details>
-
-<details>
-<summary>Which algorithm should you use to locate objects in digital images and detect their bounding boxes?</summary><br><b>
-
-**Options:**
-- **A.** Semantic Segmentation  
-- **B.** Object Detection  
-- **C.** Image Classification  
-- **D.** PCA  
-
-**Answer:**  
-**B. Object Detection**
-
-**Explanation:**  
-Object Detection identifies objects in images and outputs their bounding boxes and associated classes.
-
-</b></details>
-
-<details>
-<summary>You want to reduce overfitting in a text classification model using the built-in SageMaker algorithm. Which algorithm can be used for this?</summary><br><b>
-
-**Options:**
-- **A.** BlazingText  
-- **B.** Linear Learner  
-- **C.** XGBoost  
-- **D.** Sequence-to-Sequence  
-
-**Answer:**  
-**A. BlazingText**
-
-**Explanation:**  
-BlazingText applies techniques like regularization and dropout to minimize overfitting in text classification models.
-
-</b></details>
-
----
-
-<details>
-<summary>What is the purpose of feature engineering in machine learning workflows?</summary><br><b>
-
-**Options:**
-- **A.** Simplify model deployment  
-- **B.** Improve data storage efficiency  
-- **C.** Select, transform, and prepare data for training  
-- **D.** Manage training infrastructure  
-
-**Answer:**  
-**C. Select, transform, and prepare data for training**
-
-**Explanation:**  
-Feature engineering involves selecting, transforming, and pre-processing data to make it suitable for training a machine learning model. It is a crucial step in creating high-quality datasets that improve model accuracy.
-</b></details>
-
-<details>
-<summary>Which AWS service is most suitable for cleaning and normalizing data through a no-code interface?</summary><br><b>
-
-**Options:**
-- **A.** Amazon SageMaker  
-- **B.** AWS Glue DataBrew  
-- **C.** Amazon EMR  
-- **D.** AWS Data Pipeline  
-
-**Answer:**  
-**B. AWS Glue DataBrew**
-
-**Explanation:**  
-AWS Glue DataBrew provides a visual, no-code interface to clean, normalize, and transform data. It is specifically designed for users who require an easy-to-use tool for data preparation without writing complex scripts.
-</b></details>
-
-<details>
-<summary>You query data stored in Amazon S3 using SQL for lightweight transformation. Which AWS service should you choose?</summary><br><b>
-
-**Options:**
-- **A.** Amazon Athena  
-- **B.** AWS Glue  
-- **C.** AWS Step Functions  
-- **D.** Amazon Kinesis Data Analytics  
-
-**Answer:**  
-**A. Amazon Athena**
-
-**Explanation:**  
-Amazon Athena is a serverless SQL-based query service that allows you to perform lightweight transformations and analysis directly on data stored in Amazon S3.
-</b></details>
-
-<details>
-<summary>Which AWS service enables on-the-fly data preprocessing and transformation for machine learning workflows?</summary><br><b>
-
-**Options:**
-- **A.** Amazon S3  
-- **B.** Amazon SageMaker Data Wrangler  
-- **C.** AWS Glue Studio  
-- **D.** Amazon Redshift  
-
-**Answer:**  
-**B. Amazon SageMaker Data Wrangler**
-
-**Explanation:**  
-SageMaker Data Wrangler simplifies data preparation and feature engineering by providing an interactive interface for pre-processing datasets and exporting them directly into the machine learning pipeline.
-</b></details>
-
-<details>
-<summary>How can you ensure data integrity during ETL (Extract, Transform, Load) processes?</summary><br><b>
-
-**Options:**
-- **A.** Use Amazon CloudWatch to trigger metrics  
-- **B.** Implement checksums or hashes during data transfer  
-- **C.** Use AWS Auto Scaling to handle data overflow  
-- **D.** Configure Amazon S3 bucket logging  
-
-**Answer:**  
-**B. Implement checksums or hashes during data transfer**
-
-**Explanation:**  
-Data integrity can be preserved by implementing validation mechanisms like checksums or hashes during and after the data transfer. AWS services like AWS Glue and Amazon S3 integrate integrity checks automatically during certain operations.
-</b></details>
-
-<details>
-<summary>You need to join multiple datasets and transform them for downstream analysis. Which AWS service is the most suitable?</summary><br><b>
-
-**Options:**
-- **A.** Amazon Athena  
-- **B.** AWS Glue  
-- **C.** Amazon Kinesis Data Streams  
-- **D.** Amazon QuickSight  
-
-**Answer:**  
-**B. AWS Glue**
-
-**Explanation:**  
-AWS Glue is specifically designed for ETL operations required to join, clean, and transform data from multiple sources. It automates workflows and supports transformation at scale.
-</b></details>
-
-<details>
-<summary>You are preparing a dataset for a regression model. Which preprocessing steps should you perform? (Select TWO)</summary><br><b>
-
-**Options:**
-- **A.** One-hot encode categorical features  
-- **B.** Normalize continuous features  
-- **C.** Apply dropout techniques to the dataset  
-- **D.** Use k-means clustering on the dataset  
-- **E.** Convert text features to binary files  
-
-**Answer:**  
-**A. One-hot encode categorical features**  
-**B. Normalize continuous features**
-
-**Explanation:**  
-For regression models:
-- **One-hot encoding** is used to convert categorical variables into binary format.  
-- **Normalization** scales continuous features to bring them within the same range, improving convergence during training.
-</b></details>
-
-<details>
-<summary>Which AWS service would you use for real-time data transformation in streaming pipelines?</summary><br><b>
-
-**Options:**
-- **A.** Amazon Kinesis Data Analytics  
-- **B.** AWS Glue  
-- **C.** Amazon QuickSight  
-- **D.** Amazon S3  
-
-**Answer:**  
-**A. Amazon Kinesis Data Analytics**
-
-**Explanation:**  
-Amazon Kinesis Data Analytics allows you to process and transform streaming data in real-time using SQL, making it an ideal choice for real-time transformations.
-</b></details>
-
-<details>
-<summary>Which technique would you use to handle missing data in a dataset? (Select TWO)</summary><br><b>
-
-**Options:**
-- **A.** Impute missing values with the median or mean  
-- **B.** Use SageMaker Debugger to detect missing data  
-- **C.** Remove rows or columns with missing values  
-- **D.** Use SageMaker Model Monitoring for missing data adjustments  
-
-**Answer:**  
-**A. Impute missing values with the median or mean**  
-**C. Remove rows or columns with missing values**
-
-**Explanation:**  
-Handling missing data is essential for clean datasets:
-- Imputing replaces missing values with the mean or median.
-- Removing rows or columns is used when missing data is substantial and cannot be meaningfully imputed.
-</b></details>
-
-<details>
-<summary>Which AWS service would you use to orchestrate complex ETL workflows across multiple services?</summary><br><b>
-
-**Options:**
-- **A.** AWS Step Functions  
-- **B.** AWS Glue DataBrew  
-- **C.** Amazon SageMaker  
-- **D.** Amazon EMR  
-
-**Answer:**  
-**A. AWS Step Functions**
-
-**Explanation:**  
-AWS Step Functions is a workflow orchestration service that integrates with multiple AWS services, such as Glue, Lambda, and SageMaker, to enable seamless ETL pipeline execution.
-</b></details>
-
-<details>
-<summary>Which data integrity mechanism can ensure transformed datasets match the original source datasets in AWS Glue?</summary><br><b>
-
-**Options:**
-- **A.** Implement AWS Glue crawlers  
-- **B.** Configure job bookmarks in Glue  
-- **C.** Use S3 Versioning and data validation scripts  
-- **D.** Utilize Amazon EMR’s Auto Scaling feature  
-
-**Answer:**  
-**C. Use S3 Versioning and data validation scripts**
-
-**Explanation:**  
-Versioning in Amazon S3, combined with validation scripts for checksums or row counts, ensures that transformed datasets retain data integrity against their original source datasets during Glue workflows.
-</b></details>
-
-<details>
-<summary>What is a key reason to use feature scaling in machine learning workflows?</summary><br><b>
-
-**Options:**
-- **A.** To improve the interpretability of trained models  
-- **B.** To handle highly skewed datasets  
-- **C.** To ensure all features contribute equally to model training  
-- **D.** To reduce dataset size for faster computation  
-
-**Answer:**  
-**C. To ensure all features contribute equally to model training**
-
-**Explanation:**  
-Feature scaling ensures equal contribution by bringing all feature values into the same range. This is crucial for models like Logistic Regression or Neural Networks that are sensitive to feature magnitudes.
-</b></details>
-
-<details>
-<summary>Which AWS service specifically supports feature engineering by creating embeddings for structured relationship data?</summary><br><b>
-
-**Options:**
-- **A.** Amazon SageMaker Processing  
-- **B.** Amazon Neptune ML  
-- **C.** AWS Data Pipeline  
-- **D.** Amazon Kinesis Data Firehose  
-
-**Answer:**  
-**B. Amazon Neptune ML**
-
-**Explanation:**  
-Amazon Neptune ML leverages graph neural networks to generate embeddings for conducting machine learning on highly connected datasets, such as social networks or recommendation systems.
-</b></details>
+| Missing values | Impute mean/median/mode, or drop the column when mostly null; add a missingness indicator |
+| Categorical, low cardinality | One-hot encoding |
+| Categorical, high cardinality | Target/label encoding, hashing, or learned embeddings |
+| Ordinal categories | Ordinal encoding that preserves rank order |
+| Different feature scales | Standardisation (z-score) or min–max normalisation |
+| Long-tailed numeric feature | Log transform, or binning/quantile buckets |
+| Class imbalance | Oversample minority (SMOTE), undersample majority, class weights, `scale_pos_weight`; evaluate with AUC-PR or F1, never plain accuracy |
+| Outliers | Winsorise/clip, robust scaling, or isolation via RCF |
+| Text | Tokenise, TF-IDF, or embeddings (BlazingText, Object2Vec) |
+| Timestamps | Split into cyclical parts (hour, weekday, month) with sine/cosine encoding |
+| High dimensionality | PCA, feature selection by importance |
+
+Leakage rules the exam tests:
+
+- Fit scalers and imputers on the **training split only**, then apply them to
+  validation and test.
+- Never build features from post-outcome columns.
+- Use point-in-time joins in the offline feature store so a training row cannot
+  see future feature values.
+
+## SageMaker components
+
+Docs: [SageMaker AI Developer Guide](https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html)
+
+| Component | One-liner | Docs |
+| :--- | :--- | :--- |
+| Studio | Web IDE for the whole lifecycle | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/studio.html) |
+| Ground Truth | Human and automated data labelling with active learning | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/sms.html) |
+| Data Wrangler / Canvas data prep | Visual, low-code transform and export | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler.html) |
+| Processing | Managed containers for pre/post-processing and evaluation | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/processing-job.html) |
+| Feature Store | Online plus offline feature storage with lineage | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/feature-store.html) |
+| Training jobs | Managed, distributed training on ephemeral instances | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-training.html) |
+| Automatic Model Tuning | Hyperparameter search (Bayesian, random, grid, Hyperband) | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/automatic-model-tuning.html) |
+| Autopilot | AutoML: candidate models plus generated notebooks | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/autopilot-automate-model-development.html) |
+| JumpStart | Pre-trained models and solution templates deployed in your account | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/studio-jumpstart.html) |
+| Experiments | Track runs, parameters, and metrics for comparison | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/experiments.html) |
+| Debugger | Training-time profiling and rules (vanishing gradient, overfit, GPU idle) | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html) |
+| Clarify | Pre- and post-training bias metrics plus SHAP explanations | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-detect-data-bias.html) |
+| Model Registry | Versioned model packages with approval status | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/model-registry.html) |
+| Pipelines | Native CI/CD DAG for ML steps, with lineage | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/pipelines.html) |
+| Model Monitor | Data quality, model quality, bias, and feature-attribution drift | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/model-monitor.html) |
+| Inference Recommender | Load-tests instance types to size an endpoint | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-recommender.html) |
+| Neo | Compiles models for edge and specific hardware targets | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/neo.html) |
+| Model Cards | Documented intended use, risk rating, and evaluation for governance | [dg](https://docs.aws.amazon.com/sagemaker/latest/dg/model-cards.html) |
+
+## Built-in algorithms
+
+Docs: [Built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/algos.html) · [Choosing an algorithm](https://docs.aws.amazon.com/sagemaker/latest/dg/algorithms-choose.html) · [Common information](https://docs.aws.amazon.com/sagemaker/latest/dg/common-info-all-im-models.html)
+
+| Algorithm | Task | Notes that decide the answer |
+| :--- | :--- | :--- |
+| Linear Learner | Regression, binary and multiclass classification | Trains many models in parallel; supports class weights |
+| XGBoost | Tabular regression and classification, ranking | Default answer for structured/tabular data; handles missing values |
+| K-Nearest Neighbors | Classification, regression | Index-based, exact or approximate search |
+| Factorization Machines | Recommendations on sparse high-dimensional data | Pairwise interactions; expects `recordIO-protobuf` float32 |
+| Object2Vec | Embeddings for pairs of objects | Similarity, matching, recommendation |
+| K-Means | Clustering | Unsupervised segmentation |
+| PCA | Dimensionality reduction | Preprocessing step, not a predictor |
+| Random Cut Forest | Anomaly detection | Unsupervised, streaming and tabular; returns an anomaly score |
+| IP Insights | Anomalous IP–entity pairings | Account-takeover and fraud signals |
+| BlazingText | Word embeddings, text classification | Fast Word2Vec and supervised fastText modes |
+| Sequence-to-Sequence | Translation, summarisation, speech to text | Encoder-decoder over token sequences |
+| Neural Topic Model / LDA | Topic modelling | Unsupervised topics from a document corpus |
+| DeepAR | Time-series forecasting | Trains one global model over many related series; probabilistic output |
+| Image Classification | Whole-image labels | Supports transfer learning |
+| Object Detection | Bounding boxes plus classes | "Where is it" questions |
+| Semantic Segmentation | Pixel-level masks | Medical imaging, autonomous driving |
+| Text Classification (TabTransformer, LightGBM, CatBoost) | Tabular and text via built-in frameworks | Available alongside the classic algorithms |
+
+Picker by phrasing:
+
+| Question says | Answer |
+| :--- | :--- |
+| "tabular", "structured", "churn", "high accuracy" | XGBoost |
+| "sparse", "click-through", "collaborative filtering", built-in required | Factorization Machines |
+| "no ML expertise", "fully managed recommendations" | Amazon Personalize |
+| "many related time series", "probabilistic forecast" | DeepAR |
+| "unlabelled", "group customers" | K-Means |
+| "unusual", "rare", "no labelled anomalies" | Random Cut Forest |
+| "classify the whole image" / "bounding boxes" / "per-pixel mask" | Image Classification / Object Detection / Semantic Segmentation |
+| "word vectors", "document category" | BlazingText |
+| "translate", "summarise" | Sequence-to-Sequence |
+| "discover themes in documents" | Neural Topic Model or LDA |
+| "reduce features before clustering" | PCA |
+
+## Training data inputs and compute
+
+Docs: [Access training data](https://docs.aws.amazon.com/sagemaker/latest/dg/model-access-training-data.html) · [Distributed training](https://docs.aws.amazon.com/sagemaker/latest/dg/distributed-training.html) · [Managed spot training](https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.html)
+
+| Input mode | Behaviour | Choose when |
+| :--- | :--- | :--- |
+| **File** | Downloads the full dataset to the instance volume before training starts | Small datasets; code needs ordinary file access |
+| **FastFile** | Streams from S3 on demand behind a read-only POSIX view | Large datasets, mostly sequential reads, File-mode code unchanged; **no augmented-manifest support** |
+| **Pipe** | Streams sequentially into FIFO pipes | Managed shuffling/sharding, RecordIO or augmented manifests; code must read pipes |
+| **FSx for Lustre** | High-throughput shared filesystem linked to S3 | Repeated epochs over the same very large dataset, many instances |
+| **EFS** | Existing shared filesystem | Data already lives in EFS |
+
+- **RecordIO** is a record format, not an input mode: set
+  `RecordWrapperType=RecordIO` only when raw objects must be wrapped for an
+  algorithm that expects it. **Augmented manifests** stream labels alongside
+  records in Pipe mode without building RecordIO files first.
+- **`ShardedByS3Key`** splits objects across instances for data-parallel
+  training; `FullyReplicated` sends everything to every instance.
+- **Data parallelism** for large datasets that fit in memory per device;
+  **model parallelism** when a single model does not fit on one GPU.
+- **Managed spot training** with **checkpointing** to S3 is the standard
+  "reduce training cost" answer; **warm pools** cut repeated start-up latency;
+  **local mode** debugs a script before paying for a cluster.
+
+## Evaluation and tuning
+
+Docs: [Model tuning](https://docs.aws.amazon.com/sagemaker/latest/dg/automatic-model-tuning.html) · [Tuning strategies](https://docs.aws.amazon.com/sagemaker/latest/dg/automatic-model-tuning-how-it-works.html) · [Clarify bias](https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-detect-data-bias.html) · [Clarify explainability](https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-model-explainability.html)
+
+| Metric | Formula in words | Use when |
+| :--- | :--- | :--- |
+| Accuracy | Correct / total | Balanced classes only |
+| Precision | TP / (TP + FP) | False positives are expensive (spam blocking, blocking a legitimate payment) |
+| Recall | TP / (TP + FN) | False negatives are expensive (disease screening, fraud detection) |
+| F1 | Harmonic mean of precision and recall | Imbalanced classes, one summary number |
+| AUC-ROC | Ranking quality across thresholds | Threshold-independent comparison, moderate imbalance |
+| AUC-PR | Precision–recall trade-off | Severe class imbalance |
+| MAE | Mean absolute error | Regression, all errors weighted equally |
+| MSE / RMSE | Squared error | Regression, penalise large errors |
+| R² | Variance explained | Regression, interpretability of fit |
+| Confusion matrix | Raw TP/FP/TN/FN counts | Diagnosing which error type dominates |
+
+| Symptom | Diagnosis | Fix |
+| :--- | :--- | :--- |
+| Train high, validation low | Overfitting | More data, regularisation (L1/L2, dropout), early stopping, simpler model |
+| Train low, validation low | Underfitting | More features, more capacity, train longer, less regularisation |
+| Great offline, poor in production | Train/serve skew or drift | Shared feature pipeline, Feature Store, Model Monitor |
+| Accuracy 99% but minority class missed | Imbalance | Resample or weight classes, switch to F1/AUC-PR |
+| Validation better than training | Leakage or bad split | Re-split with stratification; check for post-outcome features |
+
+- **Tuning strategies:** Bayesian (sample-efficient default), Random (parallel,
+  large spaces), Grid (small discrete spaces), Hyperband (early-stops weak
+  candidates, best for iterative training); **warm start** reuses a previous job.
+- **Cross-validation** (k-fold) for small datasets, a fixed held-out split for
+  large ones, forward-chaining splits for time series, never random.
+- **Clarify** reports **pre-training bias** (class imbalance, difference in
+  proportions of labels) on the dataset, plus **post-training bias** and
+  **SHAP** attributions on the model.
+
+## Deployment and inference
+
+Docs: [Deploy models](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html) · [Batch Transform](https://docs.aws.amazon.com/sagemaker/latest/dg/batch-transform.html) · [Asynchronous inference](https://docs.aws.amazon.com/sagemaker/latest/dg/async-inference.html) · [Serverless inference](https://docs.aws.amazon.com/sagemaker/latest/dg/serverless-endpoints.html)
+
+| Option | Latency and shape | Choose when |
+| :--- | :--- | :--- |
+| **Real-time endpoint** | Milliseconds, always on, auto-scaling | Steady online traffic, strict latency SLA |
+| **Serverless inference** | Milliseconds after a cold start, scales to zero | Intermittent or unpredictable traffic, no idle cost |
+| **Asynchronous inference** | Queued, near-real-time, scales to zero | Large payloads (up to 1 GB), long processing, bursty load |
+| **Batch Transform** | Offline job over a dataset in S3 | Scoring a whole dataset, no endpoint needed |
+| **Multi-model endpoint** | One container, many models loaded on demand | Many small models sharing a framework, cost-sensitive |
+| **Multi-container endpoint** | Different containers behind one endpoint | Distinct frameworks, invoked directly or as a chain |
+| **Inference pipeline** | Ordered containers in one endpoint | Preprocessing plus model plus postprocessing in one hop |
+| **Edge (Neo + IoT Greengrass)** | On-device | Disconnected or latency-critical local inference |
+
+- **Deployment guardrails:** blue/green with all-at-once, canary, or linear
+  traffic shifting, plus CloudWatch alarms and **auto-rollback**.
+- **Shadow tests** send a copy of production traffic to a candidate variant
+  without returning its responses; **production variants** with weights do A/B
+  tests on one endpoint.
+- **Auto scaling** tracks `SageMakerVariantInvocationsPerInstance` as the
+  standard target-tracking metric; **Inference Recommender** only sizes the
+  instance type.
+- IaC and CI/CD: CloudFormation or CDK for infrastructure, SageMaker Projects
+  for templated MLOps, CodePipeline or GitHub Actions for the build, ECR for
+  custom containers, Pipelines for the ML DAG, EventBridge to trigger
+  retraining on drift alarms or new data.
+
+## Monitoring governance and security
+
+Docs: [Model Monitor](https://docs.aws.amazon.com/sagemaker/latest/dg/model-monitor.html) · [SageMaker security](https://docs.aws.amazon.com/sagemaker/latest/dg/security.html) · [SageMaker and VPC](https://docs.aws.amazon.com/sagemaker/latest/dg/infrastructure-give-access.html)
+
+| Monitor type | Detects | Needs |
+| :--- | :--- | :--- |
+| Data quality | Schema and distribution drift in inputs | Baseline stats and constraints from training data |
+| Model quality | Accuracy decay | Ground-truth labels merged with captured predictions |
+| Bias drift | Fairness metrics moving over time | Clarify configuration |
+| Feature attribution drift | Feature importance shifting | Clarify SHAP baseline |
+
+- **Data capture** writes endpoint requests and responses to S3; Model Monitor
+  jobs run on a schedule, emit CloudWatch metrics, and alarms trigger
+  retraining through EventBridge.
+- **Debugger** watches *training*, **Model Monitor** watches *production*, and
+  **Clarify** explains bias and attributions in both.
+- **CloudWatch Logs** hold training and endpoint logs, **CloudWatch metrics** carry
+  invocations and latency, **CloudTrail** records API calls for audit.
+
+Security answers, in the order the exam expects them:
+
+- **IAM execution roles** scoped per job with condition keys; never long-lived
+  access keys in a notebook.
+- **KMS** for encryption at rest on S3, training EBS volumes, and endpoint
+  storage; TLS in transit; `EnableInterContainerTrafficEncryption` for
+  distributed training.
+- **VPC mode plus S3 gateway or interface VPC endpoints** keeps traffic off the
+  internet; `EnableNetworkIsolation` blocks all container egress.
+- **Macie** finds PII in S3, **Comprehend PII detection** redacts text, Ground
+  Truth private workforces handle sensitive labelling.
+- **Lake Formation** for row and column-level data-lake permissions, over a
+  baseline of S3 bucket policies and block public access.
+
+## Cost control
+
+Docs: [SageMaker pricing model](https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html) · [Managed spot training](https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.html)
+
+| Lever | Effect |
+| :--- | :--- |
+| Managed spot training plus checkpoints | Large training savings, tolerant of interruption |
+| Serverless or asynchronous inference | No charge while idle |
+| Multi-model endpoints, or Batch Transform instead of an endpoint | Models share one instance; periodic scoring needs no standing infrastructure |
+| Auto scaling with a sane minimum, plus SageMaker Savings Plans | Right-sized capacity and a commitment discount on training and hosting |
+| Parquet plus partitioning | Fewer bytes scanned by Athena and read during training |
+| Shut down idle Studio apps and notebook instances | Idle compute is the most common surprise bill |
+
+## High-yield exam traps
+
+- **Reinforcement Learning is not a built-in algorithm.** SageMaker supports RL
+  through frameworks and toolkits, so a "built-in algorithm" option naming RL
+  is usually wrong.
+- **BlazingText does not fix overfitting.** Regularisation, more data, and
+  early stopping do.
+- **XGBoost, not Linear Learner, is the default for tabular accuracy.** Linear
+  Learner does support multiclass, but "high accuracy on structured data" is
+  XGBoost.
+- **FastFile does not support augmented manifests.** If the question mentions
+  augmented manifests or managed shuffling, the answer is Pipe mode.
+- **Batch Transform vs asynchronous inference** — a whole dataset on a schedule
+  vs per-request large payloads and long processing behind a queue.
+- **Ground Truth vs A2I** — training labels vs human review of predictions.
+- **Data Wrangler vs DataBrew vs Processing** — low-code inside SageMaker vs
+  analyst-facing no-code in Glue vs code in a managed container.
+- **Model Registry vs Experiments** — versioned, approved artifacts vs run
+  tracking and metric comparison.
+- **Neo compiles, Edge Manager (retired) managed fleets.** Pair Neo with IoT
+  Greengrass in current answers.
+- **Accuracy is the wrong metric for imbalanced data.** Expect F1 or AUC-PR.
+- **Scaling before the train/test split is leakage**, and **random splits break
+  time series**: fit on train only, split chronologically.
+- **Job bookmarks, not custom checkpoints, make Glue incremental.**
+- **Inference Recommender sizes, auto scaling scales.** Not substitutes.
+- **Network isolation blocks all outbound traffic**, including S3 downloads
+  mid-job; VPC endpoints keep traffic private without blocking it.
+- **Least operational overhead** in the stem points to a managed AI service or
+  AutoML, not a custom container.
+
+## Recall questions
+
+Answer before reading the right-hand column.
+
+| Prompt | Answer |
+| :--- | :--- |
+| Detect prediction drift in production | Model Monitor |
+| Find training bottlenecks and vanishing gradients | Debugger |
+| Orchestrate an ML DAG native to SageMaker | Pipelines |
+| Store and reuse features online and offline | Feature Store |
+| Filesystem-style access to a large S3 dataset without downloading it | FastFile mode |
+| Input mode required for augmented manifests | Pipe mode |
+| Label a training dataset with humans | Ground Truth |
+| AutoML with generated, inspectable notebooks | Autopilot |
+| Score a full S3 dataset with no endpoint | Batch Transform |
+| Endpoint that scales to zero for spiky traffic | Serverless inference |
+| 500 MB payload with several minutes of processing | Asynchronous inference |
+| Sparse recommendation data, built-in algorithm required | Factorization Machines |
+| Fraud or network anomalies with no labelled anomalies | Random Cut Forest |
+| Explain individual feature contributions | Clarify (SHAP) |
+| Metric for a severely imbalanced classifier | AUC-PR or F1, not accuracy |
+| Cheapest way to run long training that tolerates interruption | Managed spot training with checkpointing |
+| Make a Glue job process only new data | Job bookmarks |
+| Convert CSV in S3 to Parquet with SQL | Athena CTAS |
+| Near-real-time delivery of streams to S3 with buffering | Amazon Data Firehose |
+| Orchestrate Glue, Lambda, and SageMaker together | Step Functions |
+| Choose an endpoint instance type by load testing | Inference Recommender |
+| Compare a candidate against live traffic without returning its responses | Shadow test |
+| Keep training traffic off the public internet | VPC mode with S3/interface VPC endpoints |
+| Audit which principal called a SageMaker API | CloudTrail |
+| Track versions and approval before deployment | Model Registry |

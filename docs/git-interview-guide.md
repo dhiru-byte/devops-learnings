@@ -1,66 +1,65 @@
 # Git
 
-Interview notes for Git as it is used day to day in a DevOps workflow: moving
-code between remote and local, integrating branches, undoing mistakes, and
-enforcing checks before code reaches a pipeline.
+Pointer-style interview notes for Git in a DevOps workflow.
+
+- **Owns:** history workflows — integrating branches, rewriting safely, undoing,
+  recovering. OS and shell fundamentals: [Linux guide](linux-interview-guide.md);
+  container and pipeline artifact behaviour: [Docker guide](docker-interview-guide.md).
+- **Safety rule for everything below:** rewrite only your own unmerged feature
+  branch; never rebase, squash, or force-push `main`, `master`, `develop`,
+  `release`, or any shared branch.
 
 ## Contents
 
-- [Fetch, pull, merge, and rebase](#fetch-vs-pull-vs-merge-vs-rebase)
-- [Merge conflicts](#merge-conflicts)
-- [Undoing changes](#undoing-changes-reset-vs-revert-vs-restore)
-- [Recovering with reflog](#recovering-lost-work-with-reflog)
-- [Stash](#stash)
-- [Cherry-pick](#cherry-pick)
-- [Hooks](#hooks)
-- [Tags and releases](#tags-and-releases)
-- [Git in CI/CD](#git-in-a-cicd-pipeline)
-- [Inspecting and bisecting history](#inspecting-and-bisecting-history)
+- **Integrating and rewriting:** [fetch vs pull vs merge vs rebase](#fetch-vs-pull-vs-merge-vs-rebase) ·
+  [Merge conflicts](#merge-conflicts) · [Rebase, squash, and force-with-lease](#rebase-squash-and-force-with-lease)
+- **Undoing and recovering:** [Undoing changes](#undoing-changes-reset-vs-revert-vs-restore) ·
+  [Reflog recovery](#recovering-lost-work-with-reflog) · [Stash](#stash) · [Cherry-pick](#cherry-pick)
+- **Delivery:** [Hooks](#hooks) · [Tags and releases](#tags-and-releases) ·
+  [Git in a CI/CD pipeline](#git-in-a-cicd-pipeline) ·
+  [Inspecting and bisecting history](#inspecting-and-bisecting-history) ·
+  [Troubleshooting scenarios](#troubleshooting-scenarios)
 
 ## fetch vs pull vs merge vs rebase
 
-`fetch` downloads remote commits without touching your working tree. `pull` is
-`fetch` plus an integration step (`merge` by default). `merge` joins two
-branches with a merge commit. `rebase` replays your commits on top of another
-branch and produces a linear history.
+**Docs:** [`git-fetch`](https://git-scm.com/docs/git-fetch) ·
+[`git-pull`](https://git-scm.com/docs/git-pull) ·
+[`git-merge`](https://git-scm.com/docs/git-merge)
 
 | Command | Contacts remote | Changes working tree | History result | Risk |
 | :--- | :---: | :---: | :--- | :--- |
-| `fetch` | Yes | No | Unchanged | Safe |
+| `fetch` | Yes | No | Unchanged; only remote-tracking refs move | Safe |
 | `pull` | Yes | Yes | Merge or rebase, depending on config | Moderate |
 | `merge` | No | Yes | Non-linear, extra merge commit | Low |
-| `rebase` | No | Yes | Linear, commits get new hashes | High, rewrites history |
-
-Practical detail:
-
-- `fetch` only updates remote-tracking refs such as `origin/main`. Inspect the
-  result with `git log origin/main` or `git diff HEAD origin/main` before you
-  integrate anything.
-- `git pull --rebase` avoids the "Merge branch 'main' into ..." commits that
-  clutter a feature branch. Set it as the default with
-  `git config --global pull.rebase true`.
-- Rebase only a branch that nobody else has based work on. Rewriting a shared
-  branch forces every other contributor to recover their local copy by hand.
-- After a rebase of an already-pushed branch, publish with
-  `git push --force-with-lease`, never plain `--force`. `--force-with-lease`
-  refuses the push if someone else added commits you have not seen.
-
-Typical feature-branch flow:
+| `rebase` | No | Yes | Linear, commits get **new hashes** | High, rewrites history |
 
 ```bash
-git fetch origin
-git rebase origin/main
-# resolve conflicts, then continue
-git rebase --continue
+git fetch origin                       # only updates origin/main and friends
+git log origin/main; git diff HEAD origin/main   # inspect before integrating
+git config --global pull.rebase true   # make pull rebase, avoiding merge noise
+
+git rebase origin/main                 # typical feature-branch flow
+# resolve conflicts, git add <file>, then git rebase --continue
 git push --force-with-lease origin feature-branch
 ```
 
+**Gotchas**
+
+- Rebase only a branch nobody else has based work on; rewriting a shared branch
+  forces every other contributor to recover their local copy by hand.
+- After rebasing an already-pushed branch, publish with
+  `git push --force-with-lease`, never plain `--force`.
+
 ## Merge conflicts
 
-A conflict happens when two branches change the same region of a file, or when
-one side edits a file the other side deleted, and Git cannot decide which
-version to keep. You resolve it by editing the file to the intended final
-state, staging it, and completing the merge or rebase.
+**Docs:** [`git-merge` conflict handling](https://git-scm.com/docs/git-merge#_how_conflicts_are_presented) ·
+[`git-rerere`](https://git-scm.com/docs/git-rerere)
+
+- **Cause:** two branches change the same region, or one side edits a file the
+  other deleted.
+- **Resolve:** edit the file to the intended final state, stage it, continue.
+- **Markers:** `<<<<<<<` starts the current branch's version, `=======` divides,
+  `>>>>>>>` ends the incoming version.
 
 ```bash
 git status                 # list conflicted paths
@@ -70,191 +69,270 @@ git checkout --theirs file # keep the incoming version
 git add file               # mark as resolved
 git merge --continue       # or: git rebase --continue
 git merge --abort          # or: git rebase --abort, to start over
+git config --global rerere.enabled true   # replay recorded resolutions
 ```
 
-Practical detail:
+**Gotchas**
 
-- Conflict markers are `<<<<<<<` (current branch), `=======`, `>>>>>>>`
-  (incoming branch). Never commit a file that still contains them; add a
-  pipeline grep for these markers as a cheap safety net.
 - During a **rebase**, "ours" and "theirs" are inverted relative to a merge:
-  "ours" is the branch you are replaying onto, "theirs" is your own commit.
-- `git rerere` (`git config --global rerere.enabled true`) records how you
-  resolved a conflict and replays that resolution when the same conflict
-  reappears, which is common on long-lived branches.
-- Reduce conflict frequency by rebasing small branches often instead of
-  integrating a large branch once.
+  "ours" is the base you are replaying onto (`origin/main`), "theirs" is your
+  own commit. This is the usual interview trap.
+- Never commit a file still containing conflict markers; a pipeline grep is a
+  cheap safety net.
+- Rebase small branches often rather than one large branch late, and never start
+  a second rewrite inside an in-progress rebase — finish or abort first.
+
+## Rebase, squash, and force-with-lease
+
+**Docs:** [`git-rebase`](https://git-scm.com/docs/git-rebase) ·
+[`git-reset`](https://git-scm.com/docs/git-reset) ·
+[`git-push`](https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-leaseltrefnamegt)
+
+Goal: a branch on the latest base, with one reviewable commit, that merges
+without surprises. Rebase updates the branch, squash removes noise,
+`--force-with-lease` publishes a rewrite without clobbering others' work.
+
+| Situation | Use | Do not |
+| :--- | :--- | :--- |
+| Feature branch is behind `main` | `git fetch` then `git rebase origin/main` | Merge `main` into the feature branch |
+| Five "wip / fix / typo" commits before a PR | Squash to one commit | Leave the noise on `main` |
+| You rebased a branch you already pushed | `git push --force-with-lease` | `git push --force` |
+| The commit is already on `main`, or reviewers cited its hash | New commit, `git revert`, or squash at merge time | Rebase, squash, or force-push it |
+
+Non-interactive squash onto the latest base (safe in scripts):
+
+```bash
+git fetch origin
+git switch feature-branch
+git rebase origin/main          # first sit on the latest base
+git reset --soft origin/main    # keep all file changes, drop the extra commits
+git status                      # confirm what goes into the one commit
+git commit -m "Retry image pulls when the registry token expires."
+git push --force-with-lease origin feature-branch
+```
+
+- `reset --soft` moves the branch pointer, leaving index and working tree as the
+  combined result: the next commit is the whole feature as one snapshot.
+- `git rebase -i origin/main` (`pick` the first, `squash` the rest) does the same
+  but needs an interactive editor, a poor fit for automation.
+- Host-side "squash and merge" keeps `main` linear while preserving branch commits.
+
+| Option | What it checks | Use |
+| :--- | :--- | :--- |
+| `--force-with-lease` | Remote still points at the commit **you last fetched** | Default for your own rewritten branch |
+| `--force-with-lease=refs/heads/br:<hash>` | Remote still points at a specific hash | Extra-precise with several remotes |
+| `--force` | Nothing | Almost never; overwrites commits you have not seen |
+
+**Gotchas**
+
+- If the lease fails (`! [rejected] ... (stale info)`), **do not retry with
+  `--force`.** Fetch, inspect `git log origin/feature-branch`, integrate their
+  commits, then push with lease again. Never force-push a protected branch.
+- Do not squash merge commits from `main` into your branch (rebase instead),
+  commits already on a shared branch, or a mix of unrelated features.
+- After `git rebase --abort`, the pre-rebase tip is still in
+  [reflog](#recovering-lost-work-with-reflog).
 
 ## Undoing changes: reset vs revert vs restore
 
-Pick based on whether the commit is already published.
+**Docs:** [`git-reset`](https://git-scm.com/docs/git-reset) ·
+[`git-revert`](https://git-scm.com/docs/git-revert) ·
+[`git-restore`](https://git-scm.com/docs/git-restore) — pick by whether published.
 
 | Goal | Command | Effect |
 | :--- | :--- | :--- |
 | Unstage a file, keep edits | `git restore --staged file` | Index only |
-| Discard local edits to a file | `git restore file` | Working tree only, destructive |
+| Discard local edits to a file | `git restore file` | DESTRUCTIVE, working tree only |
 | Drop last commit, keep changes staged | `git reset --soft HEAD~1` | Moves branch pointer |
 | Drop last commit, keep changes unstaged | `git reset HEAD~1` | Mixed reset, the default |
-| Drop last commit and its changes | `git reset --hard HEAD~1` | Destructive |
+| Drop last commit and its changes | `git reset --hard HEAD~1` | DESTRUCTIVE |
 | Undo a published commit | `git revert <hash>` | Adds a new inverse commit |
 
-Use `reset` only on commits that exist just locally. Use `revert` on anything
-already pushed to a shared branch, because it undoes the change without
-rewriting history that others have pulled.
+**Gotchas.** Use `reset` only on commits that exist locally. Use `revert` on
+anything already pushed to a shared branch, because it undoes the change without
+rewriting history others have pulled.
 
 ## Recovering lost work with reflog
 
-`git reflog` lists every position `HEAD` has held, including commits that no
-branch points to any more. It is the recovery path after a bad
-`reset --hard`, a botched rebase, or a deleted branch.
+**Docs:** [`git-reflog`](https://git-scm.com/docs/git-reflog)
+
+`git reflog` lists every position `HEAD` has held, including commits no branch
+points to — the recovery path after a bad `reset --hard`, botched rebase, or
+deleted branch.
 
 ```bash
 git reflog                       # find the hash you want back
-git reset --hard <hash>          # restore the branch to that state
-git branch recovered <hash>      # or recover it as a new branch
+git branch recovered <hash>      # safest: recover as a new branch
+git reset --hard <hash>          # or restore the current branch to that state
 ```
 
-Reflog entries are local and expire (90 days by default for reachable
-entries), so recover promptly.
+**Gotchas.** Reflog entries are **local only** and expire (90 days by default),
+so recover promptly, and prefer creating a branch over `reset --hard` so you
+keep the current state while investigating.
 
 ## Stash
 
-`git stash` shelves uncommitted work so you can switch context, then reapply it
-later. It is local only and never pushed.
+**Docs:** [`git-stash`](https://git-scm.com/docs/git-stash)
+
+`git stash` shelves uncommitted work so you can switch context. It is local
+only and never pushed.
 
 | Action | Command |
 | :--- | :--- |
-| Stash tracked changes | `git stash` |
-| Stash with a label | `git stash push -m "wip: retry logic"` |
-| Include untracked files | `git stash -u` |
-| List stashes | `git stash list` |
-| Apply and delete the entry | `git stash pop` |
-| Apply and keep the entry | `git stash apply` |
-| Show the contents as a diff | `git stash show -p stash@{0}` |
-| Delete one entry | `git stash drop stash@{0}` |
-| Delete all entries | `git stash clear` |
+| Stash with a label / include untracked | `git stash push -m "wip: retry"` / `git stash -u` |
+| List / show as a diff | `git stash list` / `git stash show -p stash@{0}` |
+| Apply and delete / apply and keep | `git stash pop` / `git stash apply` |
+| Delete one / delete all | `git stash drop stash@{0}` / `git stash clear` |
+| Apply onto a fresh branch | `git stash branch <new-branch> stash@{0}` |
 
-Practical detail:
+- **Triggers:** urgent hotfix mid-feature, `git pull` refusing to run because
+  local changes would be overwritten, or work started on the wrong branch — a
+  stash pops onto any branch.
+- **Versus a commit:** a stash is a local stack entry, invisible to `git log` and
+  not pushable.
 
-- Common triggers: an urgent hotfix arrives mid-feature, `git pull` refuses to
-  run because local changes would be overwritten, or you notice you have been
-  committing on the wrong branch.
-- Always label stashes with `push -m`. An unlabeled stack of five entries is
-  guaranteed to produce a wrong `pop` eventually.
-- A stash can be popped onto a different branch, which is the simplest way to
-  move uncommitted work you started in the wrong place.
-- If the target branch has moved far ahead and `pop` would conflict heavily,
-  use `git stash branch <new-branch> stash@{0}`. It creates a branch at the
-  commit the stash was made from and applies the stash there cleanly.
+**Gotchas**
 
-Stash versus commit: a stash is a local stack entry, invisible to `git log`,
-not pushable, and applicable to any branch. A commit is permanent branch
-history, shareable, and tied to its branch.
+- Always label with `push -m`; an unlabelled stack of five entries guarantees a wrong `pop` eventually.
+- If the target branch has moved far ahead and `pop` would conflict heavily, use `git stash branch`, which recreates the branch at the commit the stash was made from.
 
 ## Cherry-pick
 
-`git cherry-pick <hash>` copies the change introduced by one commit onto the
-current branch as a new commit with a new hash.
+**Docs:** [`git-cherry-pick`](https://git-scm.com/docs/git-cherry-pick)
+
+`git cherry-pick <hash>` copies the change from one commit onto the current
+branch as a **new commit with a new hash**.
 
 | Action | Command |
 | :--- | :--- |
-| One commit | `git cherry-pick <hash>` |
-| Several commits | `git cherry-pick <hash1> <hash2>` |
-| A range, excluding A | `git cherry-pick A..B` |
-| A range, including A | `git cherry-pick A^..B` |
+| One or several commits | `git cherry-pick <hash1> <hash2>` |
+| A range, excluding / including A | `git cherry-pick A..B` / `git cherry-pick A^..B` |
+| Record provenance in the message | `git cherry-pick -x <hash>` |
 | Stop and unwind | `git cherry-pick --abort` |
 
-Practical detail:
+Main use: porting a verified fix to a release or hotfix branch without dragging
+along unfinished features; `-x` appends "(cherry picked from commit ...)", which
+keeps release branches auditable.
 
-- The new hash means the same logical change now exists twice in the graph. A
-  later merge of the source branch can therefore conflict.
-- `git cherry-pick -x <hash>` appends "(cherry picked from commit ...)" to the
-  message, which is how release branches stay auditable.
-- Main use is porting a verified fix from a development branch to a release or
-  hotfix branch without dragging along unfinished features. If you are picking
-  ten commits from one branch, merge or rebase instead.
+**Gotchas.** The new hash means the same logical change exists twice in the
+graph, so a later merge of the source branch can conflict. Picking ten commits
+from one branch means you should merge or rebase instead.
 
 ## Hooks
 
-Git hooks are executable scripts in `.git/hooks` that Git runs at defined
-points in the commit and receive lifecycle. They are the first place to enforce
-standards, before anything reaches CI.
+**Docs:** [`githooks`](https://git-scm.com/docs/githooks)
+
+Executable scripts Git runs at defined points in the commit and receive
+lifecycle — the first place to enforce standards, before CI.
 
 | Hook | Runs | Typical use |
 | :--- | :--- | :--- |
-| `pre-commit` | Before the commit message is requested | Lint, format, secret scan |
+| `pre-commit` | Before the message is requested | Lint, format, secret scan |
 | `prepare-commit-msg` | Before the editor opens | Insert ticket ID from branch name |
 | `commit-msg` | After the message is written | Enforce message convention |
 | `pre-push` | Before objects are sent | Run fast unit tests |
-| `pre-receive` / `update` | On the server, before refs update | Reject force-push, enforce policy |
-| `post-receive` | On the server, after refs update | Trigger a pipeline or notification |
+| `pre-receive` / `update` | Server-side, before refs update | Reject force-push, enforce policy |
+| `post-receive` | Server-side, after refs update | Trigger a pipeline or notification |
 
-Practical detail:
+**Gotchas**
 
-- Client-side hooks live in `.git/hooks`, are not cloned, and can be bypassed
-  with `--no-verify`. Treat them as a convenience for developers, not a
-  control. Anything that must hold has to be enforced by a server-side hook or
-  by a required CI check.
-- Share hooks across a team with `git config core.hooksPath <dir>` and a
-  tracked directory, or with a manager such as `pre-commit`.
-- Keep client hooks fast. A `pre-commit` hook that takes 30 seconds gets
-  disabled by the team within a week.
+- Client-side hooks live in `.git/hooks`, are **not cloned**, and can be bypassed with `--no-verify`: developer convenience only, so anything that must hold needs a server-side hook or a required CI check.
+- Share them via `core.hooksPath` and a tracked directory, or a manager such as `pre-commit`; keep them fast, since a 30-second hook gets disabled within a week.
 
 ## Tags and releases
 
-A tag is a fixed name for a commit; it is what a release pipeline should build
+**Docs:** [`git-tag`](https://git-scm.com/docs/git-tag) ·
+[`git-describe`](https://git-scm.com/docs/git-describe)
+
+A tag is a fixed name for a commit and what a release pipeline should build
 from, because branches move and tags do not.
 
 ```bash
-git tag -a v1.4.0 -m "Release 1.4.0"   # annotated tag: has author, date, message
-git push origin v1.4.0                  # tags are not pushed by git push alone
-git tag -l 'v1.*'                       # list matching tags
-git describe --tags                     # nearest tag plus commits since, useful for build IDs
+git tag -a v1.4.0 -m "Release 1.4.0"   # annotated: author, date, message; -s signs
+git push origin v1.4.0                 # tags are NOT pushed by git push alone
+git tag -l 'v1.*'                      # list matching tags
+git describe --tags                    # nearest tag plus commits since (build IDs)
 ```
 
-Prefer annotated tags (`-a`) over lightweight tags for releases: they are real
-objects, can be signed with `-s`, and carry who tagged what and when.
+**Gotchas.** Prefer annotated tags over lightweight ones for releases: they are
+real objects, can be signed, and record who tagged what and when. Plain
+`git push` does not publish tags.
 
 ## Git in a CI/CD pipeline
 
-Git events are the triggers for the pipeline, and the Git metadata is what
-makes a build traceable. The pipeline's smoke and regression test roles are
-covered in [Docker CI/CD](docker-interview-guide.md#docker-in-cicd); Git's job is to
-trigger those checks and identify exactly which source revision they tested.
+**Docs:** [`git-clone` (`--depth`)](https://git-scm.com/docs/git-clone) ·
+[`git-filter-repo`](https://github.com/newren/git-filter-repo)
 
-- **Trigger mapping:** a push to a feature branch runs build plus fast tests; a
-  pull request runs the full validation set and is a required gate for merge; a
-  push of a version tag runs the release and deployment job.
-- **Immutable build identity:** tag every artifact and container image with the
-  commit SHA, not with `latest`. Given a running version you can then get back
-  to the exact source with `git show <sha>`.
-- **Shallow clones:** CI runners should use `git clone --depth 1` or the
-  equivalent runner setting to cut checkout time, but a job that needs
-  `git describe` or a diff against the base branch needs more history.
-- **Protected branches:** enforce no direct pushes to `main`, require review and
-  passing checks, and require the branch to be up to date so the merge result
-  is the state that was actually tested.
-- **Merge strategy:** squash merges give `main` one commit per change, which
-  makes `git bisect` and `git revert` straightforward at the cost of losing
-  intermediate commits.
-- **Secrets:** a secret committed once stays in history even after it is
-  deleted in a later commit. Rotate the credential first, then scrub history
-  with a tool such as `git filter-repo`, and add a secret scanner to
-  `pre-commit` and to CI.
+Git events trigger the pipeline and Git metadata makes a build traceable; the
+build, scan, smoke, and regression stages are in
+[Docker CI/CD](docker-interview-guide.md#docker-in-cicd).
+
+| Concern | Practice |
+| :--- | :--- |
+| Trigger mapping | Feature-branch push = build plus fast tests; PR = full validation as a required gate; version tag = release and deploy |
+| Immutable build identity | Tag every artifact and image with the commit SHA, never `latest`, so `git show <sha>` gets you back to the exact source |
+| Checkout speed | `git clone --depth 1`, but jobs needing `git describe` or a base-branch diff need more history |
+| Protected branches | No direct pushes to `main`; require review, passing checks, and up-to-date branches so the merge result is what was tested |
+| Merge strategy | Squash merges give `main` one commit per change, keeping `git bisect` and `git revert` simple, at the cost of intermediate commits |
+
+**Gotchas**
+
+- A secret committed once **stays in history** even after a later commit deletes it: rotate the credential first, scrub history with `git filter-repo`, then add a secret scanner to `pre-commit` and CI.
+- Rewriting a shared repository's history requires coordination: every clone must be re-cloned or reset.
 
 ## Inspecting and bisecting history
 
+**Docs:** [`git-log`](https://git-scm.com/docs/git-log) ·
+[`git-blame`](https://git-scm.com/docs/git-blame) ·
+[`git-bisect`](https://git-scm.com/docs/git-bisect)
+
 ```bash
 git log --oneline --graph --decorate --all   # readable topology
-git log -S "functionName"                    # commits that changed an occurrence count of a string
-git blame -L 40,60 path/to/file              # who last touched these lines and in which commit
-git bisect start
-git bisect bad                               # current commit is broken
-git bisect good v1.3.0                       # this tag was fine
-# git checks out midpoints; mark each with git bisect good/bad
-git bisect reset
+git log -S "functionName"                    # commits changing that string's count
+git blame -L 40,60 path/to/file              # who last touched these lines
+
+git bisect start; git bisect bad; git bisect good v1.3.0
+git bisect run ./test.sh      # or mark each midpoint with bisect good/bad
+git bisect reset              # always finish with this
 ```
 
-`git bisect` performs a binary search over history, so it finds the commit that
-introduced a regression in about log2(n) steps. With a scripted test you can
-automate it fully using `git bisect run <command>`.
+`git bisect` binary-searches history, finding the offending commit in about
+log2(n) steps.
+
+## Troubleshooting scenarios
+
+Fixed template: **Symptom -> Check -> Cause -> Fix -> Prevent.**
+
+### 1. Push rejected, or the lease fails after a rebase
+
+- **Symptom:** `! [rejected] ... (fetch first)`, or `--force-with-lease` fails
+  with "stale info".
+- **Check:** `git fetch origin && git log --oneline HEAD..origin/<branch>`.
+- **Cause:** the remote has commits you never fetched. On a rewritten branch the
+  lease is doing exactly its job.
+- **Fix:** integrate first (`git pull --rebase`), then push — with lease if the
+  branch was rewritten. **Never** escalate to `--force`.
+- **Prevent:** fetch before starting work, enable `pull.rebase`, and coordinate
+  before rewriting a branch someone else uses. See
+  [Rebase, squash, and force-with-lease](#rebase-squash-and-force-with-lease).
+
+### 2. Commits vanished after `reset --hard`
+
+- **Symptom:** work is missing and `git log` does not show it.
+- **Check:** `git reflog` and `git fsck --lost-found`.
+- **Cause:** the branch pointer moved; the commits are unreferenced, not gone.
+- **Fix:** `git branch recovered <hash>` from the reflog entry, then verify
+  before deleting anything.
+- **Prevent:** commit or `git stash push -m` before any `reset --hard`; recover
+  within the reflog expiry window.
+
+### 3. A secret was committed
+
+- **Symptom:** a scanner or review finds a credential in the repository.
+- **Check:** `git log -S "<fragment>" --all`; confirm whether the commit was
+  pushed.
+- **Cause:** the secret stays in history, readable after a later deletion.
+- **Fix:** **rotate the credential first**, treating it as compromised, then
+  rewrite history with `git filter-repo` and coordinate re-clones.
+- **Prevent:** secret scanning in `pre-commit` and CI; keep credentials in a
+  secrets manager. See [Git in a CI/CD pipeline](#git-in-a-cicd-pipeline).
