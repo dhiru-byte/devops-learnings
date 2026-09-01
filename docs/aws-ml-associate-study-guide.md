@@ -2,7 +2,8 @@
 
 Supplemental certification study material: AWS machine learning services,
 SageMaker components and built-in algorithms, and practice questions. General
-AWS interview notes are in [AWS.md](AWS.md).
+AWS interview notes are in the
+[AWS interview guide](aws-interview-guide.md).
 
 Sections in this file:
 

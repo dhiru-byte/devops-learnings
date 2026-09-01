@@ -219,7 +219,7 @@ objects, can be signed with `-s`, and carry who tagged what and when.
 
 Git events are the triggers for the pipeline, and the Git metadata is what
 makes a build traceable. The pipeline's smoke and regression test roles are
-covered in [Docker CI/CD](../docker/Docker.md#docker-in-cicd); Git's job is to
+covered in [Docker CI/CD](docker-interview-guide.md#docker-in-cicd); Git's job is to
 trigger those checks and identify exactly which source revision they tested.
 
 - **Trigger mapping:** a push to a feature branch runs build plus fast tests; a

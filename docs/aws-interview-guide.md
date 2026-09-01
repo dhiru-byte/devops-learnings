@@ -3,8 +3,9 @@
 Interview notes on AWS services, VPC networking, and reliability practice.
 Protocol and OS fundamentals (OSI, TCP handshake, DNS resolution, CIDR
 arithmetic, HTTP status codes) are in
-[Linux.md](../linux/Linux.md#networking-fundamentals) rather than repeated here.
-Machine learning certification material is in [AWS_MLCA-01.md](AWS_MLCA-01.md).
+[Linux interview guide](linux-interview-guide.md#networking-fundamentals) rather
+than repeated here. Machine learning certification material is in the
+[AWS Machine Learning Associate study guide](aws-ml-associate-study-guide.md).
 
 ## Contents
 
@@ -148,7 +149,7 @@ Every subnet loses five addresses to AWS: the network address, the VPC router
 (`.1`), the DNS server (`.2`), one reserved for future use (`.3`), and the
 broadcast address. So a `/28` gives 11 usable addresses, not 14. Prefix
 arithmetic is in
-[Linux.md](../linux/Linux.md#ip-addressing-and-cidr).
+[Linux interview guide](linux-interview-guide.md#ip-addressing-and-cidr).
 
 Plan CIDRs so nothing overlaps across VPCs, accounts, or on-premises ranges.
 Overlapping ranges make peering, VPN, and Transit Gateway attachment impossible

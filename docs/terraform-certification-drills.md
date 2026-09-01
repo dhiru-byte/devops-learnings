@@ -4,7 +4,7 @@ Multiple-choice practice questions for the [HashiCorp Certified: Terraform Assoc
 exam. Each question lists the options, the correct answer in full, and a short explanation.
 
 The interview guide (concepts plus troubleshooting scenarios) is
-[Terraform.md](Terraform.md).
+[Terraform interview guide](terraform-interview-guide.md).
 
 Notes on currency: the exam still tests some commands that HashiCorp has since deprecated
 (`terraform taint`, standalone `terraform refresh`). Where that happens the explanation gives both
