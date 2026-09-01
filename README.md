@@ -5,7 +5,7 @@ examples for DevOps and SRE preparation.
 
 ## Start here
 
-1. Use the [interview checklist](Interview_Q_N_A.md) to identify weak areas.
+1. Use the [interview checklist](docs/devops-interview-checklist.md) to identify weak areas.
 2. Read the canonical topic guide linked from each question.
 3. Practise explaining the answer in two minutes: definition, operation,
    production example, and one failure mode.
@@ -16,36 +16,36 @@ examples for DevOps and SRE preparation.
 
 ### Linux and networking
 
-- [Linux](linux/Linux.md): processes, memory, filesystems, permissions,
+- [Linux](docs/linux-interview-guide.md): processes, memory, filesystems, permissions,
   networking, DNS, CIDR, HTTP, SSH, and a practical command reference
 
 ### Git and delivery
 
-- [Git](git/git.md): merge, rebase, conflict resolution, recovery, hooks, tags,
+- [Git](docs/git-interview-guide.md): merge, rebase, conflict resolution, recovery, hooks, tags,
   and CI usage
 
 ### Docker
 
-- [Docker](docker/Docker.md): images, Dockerfiles, runtime isolation,
+- [Docker](docs/docker-interview-guide.md): images, Dockerfiles, runtime isolation,
   networking, storage, security, CI/CD, and troubleshooting scenarios
 
 ### Kubernetes
 
-- [Kubernetes](kubernetes/md-files/Kubernetes.md): architecture, failures,
+- [Kubernetes](docs/kubernetes-interview-guide.md): architecture, failures,
   scheduling, networking, storage, security, upgrades, workloads, and Helm
-- [Secret recipes](kubernetes/md-files/Secrets-Recipes.md)
-- [CKA lab recipes](kubernetes/md-files/CKA-Labs.md)
+- [Secret recipes](docs/kubernetes-secrets-recipes.md)
+- [CKA lab recipes](docs/kubernetes-cka-labs.md)
 
 ### Terraform
 
-- [Terraform](terraform/Terraform.md): interview concepts and operational
+- [Terraform](docs/terraform-interview-guide.md): interview concepts and operational
   troubleshooting scenarios
-- [Terraform certification drills](terraform/Terraform-Certification.md):
+- [Terraform certification drills](docs/terraform-certification-drills.md):
   deduplicated multiple-choice practice grouped by objective
 
 ### AWS
 
-- [AWS core guide](aws/AWS.md): VPC, security, compute, storage, databases,
+- [AWS core guide](docs/aws-interview-guide.md): VPC, security, compute, storage, databases,
   identity, serverless, reliability, and CI/CD
 
 ## Hands-on labs and examples
@@ -59,8 +59,8 @@ point.
 
 ## Supplemental material
 
-- [AWS Machine Learning Associate notes](aws/AWS_MLCA-01.md)
-- [Informatica IDMC notes](Informatica.md)
+- [AWS Machine Learning Associate notes](docs/aws-ml-associate-study-guide.md)
+- [Informatica IDMC notes](docs/informatica-idmc-notes.md)
 
 These are preserved for specialised preparation and are intentionally separate
 from the core DevOps interview path.
@@ -77,7 +77,7 @@ from the core DevOps interview path.
 
 ## Repository scope
 
-Markdown files under the topic directories are study notes. YAML, JSON,
-scripts, images, PDFs, and lab directories are runnable or reference artifacts;
-review them before using them in a real environment because example values and
-credentials are not production configuration.
+Markdown files under `docs/` are study notes. YAML, JSON, scripts, PDFs, and
+lab directories are runnable or reference artifacts; review them before using
+them in a real environment because example values and credentials are not
+production configuration.

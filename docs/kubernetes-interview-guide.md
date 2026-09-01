@@ -621,7 +621,7 @@ for it.
 
 Start with namespace-scoped default-deny ingress and egress, then explicitly
 allow application flows, DNS, monitoring, and required external endpoints.
-A worked policy is in [CKA-Labs.md](CKA-Labs.md). The wider isolation picture,
+A worked policy is in [kubernetes-cka-labs.md](kubernetes-cka-labs.md). The wider isolation picture,
 including what NetworkPolicy does not cover, is in
 [Network isolation](#network-isolation).
 
@@ -657,7 +657,7 @@ stickiness can hide uneven load and complicate failover.
 
 Base64 is encoding, not encryption. Protection controls are covered in
 [Protecting Secrets and etcd](#protecting-secrets-and-etcd), and creation and
-consumption recipes are in [Secrets-Recipes.md](Secrets-Recipes.md).
+consumption recipes are in [kubernetes-secrets-recipes.md](kubernetes-secrets-recipes.md).
 
 ### How do applications consume configuration?
 
@@ -1391,8 +1391,8 @@ effects.
 Procedural material stays outside this guide so that command sequences can be
 practised without rereading the explanations:
 
-- [Secret recipes](Secrets-Recipes.md): creating and consuming Secrets.
-- [CKA labs](CKA-Labs.md): imperative commands, JSONPath, RBAC, networking,
+- [Secret recipes](kubernetes-secrets-recipes.md): creating and consuming Secrets.
+- [CKA labs](kubernetes-cka-labs.md): imperative commands, JSONPath, RBAC, networking,
   storage, workloads, node maintenance, and etcd exercises.
 
 ## Recommended interview-answer structure

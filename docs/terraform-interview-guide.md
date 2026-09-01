@@ -2,7 +2,7 @@
 
 Interview guide for Terraform: language, state, providers, modules, and the
 operational failures interviewers use to test judgement. Multiple-choice
-certification drills are in [Terraform-Certification.md](Terraform-Certification.md).
+certification drills are in [terraform-certification-drills.md](terraform-certification-drills.md).
 
 Terraform Cloud was renamed **HCP Terraform** in 2024. Both names appear in older
 documentation and in the certification exam; they refer to the same product.

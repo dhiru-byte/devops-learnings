@@ -7,8 +7,8 @@ failure mode.
 
 ## Linux and networking
 
-Read [Linux](linux/Linux.md), including its
-[command reference](linux/Linux.md#command-reference).
+Read [Linux](linux-interview-guide.md), including its
+[command reference](linux-interview-guide.md#command-reference).
 
 - [ ] Explain process states, zombie processes, and orphan processes.
 - [ ] Interpret load average on a multi-core host.
@@ -24,7 +24,7 @@ Read [Linux](linux/Linux.md), including its
 
 ## Git and CI/CD
 
-Read [Git](git/git.md) and [Docker CI/CD](docker/Docker.md#docker-in-cicd).
+Read [Git](git-interview-guide.md) and [Docker CI/CD](docker-interview-guide.md#docker-in-cicd).
 
 - [ ] Compare merge and rebase, including the risk of rewriting shared history.
 - [ ] Compare `reset`, `revert`, and `restore`.
@@ -37,8 +37,8 @@ Read [Git](git/git.md) and [Docker CI/CD](docker/Docker.md#docker-in-cicd).
 
 ## Docker
 
-Read [Docker](docker/Docker.md), then practise its
-[troubleshooting scenarios](docker/Docker.md#troubleshooting-scenarios).
+Read [Docker](docker-interview-guide.md), then practise its
+[troubleshooting scenarios](docker-interview-guide.md#troubleshooting-scenarios).
 
 - [ ] Compare containers with virtual machines.
 - [ ] Explain image layers and how Docker's build cache works.
@@ -53,7 +53,7 @@ Read [Docker](docker/Docker.md), then practise its
 
 ## Kubernetes
 
-Read the [Kubernetes interview guide](kubernetes/md-files/Kubernetes.md).
+Read the [Kubernetes interview guide](kubernetes-interview-guide.md).
 
 ### Architecture and workloads
 
@@ -88,8 +88,8 @@ Read the [Kubernetes interview guide](kubernetes/md-files/Kubernetes.md).
 
 ## Terraform
 
-Read [Terraform](terraform/Terraform.md), then use the
-[certification drills](terraform/Terraform-Certification.md) for recall practice.
+Read [Terraform](terraform-interview-guide.md), then use the
+[certification drills](terraform-certification-drills.md) for recall practice.
 
 - [ ] Explain what `terraform init`, `validate`, `plan`, and `apply` do.
 - [ ] Explain why Terraform state exists and why it contains sensitive data.
@@ -105,7 +105,7 @@ Read [Terraform](terraform/Terraform.md), then use the
 
 ## AWS
 
-Read the [AWS core guide](aws/AWS.md).
+Read the [AWS core guide](aws-interview-guide.md).
 
 - [ ] Compare a security group with a network ACL.
 - [ ] Compare a NAT gateway with a NAT instance.

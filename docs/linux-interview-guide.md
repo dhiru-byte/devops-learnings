@@ -62,24 +62,18 @@ multitasking, and multi-user multitasking. Linux is multi-user multitasking.
 
 ### Functions of an operating system
 
-<p align="center">
-<img src="../images/OS_functions.jpg" width="800" height="300" />
-</p>
-
-- **Process management:** create, schedule, and terminate processes, and provide
-  synchronisation and inter-process communication.
-- **Memory management:** allocate and reclaim memory, and maintain the virtual
-  address space of each process.
-- **File management:** organise, store, retrieve, name, share, and protect files.
-- **Device and I/O management:** track devices, allocate them, and hide
-  hardware-specific behaviour behind uniform interfaces.
-- **Storage management:** move data between cache, main memory, and secondary
-  storage.
-- **Security and access control:** authenticate users and enforce permissions.
-- **Networking:** provide the stack that lets processes on different machines
-  communicate.
-- **Accounting:** track resource use per user and per job.
-- **Command interpretation:** parse commands and act on system resources.
+| Function | What it does |
+| :--- | :--- |
+| Process (processor) management | Create, schedule, and terminate processes; provide synchronisation and IPC |
+| Memory management | Allocate and reclaim memory; maintain each process's virtual address space |
+| File management | Organise, store, retrieve, name, share, and protect files |
+| Device and I/O management | Track devices, allocate them, and hide hardware-specific behaviour |
+| Secondary storage management | Move data between cache, main memory, and disks |
+| Security | Authenticate users and enforce permissions |
+| Networking | Provide the stack that lets processes on different machines communicate |
+| Communication management | Move data between processes on the same host or across the network |
+| Command interpretation | Parse shell or system commands and act on resources |
+| Job accounting | Track resource use per user and per job |
 
 ### What is Linux?
 
@@ -146,13 +140,19 @@ installed at all, since it only adds attack surface and resource use.
 
 ## Linux architecture
 
-<p align="center">
-<img src="../images/LinuxArchitecture.jpg" width="500" height="450" />
-</p>
+Linux is a set of concentric layers. Hardware sits at the centre; user programs
+sit on the outside. Each layer only talks to the ones next to it.
 
-**Hardware** is the physical layer: CPU, RAM, disks, network interfaces.
+| Layer | Role | Examples |
+| :--- | :--- | :--- |
+| Hardware | Physical machine | CPU, RAM, disks, NICs |
+| Kernel | Owns devices, memory, filesystems, and scheduling; exposes system calls | VFS, device drivers, multitasking |
+| Shell | Reads commands, starts programs, returns output | `bash`, `sh`, `zsh`, `ksh` |
+| Utilities | Userland programs invoked through the shell | `ls`, `cat`, `vi`, `awk`, `sort` |
 
-**Kernel** is the core that manages the communication between software and
+**Hardware** is the physical layer.
+
+**Kernel** is the core that manages communication between software and
 hardware. It owns scheduling, memory management, the filesystem layer, device
 drivers, and the network stack, and it exposes all of that through system calls.
 
@@ -262,14 +262,24 @@ Windows shortcut and can point at a file, a directory, or nothing at all.
 
 ### Configuration and virtual filesystems
 
-**`/etc/passwd`** holds one line per account:
-`name:password:UID:GID:comment:home:shell`. The password field is `x` because
-hashes live in `/etc/shadow`, which is readable only by root. A shell of
-`/usr/sbin/nologin` marks a service account that cannot log in.
+**`/etc/passwd`** holds one colon-separated line per account. Example:
 
-<p align="center">
-<img src="../images/etc_passwd_file.jpg" width="800" height="300" />
-</p>
+```text
+mark:x:1001:1001:mark,,,:/home/mark:/bin/bash
+```
+
+| Field | Example | Meaning |
+| :---: | :--- | :--- |
+| 1 | `mark` | Username |
+| 2 | `x` | Password placeholder; the hash lives in `/etc/shadow` |
+| 3 | `1001` | UID |
+| 4 | `1001` | Primary GID |
+| 5 | `mark,,,` | GECOS comment (full name and optional contact fields) |
+| 6 | `/home/mark` | Home directory |
+| 7 | `/bin/bash` | Login shell |
+
+`/etc/shadow` is readable only by root. A shell of `/usr/sbin/nologin` marks a
+service account that cannot log in.
 
 **`/etc/fstab`** is the administrator-maintained list of filesystems to mount at
 boot, with device (preferably by `UUID=`), mount point, type, options, dump, and
@@ -785,23 +795,28 @@ Mnemonic, application down to physical: All People Seem To Need Data Processing.
 
 | Layer | Name | Function | Examples |
 | :---: | :--- | :--- | :--- |
-| 7 | Application | Application protocols | HTTP, DNS, SSH, SMTP |
+| 7 | Application | Human-facing protocols; applications access network services | HTTP, DNS, SSH, SMTP |
 | 6 | Presentation | Encoding, encryption, compression | TLS, JPEG |
-| 5 | Session | Session establishment and teardown | RPC, NetBIOS |
-| 4 | Transport | End-to-end delivery, ports | TCP, UDP |
+| 5 | Session | Session establishment, checkpoints, and teardown | RPC, NetBIOS |
+| 4 | Transport | End-to-end delivery and ports | TCP, UDP |
 | 3 | Network | Addressing and routing between networks | IP, ICMP, routers |
 | 2 | Data link | Framing on the local segment, MAC addresses | Ethernet, ARP, switches |
-| 1 | Physical | Bits on the medium | Cables, radio, NICs |
+| 1 | Physical | Bits on the medium | Cables, radio, NICs, hubs |
 
-<p align="center">
-<img src="../images/OSI_Model3.jpg" width="500" height="450" />
-</p>
+Matching layers on two hosts communicate *logically* (HTTP to HTTP, TCP to TCP).
+Only layer 1 has a real physical medium between machines.
 
-<p align="center">
-<img src="../images/OSI_Model2.jpg" width="500" height="450" />
-</p>
+TCP/IP collapses the same stack into four layers. Hardware sits at the bottom
+of that mapping:
 
-TCP/IP collapses this into link, internet, transport, and application layers.
+| OSI | TCP/IP | Typical device |
+| :--- | :--- | :--- |
+| 7 Application, 6 Presentation, 5 Session | Application | Host / reverse proxy / WAF |
+| 4 Transport | Transport | Layer-4 load balancer |
+| 3 Network | Internet / Network | Router |
+| 2 Data link | Network interface / Link | Switch |
+| 1 Physical | Network interface / Link | Hub, cable, NIC |
+
 The mapping matters when reading load balancer documentation: a "layer 4" load
 balancer forwards TCP connections without seeing the request, while a "layer 7"
 load balancer parses HTTP and can route on path, host, and headers.

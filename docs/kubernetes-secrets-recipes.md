@@ -5,9 +5,9 @@ manifests, chat, or source control.
 
 Conceptual coverage lives in the main guide: how Secrets compare to ConfigMaps
 and how mounted data updates is in
-[Kubernetes.md](Kubernetes.md#configmap-versus-secret), and protection through
+[kubernetes-interview-guide.md](kubernetes-interview-guide.md#configmap-versus-secret), and protection through
 RBAC, encryption at rest, and external secret managers is in
-[Kubernetes.md](Kubernetes.md#protecting-secrets-and-etcd).
+[kubernetes-interview-guide.md](kubernetes-interview-guide.md#protecting-secrets-and-etcd).
 
 ## Create a generic Secret
 

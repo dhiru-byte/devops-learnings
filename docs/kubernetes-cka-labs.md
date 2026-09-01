@@ -154,7 +154,7 @@ kubectl exec hr -n default -- nslookup mysql.payroll \
 
 For images without a shell, or Pods that crash before exec is possible, use
 `kubectl debug` with an ephemeral container as described in
-[Kubernetes.md](Kubernetes.md#debugging-with-ephemeral-containers).
+[kubernetes-interview-guide.md](kubernetes-interview-guide.md#debugging-with-ephemeral-containers).
 
 ## ConfigMap
 
@@ -166,7 +166,7 @@ kubectl create configmap file-config --from-file=app.conf
 kubectl create configmap file-config --from-file=application=app.conf
 ```
 
-Secret-specific exercises are in [Secrets-Recipes.md](Secrets-Recipes.md).
+Secret-specific exercises are in [kubernetes-secrets-recipes.md](kubernetes-secrets-recipes.md).
 
 ## Storage
 
@@ -416,7 +416,7 @@ kubectl drain node02 \
 `--force` deletes Pods that have no controller, which means nothing recreates
 them. `--disable-eviction` bypasses PodDisruptionBudgets and should stay out of
 practice runs. The flag trade-offs are tabulated in
-[Kubernetes.md](Kubernetes.md#cordon-drain-and-uncordon).
+[kubernetes-interview-guide.md](kubernetes-interview-guide.md#cordon-drain-and-uncordon).
 
 On the node:
 
@@ -579,5 +579,5 @@ sudo kubeadm certs check-expiration
 Renewal takes effect only after the control-plane static Pods restart, and
 `kubeadm certs renew all` rewrites the client certificates embedded in
 `admin.conf`. See
-[Kubernetes.md](Kubernetes.md#control-plane-certificate-maintenance) for the
+[kubernetes-interview-guide.md](kubernetes-interview-guide.md#control-plane-certificate-maintenance) for the
 full procedure and its cautions.
