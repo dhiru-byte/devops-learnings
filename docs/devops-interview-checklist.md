@@ -1,14 +1,13 @@
 # DevOps Interview Checklist
 
-Use this as a self-assessment, not as a second copy of the answers. Each group
-links to the canonical study guide. Mark a question complete only when you can
-answer it aloud with a practical example and one important limitation or
-failure mode.
+[Study hub](../README.md) · Mark complete only when you can answer aloud:
+definition → decision → example → failure mode.
 
 ## Linux and networking
 
-Read [Linux](linux-interview-guide.md), including its
-[command reference](linux-interview-guide.md#command-reference).
+Pointers: [Linux](linux-interview-guide.md) ·
+[commands](linux-interview-guide.md#command-reference) ·
+[scenarios](linux-interview-guide.md#troubleshooting-scenarios)
 
 - [ ] Explain process states, zombie processes, and orphan processes.
 - [ ] Interpret load average on a multi-core host.
@@ -24,9 +23,13 @@ Read [Linux](linux-interview-guide.md), including its
 
 ## Git and CI/CD
 
-Read [Git](git-interview-guide.md) and [Docker CI/CD](docker-interview-guide.md#docker-in-cicd).
+Pointers: [Git](git-interview-guide.md) ·
+[Git scenarios](git-interview-guide.md#troubleshooting-scenarios) ·
+[Docker CI/CD](docker-interview-guide.md#docker-in-cicd)
 
 - [ ] Compare merge and rebase, including the risk of rewriting shared history.
+- [ ] Rebase a feature branch onto latest `main`, squash it to one commit, and
+      publish with `--force-with-lease` rather than `--force`.
 - [ ] Compare `reset`, `revert`, and `restore`.
 - [ ] Recover a lost commit with the reflog.
 - [ ] Resolve a merge conflict without discarding another person's changes.
@@ -37,8 +40,8 @@ Read [Git](git-interview-guide.md) and [Docker CI/CD](docker-interview-guide.md#
 
 ## Docker
 
-Read [Docker](docker-interview-guide.md), then practise its
-[troubleshooting scenarios](docker-interview-guide.md#troubleshooting-scenarios).
+Pointers: [Docker](docker-interview-guide.md) ·
+[scenarios](docker-interview-guide.md#troubleshooting-scenarios)
 
 - [ ] Compare containers with virtual machines.
 - [ ] Explain image layers and how Docker's build cache works.
@@ -53,7 +56,9 @@ Read [Docker](docker-interview-guide.md), then practise its
 
 ## Kubernetes
 
-Read the [Kubernetes interview guide](kubernetes-interview-guide.md).
+Pointers: [Kubernetes](kubernetes-interview-guide.md) ·
+[CKA labs](kubernetes-cka-labs.md) ·
+[Secret recipes](kubernetes-secrets-recipes.md)
 
 ### Architecture and workloads
 
@@ -88,8 +93,9 @@ Read the [Kubernetes interview guide](kubernetes-interview-guide.md).
 
 ## Terraform
 
-Read [Terraform](terraform-interview-guide.md), then use the
-[certification drills](terraform-certification-drills.md) for recall practice.
+Pointers: [Terraform](terraform-interview-guide.md) ·
+[troubleshooting](terraform-interview-guide.md#troubleshooting-scenarios) ·
+[Associate exam pointers](terraform-certification-drills.md)
 
 - [ ] Explain what `terraform init`, `validate`, `plan`, and `apply` do.
 - [ ] Explain why Terraform state exists and why it contains sensitive data.
@@ -105,7 +111,8 @@ Read [Terraform](terraform-interview-guide.md), then use the
 
 ## AWS
 
-Read the [AWS core guide](aws-interview-guide.md).
+Pointers: [AWS](aws-interview-guide.md) ·
+[AWS ML Associate](aws-ml-associate-study-guide.md)
 
 - [ ] Compare a security group with a network ACL.
 - [ ] Compare a NAT gateway with a NAT instance.
@@ -123,8 +130,7 @@ Read the [AWS core guide](aws-interview-guide.md).
 
 ## Troubleshooting and system design
 
-For every scenario, state the blast radius, evidence to collect, safe recovery,
-and prevention before proposing commands.
+Answer pattern: blast radius → evidence → safe recovery → prevention.
 
 - [ ] A deployment succeeded, but the service is unavailable.
 - [ ] A CI runner reports `no space left on device`.
@@ -139,9 +145,7 @@ and prevention before proposing commands.
 
 ## Behavioural questions
 
-Answer with **situation, task, action, and result (STAR)**. Use a real example,
-state your personal contribution, quantify the result where possible, and say
-what you learned.
+Use **STAR**: situation → task → your action → measurable result → lesson.
 
 - [ ] Tell me about a significant responsibility you took on outside your normal role.
 - [ ] Describe a production incident you diagnosed under pressure.

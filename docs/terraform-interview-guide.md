@@ -1,351 +1,139 @@
 # Terraform
 
-Interview guide for Terraform: language, state, providers, modules, and the
-operational failures interviewers use to test judgement. Multiple-choice
-certification drills are in [terraform-certification-drills.md](terraform-certification-drills.md).
+Pointer-style interview guide: tables for the decisions, HCL only where the pattern itself is the answer,
+and ten troubleshooting scenarios in symptom -> evidence -> fix -> prevent form. Multiple-choice practice
+is in [terraform-certification-drills.md](terraform-certification-drills.md).
 
-Terraform Cloud was renamed **HCP Terraform** in 2024. Both names appear in older
-documentation and in the certification exam; they refer to the same product.
-
-Work troubleshooting questions as **symptom -> evidence -> cause -> fix ->
-prevention**. Collect evidence before you touch state. Before any
-`terraform state rm`, `mv` or `push`, confirm the selected workspace and backend,
-stop concurrent runs, and save a restricted backup with
-`(umask 077; terraform state pull > state-backup.json)`. Store that backup only
-in an approved secure location and delete it when recovery is complete; it may
-contain plaintext secrets.
-
-The most useful habit in an interview answer: say what you would check *before*
-changing anything, and say how you would make the fix reviewable rather than
-applying it from your laptop.
+Terraform Cloud was renamed **HCP Terraform** in 2024; both names appear in older docs and in the exam.
+What scores well: say what you would check *before* changing anything, and how you would make the fix
+reviewable rather than applying it from your laptop.
 
 ## Contents
 
+- [Safety rules](#safety-rules)
 - [Fundamentals](#fundamentals)
 - [Configuration language](#configuration-language)
 - [Resources and meta-arguments](#resources-and-meta-arguments)
-- [Providers](#providers)
+- [Providers and versions](#providers-and-versions)
 - [Variables and outputs](#variables-and-outputs)
-- [State](#state)
-- [Provisioners](#provisioners)
+- [Sensitive, ephemeral and write-only data](#sensitive-ephemeral-and-write-only-data)
+- [State and workspaces](#state-and-workspaces)
 - [Modules](#modules)
 - [Operations and tooling](#operations-and-tooling)
-- [Troubleshooting scenarios](#troubleshooting-scenarios)
-  - [First-response triage](#first-response-triage)
-  - [1. Error acquiring the state lock](#1-error-acquiring-the-state-lock)
-  - [2. Plan wants to destroy and recreate a production database](#2-plan-wants-to-destroy-and-recreate-a-production-database)
-  - [3. Someone changed infrastructure in the console (drift)](#3-someone-changed-infrastructure-in-the-console-drift)
-  - [4. State file lost, corrupted, or partially deleted](#4-state-file-lost-corrupted-or-partially-deleted)
-  - [5. Provider version drift between laptop and CI](#5-provider-version-drift-between-laptop-and-ci)
-  - [6. Secrets found in plaintext in the state file](#6-secrets-found-in-plaintext-in-the-state-file)
-  - [7. Cycle error, or resources created in the wrong order](#7-cycle-error-or-resources-created-in-the-wrong-order)
-  - [8. Apply failed halfway and left partial infrastructure](#8-apply-failed-halfway-and-left-partial-infrastructure)
-  - [9. Migrating count to for_each without destroying everything](#9-migrating-count-to-for_each-without-destroying-everything)
-  - [10. Deploying to multiple regions or accounts in one configuration](#10-deploying-to-multiple-regions-or-accounts-in-one-configuration)
+- [Troubleshooting scenarios](#troubleshooting-scenarios) — [triage](#first-response-triage) plus ten scenarios
+
+## Safety rules
+
+> **State is secret material.** It holds plaintext values, including everything marked `sensitive`. Treat
+> every state file, saved plan and JSON dump as a credential store.
+
+> **Collect evidence before you change state.** Before any `state rm`, `state mv`, `state push` or
+> `force-unlock`: confirm the selected workspace and backend, stop concurrent runs, and take a restricted
+> backup. Keep it only in an approved secure location and delete it when recovery is complete; it may
+> contain plaintext secrets.
+
+```bash
+terraform workspace show                 # confirm the target before anything else
+(umask 077; terraform state pull > state-backup-$(date +%s).json)
+```
+
+| Operation | What it actually does | Caveat you must state |
+| :--- | :--- | :--- |
+| `state rm` | Stops managing an object; does **not** destroy it | A later apply recreates a duplicate if the resource is still in configuration |
+| `state mv` | Renames an address, on one machine only | Not reviewable; prefer a `moved` block |
+| `state push` | Overwrites the remote state object | Disaster recovery only; prefer backend versioning, review the diff, never add `-force` casually |
+| `force-unlock` | Deletes the backend lock | Breaking a live lock lets two writers interleave and corrupt state |
+| `apply -refresh-only` | Records observed values into state | Does not change configuration; a later normal plan can still revert the drift |
+| `taint` (deprecated 0.15.2) | Marks for replacement by editing state | Use `apply -replace=ADDR` so the replacement appears in a reviewable plan |
+| `-lock=false` | Disables concurrency protection only | Never a fix for a lock error, and never how you adopt drift |
+| `refresh` (deprecated) | Writes state with no reviewable apply | Use `plan -refresh-only` then `apply -refresh-only` |
+
+Never commit state, saved plans, or `.tfvars` containing secrets. `show -json`, `state pull` and
+`output -json` disclose sensitive values by design; keep them out of CI logs and shell history.
+
+**Docs:** [Sensitive data in state](https://developer.hashicorp.com/terraform/language/state/sensitive-data) · [State CLI](https://developer.hashicorp.com/terraform/cli/commands/state)
 
 ## Fundamentals
 
-### What is Terraform and how does it work?
-
-Terraform is an infrastructure as code tool that lets you define, provision and version
-infrastructure across providers using a declarative configuration language.
-
-The workflow is: you describe the desired end state in `.tf` files, Terraform reads the current
-state (from the state file plus a refresh against the provider APIs), computes the difference, and
-produces an execution plan describing what it will create, update or destroy. Applying that plan
-calls the provider APIs to reach the desired state and records the result in state.
-
-Because Terraform diffs desired against actual state on every run, the same configuration applied
-twice produces no changes the second time.
-
-Reference: [What is Terraform](https://developer.hashicorp.com/terraform/intro)
-
-### Why would you choose Terraform over Ansible, Puppet, or CloudFormation?
-
-An incomplete answer is "Ansible and Puppet are configuration management, Terraform is provisioning".
-That is broadly true but does not explain the choice, and it does not address CloudFormation at
-all. Better reasons:
-
-- **Declarative rather than procedural.** You state that you want two servers; Terraform works out
-  whether that means creating two, creating one more, or destroying one. In Ansible you have to
-  write logic that converges to that outcome.
-- **A real plan step.** `terraform plan` shows the exact set of creates, updates, replacements and
-  destroys before anything happens. This is the single biggest operational advantage in review and
-  change-approval workflows.
-- **Multi-provider, one language.** CloudFormation is AWS-only. One Terraform configuration can
-  span AWS, Cloudflare, Datadog, GitHub and an internal API with the same syntax and one dependency
-  graph.
-- **Explicit dependency graph and state.** Terraform knows what it owns and in what order to build
-  it, which makes destroy, replacement and drift detection tractable.
-
-Honest counterpoints worth raising: Terraform state is an artefact you must manage and secure,
-CloudFormation has deeper native AWS integration (automatic rollback, drift detection built into
-the service), and Ansible is a better fit for in-guest configuration after the machine exists.
-Since the 2023 licence change, OpenTofu is a relevant open-source fork to mention.
-
-### Name some competitors of Terraform.
-
-Genuine alternatives, meaning tools that also provision infrastructure declaratively from code:
-
-- **OpenTofu** - the open-source fork created after the 2023 BSL licence change, still largely
-  configuration-compatible.
-- **Pulumi** - the same model, but configuration is written in TypeScript, Python, Go or C#.
-- **AWS CloudFormation** and **AWS CDK** - AWS-native, deeply integrated but single-cloud.
-- **Azure Resource Manager / Bicep** and **Google Cloud Infrastructure Manager** - the equivalents
-  for the other two major clouds. Google Cloud Deployment Manager was retired on March 31, 2026
-  and should only be described as the legacy predecessor.
-- **Crossplane** - provisions cloud resources through Kubernetes CRDs and a reconciliation loop
-  rather than a state file.
-
-Packer, Ansible, Puppet, Chef and Kubernetes are frequently listed as competitors but are not. They
-solve adjacent problems: Packer builds machine images, Ansible/Puppet/Chef configure software
-inside machines that already exist, and Kubernetes schedules workloads onto infrastructure that
-something else provisioned. They are commonly used alongside Terraform, not instead of it.
-
-Reference: [Google Cloud Infrastructure Manager](https://cloud.google.com/infrastructure-manager/docs/overview)
-
-### What is a "Terraform configuration"?
-
-A root module together with the tree of child modules it calls. "Configuration" means the whole
-unit Terraform evaluates in one run, not an individual `.tf` file: Terraform loads every `.tf` file
-in the working directory as a single namespace, so splitting code across `main.tf`, `variables.tf`
-and `outputs.tf` is a readability convention, not a structural one.
-
-A root configuration declares at most one backend, but it does not always map to one physical state
-snapshot. The selected workspace chooses the state within that backend:
-
-- With the local backend, the `default` workspace uses `terraform.tfstate`; non-default workspaces
-  use separate files under `terraform.tfstate.d/`.
-- With remote backends, the backend's workspace or key rules determine which remote state object is
-  selected. One backend configuration can therefore address multiple workspace states.
-- HCP Terraform workspaces each maintain their own state and run settings; they are not the same
-  concept as CLI workspaces, despite the shared name.
-
-The precise relationship is: **configuration -> configured backend -> selected workspace -> one
-state snapshot**.
-
-Reference: [Workspaces](https://developer.hashicorp.com/terraform/language/state/workspaces)
-
-### Can you add policies to open-source Terraform?
-
-Not with Sentinel. Policy as code is a commercial feature: Sentinel and native OPA integration run
-between plan and apply in HCP Terraform (on paid tiers) and Terraform Enterprise, where they can
-block an apply before it happens.
-
-With the open-source CLI you get the same outcome by adding checks to the pipeline instead:
-
-- Run `conftest` or `opa eval` against the JSON plan
-  (`terraform show -json tfplan`) and fail the job on a policy violation.
-- Use `tfsec`, `checkov` or `trivy config` for security and compliance rule sets.
-- Enforce guardrails outside Terraform with cloud-native controls such as AWS Service Control
-  Policies or Azure Policy, which apply regardless of how the request was made.
-
-The difference is where enforcement lives. Sentinel is part of the run and cannot be bypassed by
-someone running Terraform locally; a CI check can be, unless the cloud credentials are only
-available to the pipeline.
-
-### What is HCL?
-
-HashiCorp Configuration Language, the declarative language used by Terraform and other HashiCorp
-tools. It is designed to be readable by humans and machines: JSON is a valid alternative syntax
-(`.tf.json`), so configuration can be generated programmatically when needed.
-
-HCL supports expressions, functions, conditionals, loops (`for`, `for_each`, `count`), and type
-constraints, but it deliberately has no user-defined functions and no general-purpose control flow.
-
-### Is Terraform mutable or immutable? Declarative or imperative?
-
-Immutable and declarative.
-
-Immutable in the sense that changing an attribute that a provider cannot update in place causes
-Terraform to destroy and recreate the object rather than mutate it. Declarative in the sense that
-you describe the desired end state, not the steps to reach it.
-
-Note that immutability is a property of the provider and resource, not of Terraform itself: many
-attributes are updatable in place, and Terraform will do so when the provider supports it. The plan
-output tells you which is happening (`~ update in-place` versus `-/+ must be replaced`).
-
-### Define the core Terraform terminology.
+Terraform is a declarative infrastructure-as-code tool. You describe the desired end state; Terraform reads prior
+state, refreshes it against provider APIs, diffs it against the configuration, and produces a plan of creates,
+updates, replacements and destroys. Applying it records the result in state, so applying twice is a no-op.
 
 | Term | Meaning |
 | :--- | :--- |
-| Provider | Plugin that implements resource types for an API (AWS, Azure, Kubernetes, GitHub). |
-| Resource | A block describing one infrastructure object Terraform manages. |
-| Data source | A read-only lookup of something Terraform does not manage. |
-| Module | A directory of `.tf` files used as a reusable unit. Every configuration has a root module. |
-| State | Terraform's record of which real objects correspond to which configuration addresses. |
-| Backend | Where state is stored and, for some backends, where operations run. |
-| Plan | The computed set of changes needed to reach the desired state. |
-| Apply | Executing a plan against the provider APIs. |
-| Output value | A value a module returns to its caller or prints to the CLI. |
+| Provider | Plugin implementing resource types for an API (AWS, Azure, Kubernetes, GitHub) |
+| Resource | Block describing one infrastructure object Terraform manages |
+| Data source | Read-only lookup of something Terraform does not manage |
+| Module | A directory of `.tf` files used as a reusable unit; every configuration has a root module |
+| State | Mapping from configuration addresses to real objects |
+| Backend | Where state is stored and, for some backends, where runs execute |
 
-### What are the main features of Terraform?
+| Why Terraform | The point that answers the question |
+| :--- | :--- |
+| Declarative, not procedural | You state "two servers"; Terraform decides create/update/destroy. Ansible needs convergence logic |
+| Real plan step | The exact change set is reviewable before anything happens — the biggest operational advantage |
+| Multi-provider, one language | CloudFormation is AWS-only; one config can span AWS, Cloudflare, Datadog and GitHub in one graph |
+| Explicit graph and state | Terraform knows what it owns and in what order, making destroy, replacement and drift tractable |
+| Honest counterpoints | State is an artefact you must secure, CloudFormation has deeper native AWS integration (service-side rollback, built-in drift detection), and Ansible fits in-guest configuration better |
 
-- **Execution plans** that show what will change before it changes.
-- **Resource graph**, which lets Terraform parallelise independent work and order dependent work.
-- **Change automation**, applying complex change sets with minimal human interaction.
-- **Infrastructure as code**, so infrastructure is versioned, reviewed and reproducible.
-- **Provider ecosystem** covering thousands of APIs through a single language.
+| Real alternatives | Mislabelled as competitors |
+| :--- | :--- |
+| **OpenTofu** — open-source fork after the 2023 BSL change, largely config-compatible | **Packer** — builds machine images |
+| **Pulumi** — same model in TypeScript, Python, Go, C# | **Ansible / Puppet / Chef** — configure software inside existing machines |
+| **CloudFormation / AWS CDK** — AWS-native, single-cloud | **Kubernetes** — schedules workloads onto infrastructure something else provisioned |
+| **ARM / Bicep**, **Google Cloud Infrastructure Manager** (Deployment Manager retired 31 Mar 2026) | All are used *alongside* Terraform, not instead of it |
+| **Crossplane** — provisions via Kubernetes CRDs and a reconciliation loop | |
 
-### Can Terraform manage on-premises infrastructure?
+| Property | What to say |
+| :--- | :--- |
+| Immutable and declarative | Immutability belongs to the *provider and resource*, not to Terraform: many attributes update in place, and the plan says which (`~` versus `-/+`) |
+| HCL | Expressions, functions, conditionals and loops, but deliberately no user-defined functions and no general-purpose control flow. JSON (`.tf.json`) is a valid alternative syntax |
+| "A configuration" | The root module plus the child modules it calls — the unit evaluated in one run. Every `.tf` file in the directory loads into one namespace, so splitting into `versions.tf` / `variables.tf` / `main.tf` / `outputs.tf` is convention, not structure |
+| Policy as code | Commercial: Sentinel and native OPA run between plan and apply in HCP Terraform (paid) and Enterprise. Open-source equivalent is `conftest`/`opa eval` against `terraform show -json tfplan`, plus `tfsec`/`checkov`, plus AWS SCPs or Azure Policy — but a CI check is bypassable unless cloud credentials exist only in the pipeline |
+| On-premises | Any stable CRUD API can have a provider (vSphere, Nutanix, OpenStack, Proxmox, libvirt, F5, NetApp); write your own with the Plugin Framework |
+| Structure | One state per environment and per blast radius, shared behaviour in versioned modules, environments differing only by `.tfvars` and backend key — not by copies of the resource code |
 
-Yes. Any system with an API can have a provider. Existing providers cover VMware vSphere, Nutanix,
-OpenStack, Proxmox, libvirt/KVM, F5, NetApp, Kubernetes and many others. If no provider exists you
-can write one with the Terraform Plugin Framework.
+**Docs:** [What is Terraform](https://developer.hashicorp.com/terraform/intro) · [HCL syntax](https://developer.hashicorp.com/terraform/language/syntax/configuration) · [Policy enforcement](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement)
 
-The practical constraint is not on-prem versus cloud, but whether the target exposes a stable API
-with the CRUD semantics Terraform needs.
+## Configuration language
 
-### How do you structure a Terraform project?
+| Construct | Use it for | Watch out for |
+| :--- | :--- | :--- |
+| Built-in functions | Numeric, string, collection, encoding, filesystem, date/time, hash/crypto, IP network, type conversion | No user-defined functions; experiment in `terraform console` |
+| `locals` | Naming a derived expression reused in several places | A local **cannot** be overridden by the caller — that is what variables are for |
+| Data source | Something Terraform does not own; `terraform_remote_state`; provider-validated documents such as `aws_iam_policy_document` | Read during **plan**, so a value that only exists after apply cannot be looked up in the same run |
+| `dynamic` block | Genuinely variable-length nested blocks | Hides the shape of the config and makes plan output harder to read; not a line-saving device |
+| `check` block (1.5+) | Post-apply assertions that warn rather than fail | Not a substitute for `validation` or `precondition` |
 
-A typical root module splits by concern rather than by resource:
+**Docs:** [Functions](https://developer.hashicorp.com/terraform/language/functions) · [Expressions](https://developer.hashicorp.com/terraform/language/expressions) · [Data sources](https://developer.hashicorp.com/terraform/language/data-sources)
 
-```
-.
-├── versions.tf     # terraform block: required_version, required_providers, backend
-├── providers.tf    # provider configurations and aliases
-├── variables.tf    # input variables
-├── main.tf         # resources and module calls
-├── outputs.tf      # output values
-└── terraform.tfvars
-```
+## Resources and meta-arguments
 
-For anything beyond a single stack, the important decisions are the ones above the file layout:
+In `resource "aws_instance" "web_server"`, `aws_instance` is the **type** (its prefix names the provider),
+`web_server` the **local name**, `aws_instance.web_server` the **address**. **Arguments** are inputs you set,
+**attributes** are provider-returned values (some known only after apply), and **meta-arguments** work everywhere.
 
-- One state file per environment and per blast radius, not one giant state.
-- Shared behaviour lives in versioned modules, ideally in their own repositories with tags.
-- Environments differ only by `.tfvars` and backend key, not by copies of the resource code.
+| Meta-argument | Purpose | Interview point |
+| :--- | :--- | :--- |
+| `depends_on` | Force ordering the config does not reveal | Only for *hidden* dependencies such as IAM propagation; prefer attribute references so the graph follows real data flow |
+| `count` | Fixed number of near-identical instances, indexed by `count.index` | Position-keyed, so addresses shift on removal |
+| `for_each` | One instance per map/set element, keyed by `each.key` | Key-stable; the default choice |
+| `provider` | Select a non-default (aliased) provider configuration | See [scenario 10](#10-deploying-to-multiple-regions-or-accounts-in-one-configuration) |
+| `lifecycle` | Change how Terraform plans the change | See below |
 
-## Configuration Language
+| `lifecycle` argument | Effect |
+| :--- | :--- |
+| `create_before_destroy` | Build the replacement before removing the old object; zero-downtime replacement |
+| `prevent_destroy` | Fail the plan if anything would delete the resource; use on databases |
+| `ignore_changes` | Accept out-of-band changes to named attributes because another system owns them |
+| `replace_triggered_by` | Force replacement when another resource or attribute changes |
+| `precondition` / `postcondition` | Assert invariants a single-variable `validation` block cannot express |
 
-### What categories of built-in functions does Terraform provide?
+### count versus for_each
 
-Numeric, string, collection, encoding, filesystem, date and time, hash and crypto, IP network, and
-type conversion functions.
-
-HCL has no user-defined functions. If you need logic that the built-ins cannot express, the options
-are a `locals` block with nested expressions, an external data source, or generating configuration
-with another tool. Use `terraform console` to experiment with expressions interactively.
-
-Reference: [Built-in functions](https://developer.hashicorp.com/terraform/language/functions)
-
-### What is a data source, and when do you need one?
-
-A data source reads information from a provider without managing it. Common cases:
-
-- Referencing something Terraform does not own, such as a shared VPC or an AMI published by another
-  team: `data "aws_ami" "ubuntu" { most_recent = true ... }`.
-- Reading outputs from another state file with `terraform_remote_state`.
-- Computing a value with type checking and provider-side validation, such as building an IAM policy
-  with `aws_iam_policy_document` instead of embedding raw JSON.
-
-Data sources are read during plan, so a value that only exists after apply cannot be looked up in
-the same run.
-
-### What are local values and when should you use them?
-
-A `locals` block names an expression so you can reuse it without repeating it:
-
-```hcl
-locals {
-  name_prefix = "${var.project}-${var.environment}"
-  common_tags = {
-    Project     = var.project
-    Environment = var.environment
-    ManagedBy   = "terraform"
-  }
-}
-```
-
-Use them for values derived from variables or resource attributes that appear in several places. Do
-not use them as a substitute for input variables: a local cannot be overridden by the caller.
-
-## Resources and Meta-Arguments
-
-### What is a resource, and what do the parts of a resource block mean?
-
-A resource block describes one or more infrastructure objects that Terraform manages.
-
-```hcl
-resource "aws_instance" "web_server" {
-  ami           = "ami-0123456789abcdef0"
-  instance_type = "t3.micro"
-}
-```
-
-- `resource` is the block keyword.
-- `aws_instance` is the resource **type**; its prefix identifies the provider (`aws`).
-- `web_server` is the **local name**, unique within the module.
-- The resource **address** is `aws_instance.web_server`, and that is how you reference it elsewhere.
-
-Within the block:
-
-- **Arguments** are the inputs you set (`instance_type`).
-- **Attributes** are values the provider returns (`aws_instance.web_server.private_ip`). Some are
-  known only after apply.
-- **Meta-arguments** (`count`, `for_each`, `depends_on`, `provider`, `lifecycle`) are handled by
-  Terraform itself and work with every provider.
-
-### Explain the resource meta-arguments: depends_on, count, for_each, provider, lifecycle.
-
-**`depends_on`** forces ordering when the dependency is not visible in the configuration. Terraform
-infers dependencies from references, so you only need this for hidden ones, such as an IAM policy
-that must exist before an instance can use its role:
-
-```hcl
-resource "aws_instance" "example" {
-  ami           = var.ami_id
-  instance_type = "t3.micro"
-  depends_on    = [aws_iam_role_policy.example]
-}
-```
-
-**`count`** creates a fixed number of near-identical instances, indexed by `count.index`:
-
-```hcl
-resource "aws_instance" "server" {
-  count = 3
-  tags  = { Name = "server-${count.index}" }
-}
-```
-
-**`for_each`** creates one instance per element of a map or set of strings, keyed by `each.key`:
-
-```hcl
-resource "aws_iam_user" "users" {
-  for_each = toset(["alice", "bob", "charlie"])
-  name     = each.key
-}
-```
-
-**`provider`** selects a non-default provider configuration, which is how you deploy to more than
-one region or account in a single configuration (see
-[Deploying to multiple regions or accounts](#10-deploying-to-multiple-regions-or-accounts-in-one-configuration)):
-
-```hcl
-resource "aws_vpc" "west" {
-  provider   = aws.west
-  cidr_block = "10.0.0.0/16"
-}
-```
-
-**`lifecycle`** changes how Terraform plans the change:
-
-- `create_before_destroy` builds the replacement before removing the old object, for zero-downtime
-  replacement.
-- `prevent_destroy` fails the plan if anything would delete the resource. Useful for databases.
-  See [Plan wants to destroy and recreate a production database](#2-plan-wants-to-destroy-and-recreate-a-production-database).
-- `ignore_changes` tells Terraform to accept out-of-band changes to specific attributes.
-- `replace_triggered_by` forces replacement when another resource or attribute changes.
-
-### When should you use for_each instead of count?
-
-Prefer `for_each` whenever the instances are distinguishable.
-
-`count` keys instances by position. Removing the middle element of a three-element list shifts every
-later index down by one, so Terraform plans to destroy and recreate resources that did not actually
-change. `for_each` keys instances by a stable map key or set value, so removing one leaves the
-others untouched.
+Prefer `for_each` whenever instances are distinguishable. `count` keys by position, so removing the middle
+element of a three-element list shifts every later index down one and Terraform plans to destroy and
+recreate resources that did not change.
 
 | | `count` | `for_each` |
 | :--- | :--- | :--- |
@@ -354,111 +142,56 @@ others untouched.
 | Address | `aws_instance.web[0]` | `aws_instance.web["prod"]` |
 | Stability | Index-based, shifts on removal | Key-based, stable |
 
-`count` is still the right tool for conditional creation: `count = var.enabled ? 1 : 0`.
+`count` stays correct for conditional creation: `count = var.enabled ? 1 : 0`. Migrating between the two, or
+renaming keys, is a **state operation**: use a `moved` block (1.1+) rather than `terraform state mv`, so the change
+is reviewable in the plan and works for everyone. Example in [scenario 9](#9-migrating-count-to-for_each-without-destroying-everything).
 
-Migrating between the two, or renaming keys, is a state operation: use `moved` blocks (Terraform
-1.1+) rather than `terraform state mv` so the change is reviewable in the plan. The full
-count-to-`for_each` walkthrough is in
-[Migrating count to for_each](#9-migrating-count-to-for_each-without-destroying-everything).
+### Replacement and side-effect containers
 
-### What is a dynamic block?
+- **Tainted:** Terraform created the object but its provisioner failed, so it cannot know the object is usable and replaces it on the next apply.
+- Force a replacement yourself with `terraform apply -replace="aws_instance.web"`, which appears in a reviewable plan.
+- `null_resource` runs the resource lifecycle while creating nothing: a provisioner container, or an action fired by a changed `triggers` map.
+- Since **1.4, `terraform_data` is the built-in equivalent** and needs no external provider.
 
-A `dynamic` block generates repeated nested blocks from a collection, so you do not have to write
-the same nested block many times:
+| Provisioner | Runs where | Needs |
+| :--- | :--- | :--- |
+| `local-exec` | The machine executing Terraform, after create | Nothing extra; local side effects such as writing an inventory file |
+| `remote-exec` | The remote resource over SSH/WinRM | A `connection` block, with credentials on the Terraform runner |
+| `file` | Copies files to the remote resource | The same `connection` block |
 
-```hcl
-resource "aws_security_group" "web" {
-  name = "web"
+Provisioners are a documented last resort: outside the declarative model (Terraform cannot plan, drift-detect or
+undo them), a failed creation-time provisioner taints the resource, and they need connectivity plus credentials on
+the runner. Prefer `user_data`/cloud-init, a Packer image, post-apply configuration management, or a real provider.
 
-  dynamic "ingress" {
-    for_each = var.allowed_ports
-    content {
-      from_port   = ingress.value
-      to_port     = ingress.value
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-}
-```
+**Docs:** [Resource syntax](https://developer.hashicorp.com/terraform/language/resources/syntax) · [moved blocks](https://developer.hashicorp.com/terraform/language/moved) · [terraform_data](https://developer.hashicorp.com/terraform/language/resources/terraform-data) · [Provisioners](https://developer.hashicorp.com/terraform/language/resources/provisioners/syntax)
 
-The trade-off is readability: dynamic blocks hide the shape of the resulting configuration and make
-plan output harder to reason about. Use them for genuinely variable-length nested blocks, not to
-save a few lines.
+## Providers and versions
 
-### What is a "tainted" resource?
+A provider is a plugin that teaches Terraform to talk to an API — a separate binary from a registry, not
+part of the core binary. `terraform init` resolves versions against `required_providers`, downloads plugins
+into `.terraform/providers`, and records exact versions and checksums in `.terraform.lock.hcl`.
 
-A resource that Terraform created successfully but whose provisioning step failed. Terraform cannot
-know whether the object is usable, so it marks it tainted in state and replaces it on the next
-apply.
+> **Commit `.terraform.lock.hcl`.** It guarantees laptops and CI resolve identical provider versions, and
+> its checksums detect a tampered plugin. Move versions deliberately with `terraform init -upgrade`, review
+> the plan, and commit the updated lock as its own change.
 
-You can mark a resource for replacement yourself. The modern command is:
+| | `.terraform.lock.hcl` | State lock |
+| :--- | :--- | :--- |
+| Purpose | Pins provider versions and checksums | Prevents concurrent state writes |
+| Created by | `terraform init` | Automatically per operation, by the backend |
+| Lives in | Version control | The backend (S3 conditional write, DynamoDB, OS file lock) |
+| Cleared by | `init -upgrade`, `providers lock` | `force-unlock`, only after confirming no run is active |
 
-```bash
-terraform apply -replace="aws_instance.web"
-```
-
-`terraform taint` did the same thing by editing state directly. It has been deprecated since
-Terraform 0.15.2 because `-replace` shows the replacement in a plan you can review first.
-
-### What is the null_resource, and what replaced it?
-
-`null_resource` implements the normal resource lifecycle but creates nothing. Its purpose is to be
-a container for provisioners, or to run an action when its `triggers` map changes:
-
-```hcl
-resource "null_resource" "run_migration" {
-  triggers = {
-    schema_version = var.schema_version
-  }
-
-  provisioner "local-exec" {
-    command = "./migrate.sh"
-  }
-}
-```
-
-Since Terraform 1.4, `terraform_data` is the built-in equivalent and needs no external provider.
-Prefer it in new code.
-
-Reference: [terraform_data](https://developer.hashicorp.com/terraform/language/resources/terraform-data)
-
-## Providers
-
-### What is a provider?
-
-A plugin that teaches Terraform how to talk to an API. Each provider contributes resource types and
-data sources; without a provider, Terraform can manage nothing. Providers are separate binaries
-distributed through a registry, not part of the Terraform core binary.
-
-In `resource "libvirt_domain" "instance" {}` the provider is `libvirt`, inferred from the resource
-type prefix.
-
-### How does Terraform find and install providers?
-
-`terraform init` reads the configuration, determines which providers the resource and data types
-require, resolves versions against any constraints in `required_providers`, downloads the plugins
-into `.terraform/providers`, and records the exact versions and checksums in `.terraform.lock.hcl`.
-
-Commit the lock file. It guarantees that everyone, including CI, resolves the same provider
-versions, and the recorded checksums protect against a tampered plugin. Run
-`terraform init -upgrade` when you deliberately want to move within the allowed constraints.
-Laptop-versus-CI drift from an uncommitted or incomplete lock file is covered in
-[Provider version drift between laptop and CI](#5-provider-version-drift-between-laptop-and-ci).
-
-Terraform can also install from a filesystem mirror or network mirror, which is how air-gapped
-environments work.
-
-Reference: [Dependency lock file](https://developer.hashicorp.com/terraform/language/files/dependency-lock)
-
-### How do you pin provider and module versions?
-
-Providers go in `required_providers`, with the constraint on the `version` argument:
+| Pinning | Syntax |
+| :--- | :--- |
+| Terraform core | `required_version = ">= 1.5.0, < 2.0.0"` |
+| Provider | `version = "~> 5.31"` inside `required_providers` |
+| Registry module | `version = "~> 5.1"` in the `module` block |
+| Git module | No `version` argument; pin in the source URL with `?ref=v1.4.0` or a commit SHA |
 
 ```hcl
 terraform {
   required_version = ">= 1.5.0"
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -468,77 +201,25 @@ terraform {
 }
 ```
 
-Registry modules use the `version` argument, which accepts the same constraint syntax:
+`~> 5.1` allows 5.1 and later 5.x but not 6.0. Core and providers version independently, so their major
+numbers need not match. Terraform can also install from a filesystem or network mirror, which is how
+air-gapped environments work.
 
-```hcl
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.1"
-}
-```
+The **`random` provider** generates values that must be stable across runs but unpredictable (bucket-name
+suffixes, initial passwords, `random_uuid`). The value is generated once and kept until `keepers` changes —
+in **plaintext state**, so it still needs an encrypted backend.
 
-Git-sourced modules have no `version` argument; pin them in the source URL with `?ref=`, using a tag
-or a commit SHA:
+**Docs:** [Provider requirements](https://developer.hashicorp.com/terraform/language/providers/requirements) · [Dependency lock file](https://developer.hashicorp.com/terraform/language/files/dependency-lock) · [Version constraints](https://developer.hashicorp.com/terraform/language/expressions/version-constraints)
 
-```hcl
-module "vpc" {
-  source = "git::https://github.com/org/tf-modules.git//vpc?ref=v1.4.0"
-}
-```
+## Variables and outputs
 
-`~> 5.1` allows 5.1 and later 5.x releases but not 6.0. Terraform core and providers version
-independently, so their major numbers need not match.
-
-### What is the "random" provider used for?
-
-Generating values that must be stable across runs but not predictable: suffixes for globally unique
-names such as S3 buckets, initial passwords, or `random_uuid` values.
-
-The value is generated once and stored in state, so it does not change on subsequent applies unless
-you change the `keepers` map. Note that anything `random` generates is written to state in
-plaintext, so a generated password still needs an encrypted backend.
-
-## Variables and Outputs
-
-### What are input variables and why use them?
-
-Input variables are a module's parameters. They let one configuration serve several environments,
-and they define the contract a module exposes to its callers, so a module is usable without reading
-its internals.
-
-```hcl
-variable "app_id" {
-  type        = string
-  description = "Identifier of the application"
-  default     = "some_value"
-}
-```
-
-Reference them as `var.app_id`. Only `type` is worth treating as effectively mandatory: none of
-`type`, `default` or `description` is required by Terraform, but a variable with no default is a
-required input.
-
-### What variable types does Terraform support?
-
-Primitives: `string`, `number`, `bool`.
-
-Collections: `list(TYPE)`, `set(TYPE)`, `map(TYPE)`.
-
-Structural: `object({ATTR = TYPE, ...})`, `tuple([TYPE, ...])`.
-
-Plus `any` where you deliberately want no constraint. Use `object` when a single variable must
-carry several typed fields, for example a server definition with a string name and a numeric memory
-size.
-
-### How do you enforce constraints on a variable's value?
-
-With one or more `validation` blocks:
+- **Contract:** variables are a module's parameters. `type`, `default` and `description` are all optional, but treat `type` as mandatory; no `default` means a required input.
+- **Types:** `string`, `number`, `bool`; `list(TYPE)`, `set(TYPE)`, `map(TYPE)`; `object({ATTR = TYPE, ...})`, `tuple([TYPE, ...])`; `any` removes the constraint.
+- **Assertions:** a `validation` condition must be an expression over the variable itself; use `precondition`/`postcondition` or a `check` block (1.5+) for cross-variable and post-plan invariants.
 
 ```hcl
 variable "instance_count" {
-  type        = number
-  description = "Number of application instances"
-
+  type = number
   validation {
     condition     = var.instance_count > 1
     error_message = "instance_count must be greater than 1."
@@ -546,45 +227,49 @@ variable "instance_count" {
 }
 ```
 
-The condition must be an expression over the variable itself. For cross-variable or post-plan
-invariants, use `precondition` and `postcondition` blocks in a `lifecycle` block, or a `check`
-block (Terraform 1.5+).
+### Variable definition precedence
 
-### What is the effect of marking a variable or output as sensitive?
+Values load in this order and **later sources override earlier ones**:
 
-`sensitive = true` is an output-redaction control. It hides the value in normal `terraform plan`
-and `terraform apply` output, and Terraform propagates that marking to expressions derived from it.
+| Order | Source |
+| :--- | :--- |
+| 1 (lowest) | The variable's `default` argument |
+| 2 | Environment variables (`TF_VAR_name`) |
+| 3 | `terraform.tfvars` |
+| 4 | `terraform.tfvars.json` |
+| 5 | `*.auto.tfvars` and `*.auto.tfvars.json`, in lexical filename order |
+| 6 (highest) | `-var` and `-var-file` on the command line, in the order given |
 
-It does **not** encrypt the value, omit it from plan or state files, prevent provider transmission,
-or make an unsafe storage location safe. The value is normally still present in Terraform
-artifacts. Protect those artifacts with backend encryption and strict access control, and never
-commit state or saved plan files to Git. Machine-readable commands such as
-`terraform output -json` can disclose sensitive values, so do not print their output in CI logs.
-Incident response when secrets are already in state is in
-[Secrets found in plaintext in the state file](#6-secrets-found-in-plaintext-in-the-state-file).
+Only `terraform.tfvars` and `*.auto.tfvars` load automatically; a file passed with `-var-file` is not
+otherwise loaded. Keep `.tfvars` files holding secrets out of Git.
 
-Reference: [Sensitive data in state](https://developer.hashicorp.com/terraform/language/state/sensitive-data)
+- Outputs are a child module's return values (`module.vpc.vpc_id`), and a root module's publication to the CLI and to other configurations via `terraform_remote_state`.
+- **Only root module outputs are printed** — surfacing a child value needs an output in the child *and* a re-export in the root.
+- `terraform output` reads state without planning; `output -json` is the usual CI hand-off and can disclose sensitive values.
 
-### How do ephemeral values and write-only arguments keep secrets out of Terraform artifacts?
+**Docs:** [Input variables](https://developer.hashicorp.com/terraform/language/values/variables) · [Definition precedence](https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-precedence) · [Output values](https://developer.hashicorp.com/terraform/language/values/outputs)
 
-Terraform 1.10 introduced ephemeral variables, child-module outputs and `ephemeral` resource
-blocks. Terraform makes these values available during a run but omits them from saved plans and
-state. Mark a secret both `sensitive` and `ephemeral`: `sensitive` redacts normal display, while
-`ephemeral` controls persistence.
+## Sensitive, ephemeral and write-only data
 
-Terraform 1.11 introduced provider-defined **write-only arguments**, commonly named with a `_wo`
-suffix. They accept a value during an operation but are always `null` in plan and state. This lets
-an ephemeral value reach an API without becoming a Terraform artifact:
+> **`sensitive = true` is display redaction, not protection.** It hides the value in normal `plan` and
+> `apply` output and propagates to derived expressions. It does **not** encrypt the value, omit it from plan
+> or state files, prevent transmission to the provider, or make an unsafe storage location safe. The value
+> is normally still present in Terraform artifacts.
+
+| Control | Version | What it guarantees |
+| :--- | :--- | :--- |
+| `sensitive = true` | 0.14+ | Redacts normal CLI display and propagates to derived values. Nothing about persistence |
+| `ephemeral = true` on variables, child-module outputs, `ephemeral` resources | 1.10+ | Available during the run, **omitted from saved plans and state** |
+| Write-only arguments (`_wo` suffix) | 1.11+ | Accepted during an operation, always `null` in plan and state |
+| Backend encryption plus least privilege | Always | The only thing that protects the artifact at rest |
+
+Mark a secret **both** `sensitive` and `ephemeral`: one controls display, the other persistence.
 
 ```hcl
 variable "db_password" {
   type      = string
   sensitive = true
   ephemeral = true
-}
-
-variable "db_password_version" {
-  type = number
 }
 
 resource "aws_db_instance" "app" {
@@ -594,135 +279,48 @@ resource "aws_db_instance" "app" {
 }
 ```
 
-Terraform cannot diff a value it never stores. Providers therefore often pair a write-only
-argument with a persisted version argument; increment that version to signal rotation. Ephemeral
-values can only flow into ephemeral-compatible contexts, such as provider configuration,
-provisioners, ephemeral outputs and write-only arguments. Provider and resource support varies, so
-check the Registry schema before relying on a `_wo` argument.
+- Terraform cannot diff a value it never stores, so providers pair a write-only argument with a persisted **version** argument; increment it to signal rotation.
+- Ephemeral values may only flow into ephemeral-compatible contexts: provider configuration, provisioners, ephemeral outputs and write-only arguments.
+- Check the Registry schema before relying on a `_wo` argument. Incident response is [scenario 6](#6-secrets-found-in-plaintext-in-the-state-file).
 
-References:
-- [Manage sensitive data](https://developer.hashicorp.com/terraform/language/manage-sensitive-data)
-- [Write-only arguments](https://developer.hashicorp.com/terraform/language/manage-sensitive-data/write-only)
+**Docs:** [Manage sensitive data](https://developer.hashicorp.com/terraform/language/manage-sensitive-data) · [Write-only arguments](https://developer.hashicorp.com/terraform/language/manage-sensitive-data/write-only)
 
-### What is the precedence order when the same variable is set in several places?
+## State and workspaces
 
-Terraform loads values in this order, and **later sources override earlier ones**:
+- State maps configuration addresses to real objects: resource IDs, attribute values, module and provider metadata, outputs and dependencies.
+- It exists because provider APIs cannot say which objects you manage and under what name; it also caches, so a plan diffs against state instead of enumerating the account.
+- `terraform apply` writes it — by default `terraform.tfstate` locally, previous version kept as `terraform.tfstate.backup`. Add a `backend` block, then `terraform init` to migrate.
 
-1. The variable's `default` argument (lowest precedence)
-2. Environment variables (`TF_VAR_name`)
-3. `terraform.tfvars`
-4. `terraform.tfvars.json`
-5. `*.auto.tfvars` and `*.auto.tfvars.json`, in lexical order of filename
-6. `-var` and `-var-file` options on the command line, in the order given
+| Requirement | Why | How |
+| :--- | :--- | :--- |
+| Not in Git | Contains plaintext secrets | S3+KMS, Azure Blob, GCS, HCP Terraform |
+| Encryption at rest | Same | Backend-native encryption, restricted key policy |
+| Object versioning | Losing state means re-importing everything by hand | Bucket versioning, MFA delete, deny `DeleteObject` on the state prefix for CI roles |
+| Locking | Concurrent writes corrupt state | Backend support; automatic, nothing to enable |
+| One state per environment and blast radius | A dev plan must not be able to touch prod | Separate backend keys or workspaces |
+| Never hand-edited | Serial and lineage integrity | `terraform state` subcommands, `moved` blocks, `import` |
 
-So a `-var` flag wins over everything, while the declaration default is used only when no other
-source supplies the value. Files given explicitly with `-var-file` are not loaded automatically;
-only the `terraform.tfvars` and `*.auto.tfvars` names are.
+- Remote state publishes outputs readable through `terraform_remote_state`; some backends (HCP Terraform, and `remote` generally) **run** the operations, so credentials stay off laptops.
+- Terraform locks before any operation that could write state, so a second run fails fast with `Error acquiring the state lock` instead of racing.
+- **S3 locks natively with conditional writes** (older setups use a DynamoDB table via `dynamodb_table`), the local backend uses OS file locking, and some backends do not lock at all.
+- A killed process can leave a stale lock — see [scenario 1](#1-error-acquiring-the-state-lock).
 
-Reference: [Variable definition precedence](https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-precedence)
+### Workspace distinctions
 
-### How do you define many variable values without repeating them on the command line?
+The relationship is **configuration -> configured backend -> selected workspace -> one state snapshot**. A
+root configuration declares at most one backend, but that does not mean one state file.
 
-Put them in a `.tfvars` file, which is a flat set of assignments:
+| Kind | What it is | Isolation |
+| :--- | :--- | :--- |
+| Local backend, `default` workspace | `terraform.tfstate` | — |
+| Local backend, non-default workspace | A separate file under `terraform.tfstate.d/` | State only |
+| Remote backend CLI workspace | Backend-specific key rules select a distinct remote object | State only; shares configuration, backend settings and usually credentials |
+| HCP Terraform workspace | Its own state, variables, run settings, RBAC and history | Full; **not the same concept** as a CLI workspace despite the shared name |
+| Directory per environment | Own backend key and `.tfvars`, shared modules | Strongest: environments may diverge in provider config, permissions and backend. Default for production |
 
-```hcl
-region         = "eu-west-1"
-instance_count = 2
-tags = {
-  owner = "platform"
-}
-```
-
-Terraform loads `terraform.tfvars` and any `*.auto.tfvars` automatically; pass anything else with
-`-var-file=prod.tfvars`. Keep `.tfvars` files containing secrets out of version control.
-
-### What are output values, and what does terraform output do?
-
-Outputs are the return values of a module. A child module's outputs are how its caller reads
-computed values (`module.vpc.vpc_id`); a root module's outputs are what Terraform prints after
-apply and what other configurations can read through the `terraform_remote_state` data source.
-
-`terraform output` reads them from state without running a plan; `terraform output -json` emits
-machine-readable output, which is the usual way to hand values to a CI pipeline.
-
-Only the root module's outputs are printed. To surface a child module's value on the CLI you must
-declare an output in the child *and* re-export it in the root.
-
-## State
-
-### What is terraform.tfstate used for?
-
-State is Terraform's mapping from configuration addresses to real objects. It records resource IDs
-and attribute values, module and provider metadata, output values, and resource dependencies.
-
-It exists because provider APIs cannot answer "which of these objects do you manage, and under what
-name". State is also a performance cache: Terraform can produce a plan by diffing configuration
-against state rather than enumerating every object in the account.
-
-### Where should you store state, and why does it matter?
-
-Not in Git. State should live in a remote backend with encryption, versioning and access control:
-S3 with a KMS key and object versioning, Azure Blob Storage, GCS, or HCP Terraform.
-
-The reasons:
-
-- State frequently contains secrets in plaintext (database passwords, generated keys, any variable
-  marked sensitive), so a public or broadly readable location is a data leak.
-- Concurrent writes corrupt state, so it needs a location that supports locking.
-- State is the record of what you own. Losing it means adopting every resource again by hand, so it
-  needs versioning and backups.
-
-### What is remote state, and what does it give you beyond a local file?
-
-Remote state stores `terraform.tfstate` in a shared backend instead of on one engineer's disk. That
-gives you a single source of truth for the team, state locking, encryption at rest, version history
-for rollback, and the ability for other configurations to read published outputs through the
-`terraform_remote_state` data source.
-
-Some backends (HCP Terraform, and the `remote` backend generally) additionally run the operations
-themselves, so `plan` and `apply` execute on shared infrastructure with centrally managed
-credentials.
-
-### Explain state locking.
-
-Before any operation that could write state, Terraform acquires a lock on the backend, and releases
-it when the operation finishes. A second run against the same state fails fast with
-`Error acquiring the state lock` instead of racing and corrupting it. This happens automatically on
-backends that support it; nothing needs enabling.
-
-Support varies by backend. S3 now performs locking natively with conditional writes; older setups
-use a DynamoDB table via `dynamodb_table`. The local backend locks with OS file locking. Some
-backends do not support locking at all.
-
-If a process is killed mid-run the lock can be left behind. Never clear it until you have confirmed
-that no run is active. The full investigation and guarded `force-unlock` procedure is in
-[Error acquiring the state lock](#1-error-acquiring-the-state-lock).
-
-Do not confuse state locking with `.terraform.lock.hcl`. That is the dependency lock file: it pins
-provider versions and checksums, is created and updated by `terraform init`, and belongs in version
-control.
-
-### How do you manage state across multiple environments?
-
-The two common patterns:
-
-- **Directory per environment**, each with its own backend key and `.tfvars`, sharing modules. More
-  files, but the environments are visibly separate and can diverge in provider configuration,
-  permissions and backend.
-- **CLI workspaces**, one distinct state snapshot per workspace within the configured backend. With
-  the local backend these are separate files; remote backends map workspace names to distinct
-  remote objects according to backend-specific rules. They still share configuration, backend
-  settings and usually credentials, so they suit short-lived or low-risk environments better than
-  strongly isolated production environments.
-
-Either way, isolate each environment and blast radius in a distinct state snapshot. Do not put dev
-and prod resources in the same snapshot: a dev plan could then affect prod, and one damaged state
-would affect both.
-
-### How do you rename or move a resource without destroying it?
-
-Prefer a `moved` block, which makes the change part of the reviewable plan and works for anyone who
-applies the configuration:
+- CLI workspaces mean less duplication but shared configuration and credentials, so they suit short-lived or low-risk environments rather than isolated production.
+- Rename or move without destroying by using a `moved` block, which makes the change part of the reviewable plan.
+- `terraform state mv` does the same imperatively on one machine only — one-off surgery, never a change the team must reproduce. Re-read the [safety rules](#safety-rules) first.
 
 ```hcl
 moved {
@@ -731,253 +329,55 @@ moved {
 }
 ```
 
-The imperative equivalent is `terraform state mv aws_instance.web aws_instance.web_server`, which
-edits state directly on one machine only. Use it for one-off surgery, not for changes you want your
-team to reproduce.
-
-### State file best practices.
-
-- Never edit it by hand. Use `terraform state` subcommands, `moved` blocks or `import`.
-- Before any imperative state change, confirm the workspace/backend, acquire exclusive control,
-  run `(umask 077; terraform state pull > state-backup-$(date +%s).json)`, and verify the affected
-  addresses. The backup contains secrets; store and remove it accordingly.
-- Treat `terraform state rm` as a deliberate handoff: it stops management but does not destroy the
-  object. A later apply may create a duplicate if the resource remains in configuration.
-- Treat `terraform state push` as disaster recovery only. Prefer restoring through backend
-  versioning; review a diff, verify lineage/serial checks, and never use `-force` casually.
-- Store it in a remote backend with encryption at rest and least-privilege access.
-- Enable object versioning on the bucket so you can roll back a bad apply.
-- Enable locking so concurrent runs cannot interleave.
-- Keep one state per environment and per blast radius.
-- Treat it as secret material: it contains plaintext values, including anything marked sensitive.
-
-### Which command creates the state file, and where does it go by default?
-
-`terraform apply` writes it. By default it goes to `terraform.tfstate` in the working directory,
-using the local backend; the previous version is kept as `terraform.tfstate.backup`.
-
-Configure a different location with a `backend` block inside the `terraform` block, then run
-`terraform init` to migrate the existing state:
-
-```hcl
-terraform {
-  backend "s3" {
-    bucket = "my-tf-state"
-    key    = "prod/network/terraform.tfstate"
-    region = "eu-west-1"
-  }
-}
-```
-
-## Provisioners
-
-### What are provisioners, and why are they a last resort?
-
-Provisioners run actions on the local machine or on a newly created remote resource, typically to
-bootstrap software that no provider models.
-
-HashiCorp documents them as a last resort, and interviewers expect you to know why:
-
-- They are not part of the declarative model. Terraform cannot plan them, detect drift in what they
-  did, or undo them.
-- A failed creation-time provisioner taints the resource, so the next apply destroys and recreates
-  it.
-- They usually require SSH or WinRM connectivity and credentials from the machine running Terraform,
-  which is awkward in CI.
-
-Better alternatives: cloud-init or `user_data` for first boot, a purpose-built image from Packer,
-a configuration management tool triggered after apply, or a provider that models the thing directly.
-
-### Explain local-exec and remote-exec.
-
-**`local-exec`** runs a command on the machine executing Terraform, after the resource is created.
-Use it for local side effects such as writing an inventory file or invoking another CLI:
-
-```hcl
-resource "aws_instance" "web" {
-  # ...
-  provisioner "local-exec" {
-    command = "echo ${self.private_ip} >> inventory.txt"
-  }
-}
-```
-
-**`remote-exec`** runs commands on the remote resource over SSH or WinRM, so it needs a `connection`
-block:
-
-```hcl
-resource "aws_instance" "web" {
-  # ...
-  provisioner "remote-exec" {
-    inline = ["sudo apt-get update", "sudo apt-get install -y nginx"]
-
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file("~/.ssh/id_rsa")
-      host        = self.public_ip
-    }
-  }
-}
-```
-
-The related `file` provisioner copies files to the remote resource over the same connection.
+**Docs:** [State](https://developer.hashicorp.com/terraform/language/state) · [State locking](https://developer.hashicorp.com/terraform/language/state/locking) · [Workspaces](https://developer.hashicorp.com/terraform/language/state/workspaces) · [Backends](https://developer.hashicorp.com/terraform/language/backend)
 
 ## Modules
 
-### What is a module?
+A module is any directory of `.tf` files. The directory Terraform runs in is the **root module**; anything
+called with a `module` block is a **child module**. Scope stops at the boundary in **both** directions: a
+child cannot see `var.x` from its parent, and a parent cannot see a child's resources.
 
-Any directory containing `.tf` files. The directory Terraform runs in is the **root module**; any
-module it calls with a `module` block is a **child module**. A module groups related resources
-behind input variables and output values so it can be reused and versioned like a library.
+| Direction | Mechanism |
+| :--- | :--- |
+| Down | Declare `variable` in the child, set it as an argument in the `module` block |
+| Up | Declare `output` in the child, read it as `module.<NAME>.<OUTPUT>` |
+| To the CLI | The root module must declare its own output re-exporting the child value |
+| Across separate states | `terraform_remote_state`, or a shared store (SSM Parameter Store, Consul, a tag) read with a normal data source |
 
-```hcl
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.1"
+- `terraform_remote_state` couples the consumer to the producer's state file and needs read access to it, so publishing to a shared store is the looser alternative; Terragrunt makes the coupling explicit with `dependency` blocks.
+- The public [Terraform Registry](https://registry.terraform.io) derives inputs, outputs and versions from the source repository — module versions come from **release tags**, not the module code.
+- Anyone can publish: "Verified" and "Partner" mean HashiCorp partnership, **not** an audit. HCP Terraform adds a private registry with the same interface.
 
-  name = "prod-vpc"
-  cidr = "10.0.0.0/16"
-}
-```
+| Test layer | Tooling |
+| :--- | :--- |
+| 1 | `terraform fmt -check`, `terraform validate` — free, instant, no API calls |
+| 2 | `tflint` for provider mistakes; `tfsec`/`checkov`/`trivy config` for security policy |
+| 3 | `terraform test` with `.tftest.hcl` files (built in since 1.6): plan- or apply-based assertions |
+| 4 | Terratest (Go) against a real account, then Sentinel or OPA in the pipeline for organisation-wide rules |
 
-### How do variables and outputs cross module boundaries?
+- The classic testing answer is Terratest; mentioning native `terraform test` shows current knowledge.
+- **Terragrunt** keeps large multi-environment setups DRY: generated backend and provider configuration, inter-stack dependencies, `run-all` across modules, and repeated CLI flags.
+- Native features absorbed much of that (partial backend config, `for_each` on modules, `moved` blocks, HCP stacks), so justify Terragrunt rather than defaulting to it.
 
-They do not do so implicitly. Scope stops at the module boundary in both directions: a child module
-cannot see `var.x` from its parent, and a parent cannot see a child's resources.
+**Docs:** [Modules](https://developer.hashicorp.com/terraform/language/modules) · [Module sources](https://developer.hashicorp.com/terraform/language/modules/sources) · [Tests](https://developer.hashicorp.com/terraform/language/tests)
 
-To pass a value **down**, declare a variable in the child and set it in the `module` block:
+## Operations and tooling
 
-```hcl
-# modules/app/variables.tf
-variable "environment" {
-  type = string
-}
+| Command | Does | Does not |
+| :--- | :--- | :--- |
+| `init` | Installs providers and modules, configures the backend, writes the lock file; safe to re-run, required after changing providers, modules or backend | Touch infrastructure |
+| `validate` | Checks syntax and internal consistency — argument names, resolvable references, expression types; needs an initialised directory | Call APIs or read state, so it cannot tell you whether infrastructure matches |
+| `plan` | Refreshes state, diffs against configuration, prints the change set; `-out=tfplan` saves it | Modify state or infrastructure |
+| `apply` | Executes the plan and writes results to state; without a saved plan it computes a fresh one and prompts | Roll back automatically — it is not atomic |
+| `console` | Evaluates expressions and functions against current state | Change anything; the best tool for expression questions |
+| `output` | Reads outputs from state without planning | Redact under `-json` |
 
-# root main.tf
-module "app" {
-  source      = "./modules/app"
-  environment = var.environment
-}
-```
+State format upgrades are **one-way**: once a newer Terraform writes state, older versions refuse to read it. Pin
+`required_version` and install that version in CI with `tfenv` or `hashicorp/setup-terraform`, never "latest".
 
-To pass a value **up**, declare an output in the child and reference it as
-`module.<NAME>.<OUTPUT>`:
-
-```hcl
-# modules/vpc/outputs.tf
-output "vpc_id" {
-  value = aws_vpc.this.id
-}
-
-# root main.tf
-subnet_vpc_id = module.vpc.vpc_id
-```
-
-To have the value appear in `terraform apply` CLI output, the root module must declare an output of
-its own that re-exports it.
-
-### How do you inject dependencies between separately managed stacks?
-
-The built-in mechanism is the `terraform_remote_state` data source, which reads another
-configuration's published outputs:
-
-```hcl
-data "terraform_remote_state" "network" {
-  backend = "s3"
-  config = {
-    bucket = "my-tf-state"
-    key    = "prod/network/terraform.tfstate"
-    region = "eu-west-1"
-  }
-}
-
-resource "aws_instance" "app" {
-  subnet_id = data.terraform_remote_state.network.outputs.private_subnet_id
-}
-```
-
-This couples the consumer to the producer's state file and requires read access to it. A looser
-alternative is to publish the value to a data store both sides can read (SSM Parameter Store,
-Consul, a tag) and look it up with a normal data source.
-
-Terragrunt is a common third-party wrapper that makes this explicit with `dependency` blocks.
-
-### What is the Terraform Registry?
-
-A public index of providers and modules at
-[registry.terraform.io](https://registry.terraform.io). It exposes each module's required and
-optional inputs, defaults, outputs, and version history, all derived from the source repository.
-Module versions come from the repository's release tags, not from anything in the module code.
-
-Anyone can publish. "Verified" and "Partner" badges indicate the publisher is a HashiCorp partner,
-not that the code has been audited; read the source before depending on it.
-
-HCP Terraform and Terraform Enterprise add a **private registry** with the same interface, scoped to
-your organisation, which is the standard answer for sharing internal modules with version
-constraints and a browsable catalogue.
-
-### How do you test a Terraform module?
-
-In layers, cheapest first:
-
-1. `terraform fmt -check` and `terraform validate` for syntax and internal consistency.
-2. Static analysis: `tflint` for provider-specific mistakes, `tfsec`/`checkov`/`trivy` for security
-   policy.
-3. `terraform test` (built in since Terraform 1.6), which runs `.tftest.hcl` files containing plan-
-   or apply-based assertions against the module.
-4. Integration tests with Terratest, a Go library that applies the module against a real account,
-   asserts on the result, and destroys it.
-5. Policy as code with Sentinel or OPA in the pipeline for organisation-wide rules.
-
-The classic interview answer is Terratest; mentioning the native `terraform test` framework shows
-current knowledge.
-
-### What is Terragrunt and what problems does it solve?
-
-A thin wrapper around Terraform aimed at keeping large multi-environment setups DRY. Its main uses:
-
-- Generating backend and provider configuration instead of copying it into every environment.
-- Declaring dependencies between stacks and passing outputs between them.
-- Running a command across many modules at once (`terragrunt run-all apply`).
-- Keeping repeated CLI flags in configuration.
-
-Much of the original motivation has been absorbed by native features: partial backend
-configuration, `for_each` on modules, `moved` blocks, and stacks in HCP Terraform. It is still
-widely used, but treat "we use Terragrunt" as a decision to justify rather than a default.
-
-## Operations and Tooling
-
-### Explain terraform init, plan, validate and apply.
-
-- **`terraform init`** prepares the working directory: it installs providers, downloads modules,
-  configures the backend and writes the dependency lock file. It is safe to re-run and is required
-  after changing providers, modules or the backend.
-- **`terraform validate`** checks that the configuration is syntactically valid and internally
-  consistent (correct argument names, resolvable references, type-correct expressions). It makes no
-  API calls and does not look at state, so it cannot tell you whether the infrastructure matches.
-  The working directory must be initialised first.
-- **`terraform plan`** refreshes state, compares it with the configuration and prints the changes it
-  would make. It never modifies state or infrastructure. `-out=tfplan` saves the plan for a later
-  `apply`.
-- **`terraform apply`** executes the plan, calling provider APIs and writing the result to state.
-  Without a saved plan file it computes a fresh plan and prompts for approval.
-
-### What is terraform import, and how do you use it?
-
-`terraform import` brings an object that already exists into Terraform state, so Terraform manages
-it from then on. It does **not** generate configuration.
-
-The workflow:
-
-1. Identify the resource and its provider-specific ID.
-2. Write configuration matching it.
-3. Import it: `terraform import aws_instance.web i-0123456789abcdef0`.
-4. Run `terraform plan` and expect an empty diff. A non-empty diff means your configuration does not
-   yet match reality; fix the configuration, not the infrastructure.
-
-Since Terraform 1.5 you can do this declaratively with an `import` block, which makes the import
-part of a reviewable plan and can generate a starting configuration:
+- `terraform import` brings an existing object into state but does **not** generate configuration.
+- Workflow: identify the provider-specific ID, write matching configuration, import, then plan and expect an empty diff. A non-empty diff means fixing the configuration, not the infrastructure.
+- Since 1.5 the `import` block makes this reviewable, and `terraform plan -generate-config-out=generated.tf` can scaffold the configuration.
 
 ```hcl
 import {
@@ -986,86 +386,24 @@ import {
 }
 ```
 
-```bash
-terraform plan -generate-config-out=generated.tf
-```
-
-Reference: [Import](https://developer.hashicorp.com/terraform/language/import)
-
-### How do you recover from a failed apply?
-
-A failed apply is partial, not atomic: completed operations remain in infrastructure and are
-normally recorded in state. Diagnose the provider error, run a fresh plan, fix the root cause and
-apply again; reverting code alone does not undo infrastructure.
-
-For the evidence sequence, orphan-resource case and state-recovery safeguards, see
-[Apply failed halfway](#8-apply-failed-halfway-and-left-partial-infrastructure)
-and [State file lost or corrupted](#4-state-file-lost-corrupted-or-partially-deleted).
-
-### How do you detect and handle drift?
-
-Drift is any change made outside Terraform. Detect it with a refresh-only plan, which compares real
-objects with the prior state and reports what would be recorded without proposing
-configuration-driven infrastructure changes:
+Drift is any change made outside Terraform. A refresh-only plan reports what would be recorded without
+proposing configuration-driven changes.
 
 ```bash
 terraform plan -refresh-only
-terraform apply -refresh-only   # review, approve, and record observed values in state
+terraform apply -refresh-only     # review, approve, record observed values in state
+terraform plan -detailed-exitcode # exit code 2 means changes exist; alert on it
 ```
 
-`terraform apply -refresh-only` is the explicit, reviewable way to adopt observed drift into state.
-It does not make the configuration match that drift, so a later normal plan can still propose
-restoring the configured value. Never use `-lock=false` for drift adoption; that flag merely
-disables concurrency protection and can corrupt shared state.
+- `apply -refresh-only` adopts observed values into state but does **not** change the configuration, so a later normal plan can still propose restoring the configured value.
+- Never use `-lock=false` for drift adoption; decision table in [scenario 3](#3-someone-changed-infrastructure-in-the-console-drift).
+- A failed apply is likewise partial, not atomic: completed operations remain and are normally recorded in state, so reverting code alone does not undo them — see [scenario 8](#8-apply-failed-halfway-and-left-partial-infrastructure) and [scenario 4](#4-state-file-lost-corrupted-or-partially-deleted).
 
-For deciding whether to revert, codify, ignore or adopt each change, see
-[Someone changed infrastructure in the console](#3-someone-changed-infrastructure-in-the-console-drift).
-The standalone `terraform refresh` command is deprecated because it writes state without a
-reviewable apply step.
+- **HCP Terraform** over the CLI: remote state with locking and version history, plus remote runs on managed or self-hosted agents so credentials leave laptops.
+- Also encrypted variable and variable-set storage, VCS integration (speculative plans on pull requests, applies on merge), RBAC and apply approvals, and a private module registry.
+- Policy runs with Sentinel or OPA sit between plan and apply. Terraform Enterprise is the self-hosted distribution of the same product.
 
-### What is HCP Terraform (Terraform Cloud), and what does it add over the CLI?
-
-A hosted service for running Terraform as a team. Over and above the open-source CLI it provides:
-
-- Remote state storage with locking, encryption and version history.
-- Remote runs on managed or self-hosted agents, so credentials live in the platform rather than on
-  laptops.
-- Encrypted variable storage, including workspace and variable-set level secrets.
-- VCS integration: speculative plans on pull requests, applies on merge.
-- Role-based access control and approval workflows for applies.
-- A private module registry.
-- Policy as code with Sentinel or OPA, evaluated between plan and apply.
-
-Terraform Enterprise is the self-hosted distribution of the same product. A free tier exists; audit
-logging and the richer governance features are paid.
-
-### How do you check the installed Terraform version, and why does it matter?
-
-```bash
-terraform version
-```
-
-It also reports provider versions and warns when a newer release is available. Pin the range in
-configuration so a colleague or CI runner on a different version cannot silently write an
-incompatible state file:
-
-```hcl
-terraform {
-  required_version = ">= 1.5.0, < 2.0.0"
-}
-```
-
-State format upgrades are one-way: once a newer Terraform writes the state, older versions refuse to
-read it.
-
-### Which commands are useful for debugging and inspection?
-
-Use [first-response triage](#first-response-triage) for the default evidence sequence, plan
-symbols, and the rule against dumping JSON state or outputs into logs.
-
-`terraform console` is the extra tool for interviews: it evaluates expressions and functions
-against current state without planning a change. `TF_LOG=DEBUG` with `TF_LOG_PATH` captures
-provider API calls on stderr when the plan or apply error is not enough.
+**Docs:** [CLI commands](https://developer.hashicorp.com/terraform/cli/commands) · [Import](https://developer.hashicorp.com/terraform/language/import) · [HCP Terraform](https://developer.hashicorp.com/terraform/cloud-docs)
 
 ## Troubleshooting scenarios
 
@@ -1073,20 +411,16 @@ provider API calls on stderr when the plan or apply error is not enough.
 
 ```bash
 terraform version                        # core and provider versions actually in use
-terraform providers                      # requirements across the root and all modules
+terraform workspace show                 # which state am I about to touch?
+terraform providers                      # requirements across root and all modules
 terraform plan -refresh-only             # has anything changed outside Terraform?
 terraform state list                     # what does Terraform think it owns?
 terraform state show <ADDRESS>           # full attributes of one resource
-terraform graph | dot -Tsvg > graph.svg  # dependency ordering
-TF_LOG=DEBUG TF_LOG_PATH=./tf.log terraform plan   # provider API calls, logs go to stderr
 ```
 
-Do not include `terraform show -json`, `terraform state pull` or `terraform output -json` in routine
-triage output. They can disclose every sensitive value to terminal history, CI logs or retained
-artifacts. Use targeted `state show` only in a restricted local session, and still assume it may
-contain secrets.
-
-Read the plan symbols before doing anything else:
+> **Keep secrets out of triage output.** Do not put `show -json`, `state pull` or `output -json` in routine
+> triage; they can disclose every sensitive value to shell history, CI logs or retained artifacts. Use
+> targeted `state show` only in a restricted local session, and still assume it contains secrets.
 
 | Symbol | Meaning |
 | :--- | :--- |
@@ -1097,323 +431,206 @@ Read the plan symbols before doing anything else:
 | `+/-` | create then destroy, because `create_before_destroy` is set |
 | `<=` | read a data source during apply |
 
-A `-/+` on a stateful resource requires explicit review. Always find the "forces replacement"
-annotation next to the attribute that caused it, and verify backup and recovery requirements before
-approval.
+A `-/+` on a stateful resource requires explicit review: find the `# forces replacement` annotation next to
+the attribute that caused it, and verify backup and recovery requirements before approval.
 
 ### 1. Error acquiring the state lock
 
-**Symptom:** every run fails immediately with `Error acquiring the state lock`, quoting a lock ID,
-the operation, who created it and when.
+**Symptom:** every run fails immediately with `Error acquiring the state lock`, quoting a lock ID, operation,
+who created it and when.
 
-**Evidence:**
+**Evidence:** the error carries ID, Operation, Who, Created and Path. Before assuming the lock is stale, look for a
+running pipeline job on the same workspace and compare its age with `Created`. A stale lock means a previous run was
+killed before releasing it (CI cancelled, runner evicted, laptop closed); otherwise two runs really are concurrent.
 
-```bash
-# The error itself carries the important fields
-# ID, Operation, Who, Created, Path
-```
+**Fix:** confirm no apply is in flight — breaking a live lock interleaves two writers and corrupts state. Then
+`terraform force-unlock <LOCK_ID>` with the ID from the error, and confirm with `terraform plan` that state
+still reflects reality before applying.
 
-Check whether the holder is real before assuming it is stale: look for a currently running pipeline
-job on the same workspace, and compare the `Created` timestamp with the age of that job.
-
-**Cause:** a previous run was killed before it could release the lock (CI job cancelled, runner
-evicted, laptop closed), or two runs really are executing concurrently against the same state.
-
-**Fix:**
-
-1. Confirm no apply is in flight. Breaking a live lock can interleave two writers and corrupt state.
-2. Take the lock ID from the error message.
-3. `terraform force-unlock <LOCK_ID>`.
-4. Run `terraform plan` and confirm state still reflects reality before applying.
-
-**Prevention:** serialise runs per state file with pipeline concurrency controls
-(`concurrency:` in GitHub Actions, `resource_group:` in GitLab CI). Keep applies out of interactive
-shells so a closed laptop cannot orphan a lock. Never disable locking with `-lock=false` to work
-around it.
+**Prevent:** serialise runs per state file with pipeline concurrency controls (`concurrency:` in GitHub
+Actions, `resource_group:` in GitLab CI). Keep applies out of interactive shells so a closed laptop cannot
+orphan a lock. Never use `-lock=false`.
 
 ### 2. Plan wants to destroy and recreate a production database
 
-**Symptom:** a small configuration change produces `-/+ must be replaced` against an RDS instance,
-managed disk or other stateful resource.
+**Symptom:** a small configuration change produces `-/+ must be replaced` against an RDS instance, managed
+disk or other stateful resource.
 
-**Evidence:**
+**Evidence:** the plan prints `# forces replacement`, and `replace_paths` in the JSON plan names the attribute.
+Treat the JSON plan as sensitive. The cause is always an immutable attribute:
+
+- Availability zone, subnet, engine version, or `name` where renaming is unsupported.
+- A changed `for_each` key or `count` index, which changes the *address* rather than the resource.
 
 ```bash
 terraform plan -out=tfplan
-terraform show -json tfplan | jq '.resource_changes[]
-  | select(.change.actions | index("delete"))
-  | {address, actions: .change.actions, replace: .change.replace_paths}'
+terraform show -json tfplan | jq '.resource_changes[] | select(.change.actions | index("delete")) | {address, replace: .change.replace_paths}'
 ```
-
-`replace_paths` names the exact attribute that forced replacement; the human-readable plan prints
-`# forces replacement` on the same line.
-
-**Cause:** you changed an immutable attribute. Common triggers are availability zone, subnet,
-engine version on some providers, `name` on resources that cannot be renamed, and any change to a
-`for_each` key or `count` index, which changes the resource address rather than the resource.
 
 **Fix:**
 
-- If the change is not actually required, revert that attribute and find another way to achieve the
-  goal.
-- If it is an address change rather than a real change (renaming a resource, moving it into a
-  module, migrating `count` to `for_each`), it is not a replacement. Record the move in
-  configuration as below; the reviewable `moved` pattern is also in
-  [How do you rename or move a resource without destroying it?](#how-do-you-rename-or-move-a-resource-without-destroying-it).
+| Situation | Action |
+| :--- | :--- |
+| The change is not actually required | Revert that attribute and reach the goal another way |
+| It is an address change (rename, move into a module, `count` to `for_each`) | Not a replacement — record it with a `moved` block so the plan shows a move |
+| The resource genuinely must be replaced | Snapshot, provision the replacement alongside with `create_before_destroy`, cut over, then remove the old one |
 
-  ```hcl
-  moved {
-    from = aws_instance.web[0]
-    to   = aws_instance.web["primary"]
-  }
-  ```
-
-- If the resource genuinely must be replaced, plan the migration explicitly: snapshot, provision
-  the replacement alongside with `create_before_destroy`, cut over, then remove the old one.
-
-**Prevention:** put `lifecycle { prevent_destroy = true }` on databases and other resources whose
-loss is unrecoverable, so an unintended destroy plan fails instead of proceeding. Require plan output in the
-pull request, and fail CI automatically when a plan contains a delete against a protected address.
+**Prevent:** `lifecycle { prevent_destroy = true }` on resources whose loss is unrecoverable, plan output
+required in the pull request, and CI that fails when a plan contains a delete against a protected address.
 
 ### 3. Someone changed infrastructure in the console (drift)
 
-**Symptom:** a plan proposes changes nobody made in code, or an apply reverts a fix that an engineer
-applied by hand during an incident.
+**Symptom:** a plan proposes changes nobody made in code, or an apply reverts a fix an engineer applied by
+hand during an incident.
 
-**Evidence:**
+**Evidence:** `terraform plan -refresh-only` for what reality says versus state, then
+`terraform state show <ADDRESS>` on the affected resource. The cause is an out-of-band change: Terraform
+converges on the configuration, so the next apply undoes anything it owns that does not match.
 
-```bash
-terraform plan -refresh-only    # what reality says, versus state
-terraform state show aws_lb_listener.https
-```
+**Fix:** decide who owns the attribute, then pick one row.
 
-**Cause:** an out-of-band change. Terraform's job is to converge on the configuration, so on the
-next apply it will undo anything it owns that does not match.
+| Decision | Action |
+| :--- | :--- |
+| The manual change was wrong | `terraform apply` and let Terraform restore declared state |
+| It was right and should become desired state | Codify it, then a normal plan and apply — the plan refreshes state |
+| Accept only the observed values into state, changing nothing | Review and run `apply -refresh-only`; configuration is unchanged, so a later plan can still propose reversing it |
+| Another system legitimately owns it (autoscaler, deployment tool) | `lifecycle { ignore_changes = [desired_count, task_definition] }` |
+| Deleted outside Terraform and should stay deleted | Remove it from configuration, then `apply -refresh-only` to record the deletion |
+| Deleted outside Terraform and should exist | Normal `terraform apply` to rebuild it |
 
-**Fix:** decide who owns the attribute, then pick one:
+Never add `-lock=false` to either workflow; it only disables concurrency protection and does not turn a
+normal apply into drift adoption.
 
-- The manual change was wrong: `terraform apply` and let Terraform restore the declared state.
-- The manual change was right and should become desired state: codify it, then run a normal plan and
-  apply. Terraform refreshes state as part of that plan.
-- You need to accept only the newly observed remote values into state, without changing
-  infrastructure: review and run `terraform apply -refresh-only`. This does not update the
-  configuration, so a later normal plan can still propose reversing the drift.
-- Another system legitimately owns the attribute (an autoscaler setting desired capacity, a
-  deployment tool setting the image tag):
-
-  ```hcl
-  lifecycle {
-    ignore_changes = [desired_count, task_definition]
-  }
-  ```
-
-- The object was deleted outside Terraform: if it should remain deleted, remove it from
-  configuration and use `terraform apply -refresh-only` to record the observed deletion. If it
-  should exist, use a normal `terraform apply` to rebuild it.
-
-Never add `-lock=false` to either workflow. It only disables concurrency protection; it does not
-turn a normal apply into drift adoption.
-
-**Prevention:** remove or tightly restrict human write access to environments Terraform manages, and
-grant break-glass roles that are time-limited and audited. Run `terraform plan -detailed-exitcode`
-on a schedule and alert on exit code 2, which means drift exists.
+**Prevent:** remove or tightly restrict human write access to Terraform-managed environments, make
+break-glass roles time-limited and audited, and run `terraform plan -detailed-exitcode` on a schedule
+alerting on exit code 2.
 
 ### 4. State file lost, corrupted, or partially deleted
 
-**Symptom:** `terraform plan` proposes creating everything from scratch, or fails with a JSON parse
-error, and the resources plainly already exist.
+**Symptom:** `terraform plan` proposes creating everything from scratch, or fails with a JSON parse error,
+and the resources plainly already exist.
 
-**Evidence:**
+**Evidence:** `terraform state list` returns empty or far fewer addresses than expected; list the backend's version
+history (for S3, `aws s3api list-object-versions --bucket my-tf-state --prefix prod/terraform.tfstate`). Causes:
 
-```bash
-terraform state list                       # empty or much shorter than expected
-aws s3api list-object-versions --bucket my-tf-state --prefix prod/terraform.tfstate
-```
-
-**Cause:** the state object was deleted or overwritten, an interrupted write left it truncated, or
-someone ran in the wrong directory against an uninitialised backend.
+- The state object was deleted or overwritten, or an interrupted write truncated it.
+- Someone ran in the wrong directory against an uninitialised backend.
 
 **Fix:**
 
-1. Stop all pipelines targeting that state. A single apply against empty state will duplicate the
-   whole stack.
-2. Confirm the active backend and workspace, record the current backend object version/ETag, and
-   preserve the current state object even if it appears corrupt. Restore the previous version
-   through the backend's native versioning when possible; this preserves its audit trail and avoids
-   bypassing backend controls.
-3. If native restoration is impossible and `terraform state push` is required, download the
-   candidate version to a mode-0600 file, inspect the diff against the current state, verify its
-   lineage and serial are appropriate, and obtain peer approval. Push without `-force`; a lineage
-   or serial rejection is a safety signal to investigate, not a reason to add `-force`.
-4. If no backup exists, rebuild state by importing each resource. Terraform 1.5+ makes this
-   tolerable with `import` blocks and generated configuration:
+1. **Stop all pipelines targeting that state.** One apply against empty state duplicates the stack.
+2. Confirm the active backend and workspace, record the current object version/ETag, and **preserve the
+   current state object even if it looks corrupt**. Restore the previous version through the backend's native
+   versioning where possible; that keeps the audit trail and does not bypass backend controls.
+3. Only if native restoration is impossible and `state push` is required: download the candidate to a
+   mode-0600 file, diff it against the current state, verify lineage and serial are appropriate, get peer
+   approval, and push **without** `-force`. A lineage or serial rejection is a safety signal to investigate,
+   not a reason to add `-force`.
+4. If no backup exists, rebuild state by importing each resource; 1.5+ `import` blocks with
+   `terraform plan -generate-config-out=generated.tf` make this tolerable.
+5. Verify with `plan -refresh-only`, then a normal `plan`, before re-enabling applies. Securely remove any
+   local state copies.
 
-   ```hcl
-   import {
-     to = aws_vpc.main
-     id = "vpc-0123456789abcdef0"
-   }
-   ```
-
-   ```bash
-   terraform plan -generate-config-out=generated.tf
-   ```
-
-5. Verify with `terraform plan -refresh-only`, then a normal `terraform plan`, before re-enabling
-   applies. Remove any local state copies securely.
-
-**Prevention:** object versioning and MFA delete on the state bucket, deny `s3:DeleteObject` on the
-state prefix for CI roles, and one distinct state snapshot per environment so a single mistake
-cannot affect every environment. Test the restore path before you need it.
+**Prevent:** object versioning and MFA delete on the state bucket, deny `s3:DeleteObject` on the state prefix
+for CI roles, one distinct state snapshot per environment, and a tested restore path.
 
 ### 5. Provider version drift between laptop and CI
 
-**Symptom:** the plan is clean locally but CI proposes unrelated changes, or an apply fails on an
-argument that does not exist in the provider version CI resolved.
+**Symptom:** the plan is clean locally but CI proposes unrelated changes, or an apply fails on an argument
+that does not exist in the version CI resolved.
 
-**Evidence:**
-
-```bash
-terraform version
-terraform providers
-git status .terraform.lock.hcl      # is it committed, and does it match?
-```
-
-**Cause:** `.terraform.lock.hcl` is not committed, or the constraint is loose (`>= 5.0`) and the two
-environments resolved different versions. Provider upgrades change defaults and add computed
-attributes, which shows up as spurious diffs.
+**Evidence:** `terraform version` and `terraform providers` in both places, then `git status .terraform.lock.hcl` —
+is it committed, and does it match? Either the lock is uncommitted, or the constraint is loose (`>= 5.0`) and the
+two environments resolved different versions; upgrades change defaults and add computed attributes as spurious diffs.
 
 **Fix:**
 
-1. Commit the lock file.
-2. Pin deliberately with a pessimistic constraint: `version = "~> 5.31"`.
-3. Upgrade on purpose with `terraform init -upgrade`, review the resulting plan, and commit the
-   updated lock file as its own change.
-4. If the lock file was generated on one platform only, add the others so CI can use it:
-   `terraform providers lock -platform=linux_amd64 -platform=darwin_arm64`.
+- Commit the lock file and pin pessimistically: `version = "~> 5.31"`.
+- Upgrade deliberately with `terraform init -upgrade`, review the plan, and commit the updated lock as its own change.
+- If the lock covers one platform only, add the others: `terraform providers lock -platform=linux_amd64 -platform=darwin_arm64`.
 
-**Prevention:** pin `required_version` for Terraform core as well as providers, and install the
-pinned version in CI with `tfenv` or `hashicorp/setup-terraform` rather than "latest".
+**Prevent:** pin `required_version` for core as well as providers, and install the pinned version in CI with
+`tfenv` or `hashicorp/setup-terraform`.
 
 ### 6. Secrets found in plaintext in the state file
 
-**Symptom:** a security scan reports database passwords or private keys inside
-`terraform.tfstate`, even though the variables were marked `sensitive`.
+**Symptom:** a security scan reports database passwords or private keys inside `terraform.tfstate`, even
+though the variables were marked `sensitive`.
 
-**Evidence:** do not confirm the finding by dumping JSON state or piping it through `grep`; that
-creates another plaintext copy and can place secrets in terminal or CI logs. Start with the
-scanner's protected finding, provider/resource schema documentation, backend access logs, and state
-version metadata. If direct verification is authorised, inspect only the named resource in a
-restricted local session, redirect output to a mode-0600 temporary file, never print the value, and
-securely remove the file afterward.
+**Evidence:** do **not** confirm the finding by dumping JSON state or piping it through `grep` — that creates
+another plaintext copy and can place secrets in shell or CI logs.
 
-**Cause:** working as designed. `sensitive = true` only redacts CLI output; it does not keep secrets
-out of state. See
-[What is the effect of marking a variable or output as sensitive?](#what-is-the-effect-of-marking-a-variable-or-output-as-sensitive).
+- Start with the scanner's protected finding, provider schema docs, backend access logs and state version metadata.
+- If direct verification is authorised, inspect only the named resource in a restricted local session, redirect to a mode-0600 file, never print the value, and securely remove it.
+- This is by design: `sensitive = true` only redacts CLI output — see [Sensitive, ephemeral and write-only data](#sensitive-ephemeral-and-write-only-data).
 
 **Fix:**
 
-1. Treat the state file as a compromised secret store: rotate every credential it contains.
-2. Move state to a backend with encryption at rest and least-privilege access (S3 with a KMS key and
-   a bucket policy, or HCP Terraform).
-3. Preserve evidence according to the incident process, then purge old unencrypted versions from
-   the bucket's version history. Coordinate this with retention and legal requirements.
-4. Stop putting the secret in Terraform where possible: have the target service generate it, or
-   pass only a secret-manager ARN/path rather than the value. With Terraform 1.10+, an ephemeral
-   value can avoid plan/state persistence; with Terraform 1.11+, a provider-supported write-only
-   argument can safely terminate that value at the API. Do not write a secret to an ordinary
-   resource argument and assume the secret manager makes state safe.
+1. Treat the state file as a compromised secret store: **rotate every credential it contains.**
+2. Move state to a backend with encryption at rest and least-privilege access (S3 with a KMS key and bucket
+   policy, or HCP Terraform).
+3. Preserve evidence per the incident process, then purge old unencrypted versions from the bucket's version
+   history, coordinating with retention and legal requirements.
+4. Stop putting the secret in Terraform where possible: have the target service generate it, or pass only a
+   secret-manager ARN or path. With 1.10+ an `ephemeral` value avoids plan and state persistence; with 1.11+ a
+   provider-supported write-only argument terminates the value at the API. Do not write a secret to an
+   ordinary resource argument and assume the secret manager makes state safe.
 
-**Prevention:** deny public access and enforce encryption on the state bucket, restrict who can read
-the state prefix, and scan Terraform artifacts only with tools and storage approved for secrets.
-Remember that `terraform output -json`, `terraform show -json` and `terraform state pull` can reveal
-sensitive values by design; never echo them into pipeline logs. See
-[ephemeral values and write-only arguments](#how-do-ephemeral-values-and-write-only-arguments-keep-secrets-out-of-terraform-artifacts)
-for the version and provider constraints.
+**Prevent:** deny public access and enforce encryption on the state bucket, restrict who can read the state
+prefix, and scan Terraform artifacts only with tools and storage approved for secrets.
 
 ### 7. Cycle error, or resources created in the wrong order
 
 **Symptom:** `Error: Cycle: aws_security_group.a, aws_security_group.b`, or an apply fails because a
-dependency was not ready even though it exists in the configuration.
+dependency was not ready even though it is in the configuration.
 
-**Evidence:**
+**Evidence:** `terraform graph | dot -Tsvg > graph.svg`, or `terraform graph -type=plan | grep -A5 'aws_security_group'`.
 
-```bash
-terraform graph | dot -Tsvg > graph.svg
-terraform graph -type=plan | grep -A5 'aws_security_group'
-```
-
-**Cause:** two resources reference each other's attributes, so neither can be created first. The
-"wrong order" variant is the opposite problem: there is a real dependency that Terraform cannot see
-because nothing in the configuration references it.
+- A cycle means two resources reference each other's attributes, so neither can be created first.
+- The "wrong order" variant is the opposite problem: a real dependency Terraform cannot see because nothing references it.
 
 **Fix:**
 
-- Break the cycle by extracting the mutual reference into a separate resource. For security groups,
-  replace inline `ingress` rules with standalone `aws_security_group_rule` (or
-  `aws_vpc_security_group_ingress_rule`) resources that reference both groups.
-- For an invisible dependency, state it explicitly:
+- Break the cycle by extracting the mutual reference into a separate resource — for security groups, replace inline `ingress` rules with standalone `aws_security_group_rule` (or `aws_vpc_security_group_ingress_rule`) resources that reference both groups.
+- For an invisible dependency, state it explicitly with `depends_on = [aws_iam_role_policy.example]`.
 
-  ```hcl
-  depends_on = [aws_iam_role_policy.example]
-  ```
-
-**Prevention:** prefer referencing attributes over `depends_on`; the graph is then derived from real
-data flow and stays correct as the code changes. Reserve `depends_on` for genuine hidden ordering,
-such as IAM propagation, and comment why it is there.
+**Prevent:** prefer attribute references over `depends_on` so the graph derives from real data flow and stays
+correct as code changes. Reserve `depends_on` for genuine hidden ordering such as IAM propagation, and
+comment why it is there.
 
 ### 8. Apply failed halfway and left partial infrastructure
 
-**Symptom:** apply stops with a provider error after creating some resources. Re-running seems risky
+**Symptom:** apply stops with a provider error after creating some resources, and re-running feels risky
 because you do not know what exists.
 
-**Evidence:**
+**Evidence:** `terraform state list` for what got recorded before the failure, `terraform plan` for what Terraform
+now believes is missing, and `TF_LOG=DEBUG TF_LOG_PATH=./tf.log terraform apply` for the actual API error.
 
-```bash
-terraform state list                # what got recorded before the failure
-terraform plan                      # what Terraform now believes is missing
-TF_LOG=DEBUG TF_LOG_PATH=./tf.log terraform apply   # the actual API error and request
-```
-
-**Cause:** apply is not atomic. Resources created before the failure exist and are in state. Typical
-triggers are quota limits, permission gaps that only appear for one resource type, and eventual
-consistency in the provider API.
+- Apply is not atomic, so resources created before the failure exist and are in state.
+- Typical triggers: quota limits, permission gaps affecting one resource type, and eventual consistency in the provider API.
 
 **Fix:**
 
-1. Read the provider error; it usually names the exact quota or permission.
-2. Fix the underlying cause, then re-run `terraform apply`. Terraform creates only what is missing,
-   which is why re-running is the normal recovery path rather than a risk.
-3. If a resource was created but its provisioner failed, it is tainted and will be replaced on the
-   next apply. Confirm that replacement is acceptable before approving.
-4. If the provider created an object but failed before recording it, state and reality disagree:
-   import the orphan rather than letting the next apply create a duplicate.
+- Read the provider error — it usually names the exact quota or permission — fix the underlying cause, then re-run `terraform apply`. Terraform creates only what is missing, which is why re-running is the normal recovery path rather than a risk.
+- If a resource was created but its provisioner failed it is tainted and will be replaced next apply, so confirm that is acceptable.
+- If the provider created an object but failed before recording it, state and reality disagree: **import the orphan** rather than letting the next apply duplicate it.
 
-**Prevention:** keep blast radius small so a failed apply affects one stack. Use
-`create_before_destroy` on anything serving traffic. In CI, save the plan with `-out=tfplan` and
-apply that exact plan, so the applied change is the one that was reviewed.
+**Prevent:** keep blast radius small so a failed apply affects one stack, use `create_before_destroy` on
+anything serving traffic, and in CI save the plan with `-out=tfplan` and apply that exact plan so the applied
+change is the reviewed one.
 
 ### 9. Migrating count to for_each without destroying everything
 
-**Symptom:** switching a resource from `count` to `for_each`, or removing one element from a
-`count`-based list, plans to destroy and recreate resources that did not change.
+**Symptom:** switching a resource from `count` to `for_each`, or removing one element from a `count`-based
+list, plans to destroy and recreate resources that did not change.
 
-**Evidence:**
+**Evidence:** `terraform state list | grep 'aws_instance.web'` shows position-keyed addresses (`web[0]`, `web[1]`,
+`web[2]`), and `terraform plan` shows `-/+` for `[1]` and `[2]` after `[0]` is removed, because `count` addresses by
+position and any removal shifts later indexes. Trade-off in [count versus for_each](#count-versus-for_each).
 
-```bash
-terraform state list | grep 'aws_instance.web'
-# aws_instance.web[0]
-# aws_instance.web[1]
-# aws_instance.web[2]
-terraform plan     # shows -/+ for [1] and [2] after removing [0]
-```
-
-**Cause:** `count` addresses instances by position, so deleting or remapping an element shifts later
-indexes. The addressing trade-off is in
-[When should you use for_each instead of count?](#when-should-you-use-for_each-instead-of-count).
-
-**Fix:** map the old addresses to the new ones with `moved` blocks, so the change is a state
-rename rather than a replacement:
+**Fix:** map old addresses to new ones with `moved` blocks — one per instance — so the change is a state rename
+rather than a replacement, then confirm `terraform plan` reports no changes other than the moves.
+`terraform state mv` does the same imperatively, but only on the machine that runs it.
 
 ```hcl
 moved {
@@ -1427,29 +644,20 @@ moved {
 }
 ```
 
-Then confirm `terraform plan` reports no changes other than the moves. `terraform state mv` does the
-same thing imperatively, but only on the machine that runs it, so `moved` blocks are the better
-answer for team workflows.
-
-**Prevention:** use `for_each` from the start whenever instances are distinguishable, and reserve
-`count` for identical copies and `count = var.enabled ? 1 : 0` conditionals.
+**Prevent:** use `for_each` from the start whenever instances are distinguishable, and reserve `count` for
+identical copies and `count = var.enabled ? 1 : 0` conditionals.
 
 ### 10. Deploying to multiple regions or accounts in one configuration
 
-**Symptom:** resources intended for a second region are created in the default one, or an apply
-fails with a credentials error for the secondary account.
+**Symptom:** resources intended for a second region are created in the default one, or an apply fails with a
+credentials error for the secondary account.
 
-**Evidence:**
+**Evidence:** `terraform providers` for which provider configurations exist, then
+`terraform state show aws_vpc.west | grep -i arn` to see where the object actually landed. The resource did
+not select the aliased provider, so it inherited the default configuration.
 
-```bash
-terraform providers          # which provider configurations exist
-terraform state show aws_vpc.west | grep -i arn
-```
-
-**Cause:** a resource did not select the aliased provider, so it inherited the default
-configuration.
-
-**Fix:** declare aliased provider configurations and select them explicitly:
+**Fix:** declare aliased provider configurations and select them explicitly. **Modules do not inherit
+aliases** — pass them in with `providers`:
 
 ```hcl
 provider "aws" {
@@ -1465,19 +673,15 @@ resource "aws_vpc" "west" {
   provider   = aws.west
   cidr_block = "10.1.0.0/16"
 }
-```
 
-Modules do not inherit aliases automatically; pass them in:
-
-```hcl
 module "west_network" {
   source    = "./modules/network"
-  providers = {
-    aws = aws.west
-  }
+  providers = { aws = aws.west }
 }
 ```
 
-**Prevention:** for cross-account work, prefer one configuration and state per account with an
-assumed role, rather than one configuration spanning accounts. It keeps blast radius and
-credentials aligned with the account boundary.
+**Prevent:** for cross-account work, prefer one configuration and state per account with an assumed role
+rather than one configuration spanning accounts; that keeps blast radius and credentials aligned with the
+account boundary.
+
+**Docs:** [Provider configuration and aliases](https://developer.hashicorp.com/terraform/language/providers/configuration) · [Debugging](https://developer.hashicorp.com/terraform/internals/debugging) · [Certification drills](terraform-certification-drills.md)
