@@ -1,190 +1,260 @@
-### Git
+# Git
 
-<details>
-<summary>Difference between git fetch, merge, rebase  & pull.</code></summary><br><b>
+Interview notes for Git as it is used day to day in a DevOps workflow: moving
+code between remote and local, integrating branches, undoing mistakes, and
+enforcing checks before code reaches a pipeline.
 
-In a collaborative DevOps environment, navigating how code moves from the **Remote (GitHub/GitLab)** to your **Local Workspace** is a fundamental skill.
+## Contents
 
-### 🔍 Git Fetch (The "Safe" Update)
-`git fetch` downloads all new commits from the remote repository but **does not change your local files**.
-*   **What it does:** Updates your remote-tracking branches (e.g., `origin/main`).
-*   **Analogy:** Checking your mailbox to see what's inside without actually opening the letters.
-*   **Use Case:** Use this to see what your teammates have done without risking merge conflicts in your current work.
+- [Fetch, pull, merge, and rebase](#fetch-vs-pull-vs-merge-vs-rebase)
+- [Merge conflicts](#merge-conflicts)
+- [Undoing changes](#undoing-changes-reset-vs-revert-vs-restore)
+- [Recovering with reflog](#recovering-lost-work-with-reflog)
+- [Stash](#stash)
+- [Cherry-pick](#cherry-pick)
+- [Hooks](#hooks)
+- [Tags and releases](#tags-and-releases)
+- [Git in CI/CD](#git-in-a-cicd-pipeline)
+- [Inspecting and bisecting history](#inspecting-and-bisecting-history)
 
-### 🚀 Git Pull (The "Shortcut")
-`git pull` is a combination of `git fetch` followed by `git merge`.
-*   **What it does:** Downloads changes and immediately tries to integrate them into your current branch.
-*   **Risk:** It can create "Merge Commits" automatically, which clutter the history if done frequently.
+## fetch vs pull vs merge vs rebase
 
-### 🤝 Git Merge (The "Join")
-`git merge` combines two branches together.
-*   **What it does:** It creates a new **Merge Commit** that has two parent commits.
-*   **History:** It results in a non-linear, "diamond-shaped" history.
-*   **Best For:** Merging a completed feature branch back into `main`.
+`fetch` downloads remote commits without touching your working tree. `pull` is
+`fetch` plus an integration step (`merge` by default). `merge` joins two
+branches with a merge commit. `rebase` replays your commits on top of another
+branch and produces a linear history.
 
-### ⚡ Git Rebase (The "Rewrite")
-`git rebase` takes your local commits and "replays" them on top of the latest remote commits.
-*   **What it does:** It rewrites history to make it look like you started your work on the very latest version of the code.
-*   **History:** It results in a **Linear History** (a straight line).
-*   **Best For:** Keeping your feature branch up-to-date with `main` before merging.
-
-## 📊 Comparison Matrix
-
-| Command | Downloads Data? | Changes Local Files? | History Result | Risk Level |
+| Command | Contacts remote | Changes working tree | History result | Risk |
 | :--- | :---: | :---: | :--- | :--- |
-| **`fetch`** | ✅ Yes | ❌ No | No Change | **Safe** |
-| **`pull`** | ✅ Yes | ✅ Yes | Combined | Moderate |
-| **`merge`** | ❌ No | ✅ Yes | Non-Linear | Low |
-| **`rebase`** | ❌ No | ✅ Yes | **Linear** | **High** (Rewrites History) |
+| `fetch` | Yes | No | Unchanged | Safe |
+| `pull` | Yes | Yes | Merge or rebase, depending on config | Moderate |
+| `merge` | No | Yes | Non-linear, extra merge commit | Low |
+| `rebase` | No | Yes | Linear, commits get new hashes | High, rewrites history |
 
-## 💡
+Practical detail:
 
-1. **The Rebase Rule:** "I never **rebase** a public branch that others are working on. I only rebase my private feature branch to keep the history clean before a [Pull Request](https://docs.github.com)."
-2. **Linear History:** "To maintain a professional, readable Git log, I prefer `git pull --rebase` over a standard `git pull`. This avoids unnecessary 'Merge branch...' commits."
-3. **Safety First:** "When I'm unsure of the changes my team has made, I always start with a **fetch**. It allows me to use `git diff` or `git log origin/main` to inspect the code before integrating it."
+- `fetch` only updates remote-tracking refs such as `origin/main`. Inspect the
+  result with `git log origin/main` or `git diff HEAD origin/main` before you
+  integrate anything.
+- `git pull --rebase` avoids the "Merge branch 'main' into ..." commits that
+  clutter a feature branch. Set it as the default with
+  `git config --global pull.rebase true`.
+- Rebase only a branch that nobody else has based work on. Rewriting a shared
+  branch forces every other contributor to recover their local copy by hand.
+- After a rebase of an already-pushed branch, publish with
+  `git push --force-with-lease`, never plain `--force`. `--force-with-lease`
+  refuses the push if someone else added commits you have not seen.
 
-## 🛠️ Typical Workflow Scenario
-1. `git fetch origin` (Check for updates)
-2. `git rebase origin/main` (Put my work on top of the newest code)
-3. *Fix any conflicts*
-4. `git push origin feature-branch` (Upload clean, linear work)
-</b></details>
+Typical feature-branch flow:
 
-<details>
-<summary>What is a merge conflict in Git, and how do you resolve it?.</code></summary><br><b>
+```bash
+git fetch origin
+git rebase origin/main
+# resolve conflicts, then continue
+git rebase --continue
+git push --force-with-lease origin feature-branch
+```
 
-A merge conflict occurs when Git cannot automatically merge changes from different branches due to conflicting modifications in the same part of a file. To resolve it, you need to manually edit the conflicted files, choose which changes to keep, and then commit the resolution.
+## Merge conflicts
 
-</b></details>
+A conflict happens when two branches change the same region of a file, or when
+one side edits a file the other side deleted, and Git cannot decide which
+version to keep. You resolve it by editing the file to the intended final
+state, staging it, and completing the merge or rebase.
 
-<details>
-<summary>What are Git hooks, and how can they be useful in a Git workflow?.</code></summary><br><b>
+```bash
+git status                 # list conflicted paths
+git diff                   # show the conflicting hunks
+git checkout --ours  file  # keep the current branch version
+git checkout --theirs file # keep the incoming version
+git add file               # mark as resolved
+git merge --continue       # or: git rebase --continue
+git merge --abort          # or: git rebase --abort, to start over
+```
 
-Git hooks are scripts that run at specific points in the Git workflow, such as pre-commit or post-receive. They can be used to enforce coding standards, perform tests, and trigger automated processes.
-</b></details>
+Practical detail:
 
-<details>
-<summary>What is a Git stash, and why would you use it?.</code></summary><br><b>
+- Conflict markers are `<<<<<<<` (current branch), `=======`, `>>>>>>>`
+  (incoming branch). Never commit a file that still contains them; add a
+  pipeline grep for these markers as a cheap safety net.
+- During a **rebase**, "ours" and "theirs" are inverted relative to a merge:
+  "ours" is the branch you are replaying onto, "theirs" is your own commit.
+- `git rerere` (`git config --global rerere.enabled true`) records how you
+  resolved a conflict and replays that resolution when the same conflict
+  reappears, which is common on long-lived branches.
+- Reduce conflict frequency by rebasing small branches often instead of
+  integrating a large branch once.
 
-A Git stash is a temporary storage area for changes that are not ready to be committed but need to be saved for later. Developers use it to switch to a different branch or to temporarily set aside work in progress.
+## Undoing changes: reset vs revert vs restore
 
-`git stash` is a powerful tool used to temporarily "shelve" (or archive) changes you've made to your working directory so you can work on something else, then come back and re-apply them later.
+Pick based on whether the commit is already published.
 
-## 🚀 1. Common Scenarios
-*   **The Urgent Hotfix:** You are mid-feature on `develop` when a critical bug hits `main`. You stash your current work, switch to `main`, fix the bug, then return to `develop` and pop your stash.
-*   **The "Dirty" Pull:** You try to `git pull` but Git refuses because your local changes would be overwritten. You stash, pull, and then pop to resolve any conflicts.
-*   **Wrong Branch:** You realize you've been coding on the `main` branch for 20 minutes by mistake. Stash your changes, switch to a new feature branch, and pop them there.
+| Goal | Command | Effect |
+| :--- | :--- | :--- |
+| Unstage a file, keep edits | `git restore --staged file` | Index only |
+| Discard local edits to a file | `git restore file` | Working tree only, destructive |
+| Drop last commit, keep changes staged | `git reset --soft HEAD~1` | Moves branch pointer |
+| Drop last commit, keep changes unstaged | `git reset HEAD~1` | Mixed reset, the default |
+| Drop last commit and its changes | `git reset --hard HEAD~1` | Destructive |
+| Undo a published commit | `git revert <hash>` | Adds a new inverse commit |
 
-## 🛠️ 2. Essential Commands
+Use `reset` only on commits that exist just locally. Use `revert` on anything
+already pushed to a shared branch, because it undoes the change without
+rewriting history that others have pulled.
+
+## Recovering lost work with reflog
+
+`git reflog` lists every position `HEAD` has held, including commits that no
+branch points to any more. It is the recovery path after a bad
+`reset --hard`, a botched rebase, or a deleted branch.
+
+```bash
+git reflog                       # find the hash you want back
+git reset --hard <hash>          # restore the branch to that state
+git branch recovered <hash>      # or recover it as a new branch
+```
+
+Reflog entries are local and expire (90 days by default for reachable
+entries), so recover promptly.
+
+## Stash
+
+`git stash` shelves uncommitted work so you can switch context, then reapply it
+later. It is local only and never pushed.
 
 | Action | Command |
 | :--- | :--- |
-| **Stash everything** | `git stash` |
-| **Stash with a message** | `git stash push -m "descriptive message"` |
-| **Include new (untracked) files** | `git stash -u` |
-| **List all stashes** | `git stash list` |
-| **Apply last stash & delete it** | `git stash pop` |
-| **Apply last stash & keep it** | `git stash apply` |
-| **View stash contents** | `git stash show -p stash@{0}` |
-| **Delete a specific stash** | `git stash drop stash@{0}` |
-| **Clear all stashes** | `git stash clear` |
+| Stash tracked changes | `git stash` |
+| Stash with a label | `git stash push -m "wip: retry logic"` |
+| Include untracked files | `git stash -u` |
+| List stashes | `git stash list` |
+| Apply and delete the entry | `git stash pop` |
+| Apply and keep the entry | `git stash apply` |
+| Show the contents as a diff | `git stash show -p stash@{0}` |
+| Delete one entry | `git stash drop stash@{0}` |
+| Delete all entries | `git stash clear` |
 
-## 📊 3. Stash vs. Commit
+Practical detail:
 
-| Feature | `git stash` | `git commit` |
-| :--- | :--- | :--- |
-| **Storage** | Local-only "Stack". | Permanent part of Branch history. |
-| **Pushable?** | No, stays on your machine. | Yes, can be shared with the team. |
-| **Flexibility** | Can be "popped" onto any branch. | Tied to the specific branch. |
-| **Visibility** | Hidden from `git log`. | Visible in project history. |
+- Common triggers: an urgent hotfix arrives mid-feature, `git pull` refuses to
+  run because local changes would be overwritten, or you notice you have been
+  committing on the wrong branch.
+- Always label stashes with `push -m`. An unlabeled stack of five entries is
+  guaranteed to produce a wrong `pop` eventually.
+- A stash can be popped onto a different branch, which is the simplest way to
+  move uncommitted work you started in the wrong place.
+- If the target branch has moved far ahead and `pop` would conflict heavily,
+  use `git stash branch <new-branch> stash@{0}`. It creates a branch at the
+  commit the stash was made from and applies the stash there cleanly.
 
-## 💡
+Stash versus commit: a stash is a local stack entry, invisible to `git log`,
+not pushable, and applicable to any branch. A commit is permanent branch
+history, shareable, and tied to its branch.
 
-1. **On Context Switching:** "I use **git stash** as my primary tool for context switching. It allows me to handle production emergencies without cluttering our Git history with 'Work in Progress' (WIP) commits."
-2. **On Safety:** "I always prefer `git stash push -m` over a plain `git stash`. When working on multiple bug fixes, having a labeled stash list ensures I don't accidentally apply the wrong logic to the wrong branch."
-3. **On Portability:** "A great trick I use is stashing changes on one branch and popping them onto another. It’s the easiest way to move uncommitted work when I realize I've started coding in the wrong place."
+## Cherry-pick
 
-### ⚠️ Pro-Tip: The "Stash to Branch" Move
-If you have a large stash and your current branch has changed so much that `git stash pop` causes massive conflicts, use:
+`git cherry-pick <hash>` copies the change introduced by one commit onto the
+current branch as a new commit with a new hash.
 
-git stash branch <new-branch-name> stash@{0}
-
-</b></details>
-
-<details>
-<summary>What is cherry-picking in git?.</code></summary><br><b>
-
-`git cherry-pick` allows you to pick specific commits from one branch and apply them to another. It is a powerful tool for hotfixes and selective feature migration.
-
-### 📍 Key Commands
 | Action | Command |
 | :--- | :--- |
-| **Apply one commit** | `git cherry-pick <hash>` |
-| **Apply multiple** | `git cherry-pick <hash1> <hash2>` |
-| **Apply range** | `git cherry-pick A..B` |
-| **Abort process** | `git cherry-pick --abort` |
+| One commit | `git cherry-pick <hash>` |
+| Several commits | `git cherry-pick <hash1> <hash2>` |
+| A range, excluding A | `git cherry-pick A..B` |
+| A range, including A | `git cherry-pick A^..B` |
+| Stop and unwind | `git cherry-pick --abort` |
 
-### ⚠️ Important Best Practices
-*   **New Hashes:** Cherry-picking creates a **new commit** with a new hash on your current branch, even though the content is the same as the source.
-*   **Avoid Overuse:** If you find yourself cherry-picking 10+ commits from the same branch, a **merge** or **rebase** is likely a better architectural choice.
-*   **Traceability:** Use `git cherry-pick -x <hash>` to append a line to the commit message saying "(cherry picked from commit...)", which helps teams track the origin of the change.
+Practical detail:
 
-### 💡
-"I use **cherry-pick** primarily for porting critical bug fixes across branches. It allows us to maintain a clean production branch by only pulling in verified fixes without merging unstable features from the development branch."
-</b></details>
+- The new hash means the same logical change now exists twice in the graph. A
+  later merge of the source branch can therefore conflict.
+- `git cherry-pick -x <hash>` appends "(cherry picked from commit ...)" to the
+  message, which is how release branches stay auditable.
+- Main use is porting a verified fix from a development branch to a release or
+  hotfix branch without dragging along unfinished features. If you are picking
+  ten commits from one branch, merge or rebase instead.
 
-<details>
-<summary>💨 Smoke Testing VS Regression Testing?.</code></summary><br><b>
+## Hooks
 
-# 🧪 Smoke Testing vs. Regression Testing
+Git hooks are executable scripts in `.git/hooks` that Git runs at defined
+points in the commit and receive lifecycle. They are the first place to enforce
+standards, before anything reaches CI.
 
-In a robust CI/CD pipeline, different types of tests are used at different stages to ensure both **speed** and **stability**.
-
-## 📊 Quick Comparison Matrix
-
-| Feature | Smoke Testing | Regression Testing |
+| Hook | Runs | Typical use |
 | :--- | :--- | :--- |
-| **Objective** | Verify if the build is **stable**. | Verify if the build is **correct**. |
-| **Scope** | Core/Critical features only. | Comprehensive (New + Old features). |
-| **Depth** | Shallow (Surface-level). | Deep (Detailed scenarios). |
-| **Execution Time** | Very Fast (Minutes). | Slower (Hours/Days). |
-| **Automation** | Always Automated. | Frequently Automated (but can be manual). |
-| **Outcome** | Go / No-Go to further testing. | Verification of code quality. |
+| `pre-commit` | Before the commit message is requested | Lint, format, secret scan |
+| `prepare-commit-msg` | Before the editor opens | Insert ticket ID from branch name |
+| `commit-msg` | After the message is written | Enforce message convention |
+| `pre-push` | Before objects are sent | Run fast unit tests |
+| `pre-receive` / `update` | On the server, before refs update | Reject force-push, enforce policy |
+| `post-receive` | On the server, after refs update | Trigger a pipeline or notification |
 
-## 💨 1. Smoke Testing (The "Stable?" Test)
-Also known as **Build Verification Testing (BVT)**. It is a non-exhaustive suite that ensures the most crucial functions of an application work.
+Practical detail:
 
-*   **When to run:** Immediately after a new build is deployed to an environment (Dev, QA, or Staging).
-*   **The Analogy:** If you turn on a new machine and see "smoke," you turn it off immediately. You don't bother checking the settings.
-*   **Production Example (E-commerce):** 
-    1. Does the app launch? 
-    2. Can a user log in? 
-    3. Can a user reach the checkout page?
+- Client-side hooks live in `.git/hooks`, are not cloned, and can be bypassed
+  with `--no-verify`. Treat them as a convenience for developers, not a
+  control. Anything that must hold has to be enforced by a server-side hook or
+  by a required CI check.
+- Share hooks across a team with `git config core.hooksPath <dir>` and a
+  tracked directory, or with a manager such as `pre-commit`.
+- Keep client hooks fast. A `pre-commit` hook that takes 30 seconds gets
+  disabled by the team within a week.
 
-## 🔄 2. Regression Testing (The "Broken?" Test)
-The process of testing an application after a code change to ensure that the **existing functionality** still works as expected.
+## Tags and releases
 
-*   **When to run:** After bug fixes, feature additions, or configuration changes.
-*   **The Focus:** Ensuring that a fix in "Module A" didn't accidentally break a feature in "Module B."
-*   **Production Example (E-commerce):** 
-    1. Checking all payment gateways (Credit Card, PayPal, Stripe).
-    2. Verifying tax calculations for all 50 states.
-    3. Testing "Forgot Password" email delivery across all browsers.
+A tag is a fixed name for a commit; it is what a release pipeline should build
+from, because branches move and tags do not.
 
-## 🛠️ DevOps Implementation Pattern
+```bash
+git tag -a v1.4.0 -m "Release 1.4.0"   # annotated tag: has author, date, message
+git push origin v1.4.0                  # tags are not pushed by git push alone
+git tag -l 'v1.*'                       # list matching tags
+git describe --tags                     # nearest tag plus commits since, useful for build IDs
+```
 
-In a modern [GitHub Actions](https://github.com) or [Jenkins](https://www.jenkins.io) pipeline:
+Prefer annotated tags (`-a`) over lightweight tags for releases: they are real
+objects, can be signed with `-s`, and carry who tagged what and when.
 
-1.  **Code Commit** ➡️ Build Container.
-2.  **Unit Tests** ➡️ Verify logic.
-3.  **Deployment** ➡️ Deploy to Staging.
-4.  **Smoke Tests** ➡️ **(Gatekeeper)** If this fails, abort everything.
-5.  **Regression Tests** ➡️ Run the full suite for 1-2 hours.
-6.  **Production Deployment** ➡️ Final rollout.
+## Git in a CI/CD pipeline
 
-## 💡 Interview "Gold Lines"
+Git events are the triggers for the pipeline, and the Git metadata is what
+makes a build traceable. The pipeline's smoke and regression test roles are
+covered in [Docker CI/CD](../docker/Docker.md#docker-in-cicd); Git's job is to
+trigger those checks and identify exactly which source revision they tested.
 
-*   **On ROI:** "Smoke testing provides the highest ROI in CI/CD. It catches major 'showstopper' bugs in minutes, preventing the QA team or the automated regression suite from wasting hours on a fundamentally broken build."
-*   **On Scope:** "I view Smoke Testing as the **Happy Path** check, whereas Regression Testing is the **Edge Case** check."
-*   **On Confidence:** "Regression testing is what gives us the confidence to refactor code or update dependencies like the Linux Kernel or Kubernetes versions."
-</b></details>
+- **Trigger mapping:** a push to a feature branch runs build plus fast tests; a
+  pull request runs the full validation set and is a required gate for merge; a
+  push of a version tag runs the release and deployment job.
+- **Immutable build identity:** tag every artifact and container image with the
+  commit SHA, not with `latest`. Given a running version you can then get back
+  to the exact source with `git show <sha>`.
+- **Shallow clones:** CI runners should use `git clone --depth 1` or the
+  equivalent runner setting to cut checkout time, but a job that needs
+  `git describe` or a diff against the base branch needs more history.
+- **Protected branches:** enforce no direct pushes to `main`, require review and
+  passing checks, and require the branch to be up to date so the merge result
+  is the state that was actually tested.
+- **Merge strategy:** squash merges give `main` one commit per change, which
+  makes `git bisect` and `git revert` straightforward at the cost of losing
+  intermediate commits.
+- **Secrets:** a secret committed once stays in history even after it is
+  deleted in a later commit. Rotate the credential first, then scrub history
+  with a tool such as `git filter-repo`, and add a secret scanner to
+  `pre-commit` and to CI.
+
+## Inspecting and bisecting history
+
+```bash
+git log --oneline --graph --decorate --all   # readable topology
+git log -S "functionName"                    # commits that changed an occurrence count of a string
+git blame -L 40,60 path/to/file              # who last touched these lines and in which commit
+git bisect start
+git bisect bad                               # current commit is broken
+git bisect good v1.3.0                       # this tag was fine
+# git checks out midpoints; mark each with git bisect good/bad
+git bisect reset
+```
+
+`git bisect` performs a binary search over history, so it finds the commit that
+introduced a regression in about log2(n) steps. With a scripted test you can
+automate it fully using `git bisect run <command>`.

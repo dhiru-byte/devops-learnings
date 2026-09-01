@@ -1,15 +1,28 @@
+# AWS Machine Learning Associate (MLA-C01)
+
+Supplemental certification study material: AWS machine learning services,
+SageMaker components and built-in algorithms, and practice questions. General
+AWS interview notes are in [AWS.md](AWS.md).
+
+Sections in this file:
+
+- Services, Glue components, SageMaker components and algorithms, and ML problem
+  framing (below)
+- [SageMaker questions and answers](#aws-machine-learning-associate-exam---sagemaker-questions-and-answers)
+- [Built-in algorithms questions and answers](#aws-machine-learning-associate-exam---sagemaker-built-in-algorithms-questions-and-answers)
+- Feature engineering and data transformation questions (end of file)
 
 <details>
-<summary> ML Problem Framing: The ML Lifecycle.</code></summary><br><b>
+<summary>ML Problem Framing: The ML Lifecycle</summary><br><b>
 
 <p align="center">
-<img src="./images/ML_LifeCycle.png" width="800" height="300" /> 
+<img src="../images/ML_LifeCycle.png" width="800" height="300" />
 </p>
 
 </b></details>
 
 <details>
-<summary> AWS Machine Learning Services.</code></summary><br><b>
+<summary>AWS Machine Learning Services</summary><br><b>
 
 | Service | Category | What It Does | When to Use |
 |----------|-----------|--------------|-------------|
@@ -24,29 +37,29 @@
 | **AWS HealthLake** | Healthcare AI | Process and analyze health-related data, store and transform data in HL7 FHIR format | Centralize, normalize, and analyze large volumes of healthcare data |
 | **Amazon Kendra** | Enterprise Search | Enhances enterprise productivity with machine learning-powered contextual search across large data sources | Intelligent search across internal docs, FAQs, manuals |
 | **Amazon Lex** | Conversational AI | Conversational AI for creating chatbots or voice bots for customer service and virtual assistants | Build chatbots or IVR systems integrated with AWS |
-| **Amazon Lookout for Equipment** | Predictive Maintenance | Analyzes sensor data from industrial equipment to predict potential failures | Predictive maintenance for manufacturing, energy, or industrial operations |
-| **Amazon Lookout for Metrics** | Anomaly Detection | Detection of anomalies in metrics like revenue, sales, and operational data | Monitor KPIs without manually setting thresholds |
-| **Amazon Lookout for Vision** | Computer Vision | Detect quality defects in manufactured products with computer vision | Manufacturing quality control and defect detection |
+| **Amazon Lookout for Equipment** *(ending support October 7, 2026)* | Predictive Maintenance | Analyzes industrial sensor data to predict equipment failures; closed to new customers | Legacy workloads only; migrate to AWS IoT SiteWise or a custom anomaly-detection solution |
+| **Amazon Lookout for Metrics** *(ended support October 10, 2025)* | Anomaly Detection | Former managed anomaly detection for business and operational metrics | Historical exam context only; use CloudWatch anomaly detection, OpenSearch, or SageMaker for new designs |
+| **Amazon Lookout for Vision** *(ended support October 31, 2025)* | Computer Vision | Former managed visual-defect detection service | Historical exam context only; use SageMaker or a partner computer-vision solution for new designs |
 | **Amazon Mechanical Turk** | Human Workforce / Data Labeling | Provides a global workforce for data labeling and human intelligence tasks | Human labeling, surveys, or manual data verification tasks |
 | **Amazon Personalize** | Recommendations | Build personalized recommendations for users (e-commerce, media) | Personalized product/content recommendations |
 | **Amazon Polly** | Speech AI | Text-to-speech conversion with lifelike voices for interactive applications | Add spoken audio to apps, IVR systems, or accessibility tools |
-| **Amazon Q** | AI-Powered Business Assistant | Generative AI for your enterprise data and apps | Chat with enterprise data, automate workflows |
+| **Amazon Q Developer** *(formerly Amazon CodeWhisperer)* | Developer Assistant | Generates code, explains and transforms code, scans for vulnerabilities, and assists with AWS development and operations | Current name for the coding-assistant capabilities that moved from CodeWhisperer on April 30, 2024 |
 | **Amazon Rekognition** | Computer Vision | Image/video analysis, object detection, facial recognition, and label detection | Image/video classification, surveillance, and moderation |
 | **Amazon SageMaker** | End-to-End ML Platform | Build, train, and deploy custom machine learning models | Full ML development lifecycle without managing servers |
 | **Amazon Textract** | Document Processing | Extract text, tables, and forms from scanned documents | Digitize paper forms, invoices, or contracts |
 | **Amazon Transcribe** | Speech-to-Text Conversion | Automatic transcription of spoken language from audio files | Transcribe calls, create subtitles, convert voice notes |
 | **Amazon Translate** | NLP/Language Translation | Language translation across multiple languages | Real-time or batch translation of text or documents |
 | **AWS Panorama** | Edge AI | Edge computer vision for analyzing on-premises video streams locally in low-latency environments | On-premise video analytics without sending data to the cloud |
-| **Amazon CodeWhisperer** | Developer Productivity | AI-powered code suggestions and completions to enhance developer productivity | Speed up coding tasks and improve code quality |
-| **AWS Q Business** | Business Optimization | Optimization and quantum-inspired solutions for solving complex computational problems in logistics, finance, and manufacturing | Solve optimization-heavy business problems |
-| **AWS DeepLens** | Computer Vision/Hardware | Edge hardware for computer vision modeling and deployment | Develop and deploy CV models on physical hardware devices |
+| **Amazon CodeWhisperer** *(renamed)* | Developer Productivity | Former product name for coding suggestions and security scans | Use the name **Amazon Q Developer** in current answers |
+| **Amazon Q Business** *(legacy; closed to new customers)* | Enterprise Generative AI | Permissions-aware assistant that answers questions, summarizes and creates content, and performs tasks using enterprise data | Existing deployments; AWS recommends Amazon Quick for new customers |
+| **AWS DeepLens** *(ended support January 31, 2024)* | Computer Vision/Hardware | Former edge camera and development device for computer-vision inference | Historical exam context only; use AWS IoT Greengrass and supported edge hardware |
 | **AWS Glue DataBrew** | Data Preparation | No-code data preparation for machine learning workflows and analytics | Clean and prepare data quickly for analytics or ML |
 | **Amazon Neptune ML** | Graph Machine Learning | Use graph machine learning models to analyze relationships in highly connected data | Social networks, fraud detection, recommendation engines |
 
 </b></details>
 
 <details>
-<summary> Analytics Services (Data Transformation Integration and Feature Engineering Services).</code></summary><br><b>
+<summary>Analytics Services: Data Transformation, Integration, and Feature Engineering</summary><br><b>
 
 # AWS Data Analytics & Processing Services
 
@@ -69,7 +82,7 @@
 
 
 <details>
-<summary> Lists AWS Glue components and their purposes and use cases.</code></summary><br><b>
+<summary>AWS Glue Components and Use Cases</summary><br><b>
 # AWS Glue Components and Their Use Cases
 
 | **Component**              | **Purpose**                                | **Use Cases**                                                                                 |
@@ -92,7 +105,7 @@
 </b></details>
 
 <details>
-<summary> List all AWS SageMaker's components and their use cases for various purposes.</code></summary><br><b>
+<summary>Amazon SageMaker Components and Use Cases</summary><br><b>
 # Amazon SageMaker Components and Their Use Cases
 
 | SageMaker Tool/Feature | Category | Use Case | Key Features |
@@ -120,7 +133,7 @@
 </b></details>
 
 <details>
-<summary> List AWS SageMaker built-in algorithms with their use cases.</code></summary><br><b>
+<summary>Amazon SageMaker Built-in Algorithms and Use Cases</summary><br><b>
 
 # AWS SageMaker Built-In Algorithms and Their Use Cases
 
@@ -140,28 +153,23 @@
 | Neural Topic Modeling | Unsupervised Learning | Generating topics from text datasets and document collections. | Uses unsupervised learning to identify abstract topics in datasets based on text patterns. |
 | Random Cut Forest (RCF) | Anomaly Detection | Fraud detection, network monitoring, and identifying unusual patterns. | Detects anomalies in time-series or tabular datasets automatically. |
 | IP Insights | Fraud Detection | Identifying suspicious IP addresses in fraud detection workflows. | Learns IP address embeddings for detecting problematic or unauthorized activity. |
-| Reinforcement Learning | Decision Making | Autonomous actions in robotics, game simulations, and optimization problems. | Supports reinforcement learning models like Deep Q-Learning or policy-gradient methods. |
-| Matrix Factorization | Recommendation Systems | Collaborative filtering for personalized recommendations. | Specialized for sparse datasets in recommendation engines. |
-| Training Algorithm Optimization (TAO) | Optimization | Automated optimization of training parameters and hyperparameters. | Finds the best configuration for training models to maximize performance. |
-| Multinomial Logistic Regression | Classification | Multi-class classification problems such as labeling categories in text datasets. | Solves multi-class classification problems using regression techniques extended to multiple categories. |
-| Confusion Matrix | Evaluation/Metric | Evaluating performance of classification models. | Provides a summary of model predictions by counting true positives, true negatives, false positives, and false negatives. Helpful for measuring accuracy, recall, precision, and F1-score. |
+| K-Nearest Neighbors (k-NN) | Classification/Regression | Classifying or predicting a target from nearby examples. | Index-based algorithm for tabular data with exact or approximate neighbour search. |
+| Object2Vec | Embeddings | Learning low-dimensional embeddings of high-dimensional objects. | Supports matching, recommendation, and similarity tasks for pairs of objects. |
 
 | Use Case | Mnemonic | Algorithms |
 | :-- | :-- | :-- |
 | Prediction Tasks | "Let's X-Ray the Data Deeply" | Linear Learner, XGBoost, DeepAR |
-| Recommendation Systems | "Machines and Matrix Recommending Products" | Factorization Machines, Matrix Factorization |
+| Recommendation Systems / Similarity | "Factors and Objects Recommend" | Factorization Machines, Object2Vec |
 | Computer Vision | "Images Objectively help Segment Vision" | Image Classification, Object Detection, Semantic Segmentation |
 | Natural Language Processing (NLP) | "Blazing Sequences of Text" | BlazingText, Sequence-to-Sequence |
 | Time Series Forecasting | "Time Runs Deep" | DeepAR |
 | Dimensionality Reduction / Clustering | "Components Cluster" | Principal Component Analysis (PCA), K-Means Clustering |
 | Anomaly and Fraud Detection | "Random IP Fraud" | Random Cut Forest (RCF), IP Insights |
-| Decision Making / Optimization | "Train to Decide Reinforced Tasks" | Reinforcement Learning, Training Algorithm Optimization (TAO) |
-| Evaluation | "Confused Class Evaluator" | Confusion Matrix |
 
 </b></details>
 
 <details>
-<summary> ML Model Evaluation and Optimization Techniques: When to Use.</code></summary><br><b>
+<summary>ML Model Evaluation and Optimization Techniques</summary><br><b>
 
 | Technique | Type | When to Use |
 | :-- | :-- | :-- |
@@ -195,7 +203,7 @@
 </b></details>
 
 <details>
-<summary> Bullet points for Frame ML problem.</code></summary><br><b>
+<summary>ML Problem-Framing Checklist</summary><br><b>
   
 ### Establish ML Roles and Responsibilities
 - SageMaker Role Manager
@@ -233,7 +241,7 @@
 
 ### Adopt a Machine Learning Microservice Strategy
 - Lambda
-- FarGate
+- AWS Fargate
 
 ### Use Purpose-Built AI and ML Services and Resources
 - SageMaker
@@ -337,19 +345,27 @@ The SageMaker Feature Store allows you to create, manage, and share reusable fea
 </b></details>
 
 <details>
-<summary>You need to train a machine learning model on a large dataset that doesn't fit in memory. Which SageMaker feature would you use?</summary><br><b>
+<summary>You need filesystem-style access to a large S3 training dataset without downloading it first. Which input mode should you prefer?</summary><br><b>
 
 **Options:**
-- **A.** SageMaker Pipelines  
-- **B.** SageMaker Training with Pipe Mode  
-- **C.** SageMaker Autopilot  
-- **D.** SageMaker Debugger  
+- **A.** File mode
+- **B.** Pipe mode
+- **C.** FastFile mode
+- **D.** Local mode
 
 **Answer:**  
-**B. SageMaker Training with Pipe Mode**
+**C. FastFile mode**
 
 **Explanation:**  
-SageMaker Training with **Pipe Mode** streams data directly from Amazon S3 to training algorithms, eliminating the need to fit the entire dataset into memory.
+**FastFile** streams objects from S3 on demand but exposes them through a
+read-only POSIX filesystem, so most code written for File mode works unchanged
+and can use random access. It starts training without downloading the full
+dataset and is the preferred general replacement for the older Pipe mode.
+
+**Pipe mode** streams sequentially into named FIFO pipes. Training code must be
+written to read those pipes, but Pipe mode supports managed shuffling and
+sharding and supports augmented manifests. **FastFile does not support manifest
+or augmented-manifest inputs** and works best when reads are sequential.
 
 </b></details>
 
@@ -371,19 +387,26 @@ SageMaker Autopilot automatically trains and tunes models based on your dataset 
 </b></details>
 
 <details>
-<summary>Which file format is recommended for distributed training in SageMaker?</summary><br><b>
+<summary>How do RecordIO and augmented manifests relate to SageMaker input modes?</summary><br><b>
 
 **Options:**
-- **A.** CSV files stored in S3 buckets  
-- **B.** JSON files stored in DynamoDB  
-- **C.** RecordIO files in augmented manifest format  
-- **D.** Parquet files stored in S3 buckets  
+- **A.** RecordIO is required for all distributed training.
+- **B.** FastFile automatically converts every object to RecordIO.
+- **C.** Pipe mode can stream RecordIO or augmented-manifest records; FastFile exposes ordinary S3 files and does not support augmented manifests.
+- **D.** An augmented manifest is a subtype of RecordIO.
 
 **Answer:**  
-**C. RecordIO files in augmented manifest format**
+**C. Pipe mode can stream RecordIO or augmented-manifest records; FastFile exposes ordinary S3 files and does not support augmented manifests.**
 
 **Explanation:**  
-The RecordIO format in the augmented manifest format is ideal for efficient distributed training as it provides faster reading and processing of large datasets.
+**RecordIO** is a record-delimited data format, not a training mode and not a
+wrapper around an augmented manifest. For a Pipe channel, set
+`RecordWrapperType=RecordIO` only when raw S3 objects must be wrapped for an
+algorithm that expects RecordIO; leave it unset when the objects are already
+RecordIO. An **augmented manifest** is an alternative way to stream labelled
+records in Pipe mode without first creating RecordIO files. There is no single
+file format that is universally best for distributed training: use the format
+and input mode supported by the chosen algorithm and access pattern.
 
 </b></details>
 
@@ -516,7 +539,7 @@ K-Means Clustering is an unsupervised learning algorithm used for customer segme
 - **A.** DeepAR Forecasting  
 - **B.** Neural Topic Modeling  
 - **C.** Linear Learner  
-- **D.** Multinomial Logistic Regression  
+- **D.** K-Nearest Neighbors
 
 **Answer:**  
 **A. DeepAR Forecasting**
@@ -531,7 +554,7 @@ DeepAR is specifically designed for probabilistic time-series forecasting and is
 
 **Options:**
 - **A.** Random Cut Forest  
-- **B.** XGBoost  
+- **B.** XGBoost
 - **C.** K-Means Clustering  
 - **D.** PCA  
 
@@ -548,15 +571,17 @@ Random Cut Forest (RCF) is optimized for anomaly detection in tabular and time-s
 
 **Options:**
 - **A.** Linear Learner  
-- **B.** Multinomial Logistic Regression  
+- **B.** XGBoost
 - **C.** BlazingText  
 - **D.** Factorization Machines  
 
 **Answer:**  
-**B. Multinomial Logistic Regression**
+**A. Linear Learner**
 
 **Explanation:**  
-Multinomial Logistic Regression is ideal for multi-class classification problems where there are more than two categories to predict.
+SageMaker's built-in **Linear Learner** supports multiclass classification.
+Multinomial logistic regression is a modelling technique, but it is not a
+separate SageMaker built-in algorithm.
 
 </b></details>
 

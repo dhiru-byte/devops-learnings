@@ -1,811 +1,1908 @@
-### Linux 
---------------------------------------------------------------------------------------
+# Linux
 
-<details>
-<summary>How setup a redirect nginx or apache?</code></summary><br><b>
+Concepts and commands for Linux and networking interview questions. The
+concept sections come first; the [command reference](#command-reference) at the
+end groups day-to-day syntax by task and links back to the explanation behind
+each group.
 
-`Open Nginx Configuration File:` `/etc/nginx/nginx.conf`. You can also find server block configuration files in the `/etc/nginx/sites-available/` directory.
+## Contents
 
-```yaml
+- [Operating system fundamentals](#operating-system-fundamentals)
+- [Linux architecture](#linux-architecture)
+- [Filesystem](#filesystem)
+- [LVM](#lvm)
+- [Permissions](#permissions)
+- [SELinux vs AppArmor](#selinux-vs-apparmor)
+- [Processes](#processes)
+- [Process priority and scheduling](#process-priority-and-scheduling)
+- [cgroups v1 vs v2](#cgroups-v1-vs-v2)
+- [Resource limits with ulimit](#resource-limits-with-ulimit)
+- [CPU load average](#cpu-load-average)
+- [Memory](#memory)
+- [Concurrency problems](#concurrency-problems)
+- [Networking fundamentals](#networking-fundamentals)
+- [nftables vs iptables](#nftables-vs-iptables)
+- [DNS](#dns)
+- [IP addressing and CIDR](#ip-addressing-and-cidr)
+- [Network interfaces and diagnostics](#network-interfaces-and-diagnostics)
+- [HTTP status codes](#http-status-codes)
+- [SSH](#ssh)
+- [systemd and journald](#systemd-and-journald)
+- [Nginx redirect](#nginx-redirect)
+- [Shell prompt customisation](#shell-prompt-customisation)
+- [Command reference](#command-reference)
+  - [System information](#system-information)
+  - [Memory and CPU](#memory-and-cpu)
+  - [Files and directories](#files-and-directories)
+  - [Viewing and editing file contents](#viewing-and-editing-file-contents)
+  - [Searching](#searching)
+  - [Text filters](#text-filters)
+  - [Counting](#counting)
+  - [Disk usage](#disk-usage)
+  - [Process management](#process-management)
+  - [Process priority commands](#process-priority-commands)
+  - [Services and logs](#services-and-logs)
+  - [Users and groups](#users-and-groups)
+  - [Permission commands](#permission-commands)
+  - [Networking commands](#networking-commands)
+  - [Archives and transfers](#archives-and-transfers)
+  - [Shell productivity](#shell-productivity)
+
+## Operating system fundamentals
+
+### What is an operating system?
+
+An operating system is the layer between users and hardware. It translates
+user and application requests into hardware operations, and it arbitrates
+access to CPU, memory, storage, and devices so that many programs can run at
+once without interfering with each other.
+
+Categories by concurrency support: single-user single-tasking, single-user
+multitasking, and multi-user multitasking. Linux is multi-user multitasking.
+
+### Functions of an operating system
+
+<p align="center">
+<img src="../images/OS_functions.jpg" width="800" height="300" />
+</p>
+
+- **Process management:** create, schedule, and terminate processes, and provide
+  synchronisation and inter-process communication.
+- **Memory management:** allocate and reclaim memory, and maintain the virtual
+  address space of each process.
+- **File management:** organise, store, retrieve, name, share, and protect files.
+- **Device and I/O management:** track devices, allocate them, and hide
+  hardware-specific behaviour behind uniform interfaces.
+- **Storage management:** move data between cache, main memory, and secondary
+  storage.
+- **Security and access control:** authenticate users and enforce permissions.
+- **Networking:** provide the stack that lets processes on different machines
+  communicate.
+- **Accounting:** track resource use per user and per job.
+- **Command interpretation:** parse commands and act on system resources.
+
+### What is Linux?
+
+Linux is a UNIX-like operating system built around the Linux kernel, released by
+Linus Torvalds in 1991 and developed as free software. It runs on x86, ARM,
+POWER, RISC-V, and s390x, from embedded devices to mainframes, which is why it
+is the default platform for servers and containers.
+
+### UNIX vs Linux
+
+UNIX began as proprietary software at Bell Labs and split into commercial
+variants such as AIX, HP-UX, and Solaris, each tied to specific vendor hardware.
+Linux is an independent, open-source kernel with a UNIX-like interface, licensed
+under the GPL, packaged by many distributions, and portable across hardware.
+Practically: UNIX certification and vendor support versus Linux openness,
+hardware freedom, and a far larger ecosystem.
+
+### The GNU project
+
+GNU supplied the userland (compiler, C library, coreutils, shell) that a kernel
+needs to be a usable system, and the GPL that keeps it open. The freedoms it
+established are to run the software for any purpose, to study and modify it, to
+redistribute copies, and to publish improvements. This is why a Linux system is
+often called GNU/Linux.
+
+### Boot loaders
+
+The boot loader loads the kernel into memory and hands control to it.
+**GRUB 2** is the standard on current distributions; it understands
+filesystems, supports a menu and kernel parameters, and can chain-load other
+systems. **LILO** was the earlier Linux loader and is obsolete: it stored block
+lists and had to be rerun after every kernel change. `systemd-boot` is common on
+UEFI-only systems.
+
+Boot order on a modern system: firmware (UEFI/BIOS) to boot loader (GRUB) to
+kernel to `initramfs` to `init` (systemd) to target units.
+
+### The root account
+
+`root` is UID 0, the superuser, and it bypasses permission checks. It can create
+and manage users, change any file, and load kernel modules.
+
+In practice you do not log in as root. Administrators use `sudo` so that every
+privileged action is attributable in the audit log and scoped by
+`/etc/sudoers`. Disabling direct root SSH login (`PermitRootLogin no`) is
+standard hardening.
+
+### Desktop environments
+
+A Linux system can have several desktop environments installed, such as GNOME
+and KDE, and you choose one at the login screen; the choice persists until you
+change it. One is normally enough, and some applications integrate better with
+the toolkit of their own environment. On servers, no desktop environment is
+installed at all, since it only adds attack surface and resource use.
+
+### vi modes
+
+- **Command mode:** the mode `vi` starts in; keystrokes are navigation and
+  editing operators.
+- **Insert mode:** entered with `i`, `a`, or `o`; keystrokes are inserted as
+  text. `Esc` returns to command mode.
+- **Last-line (ex) mode:** entered with `:` from command mode, for commands such
+  as `:w`, `:q!`, and `:%s/old/new/g`.
+
+## Linux architecture
+
+<p align="center">
+<img src="../images/LinuxArchitecture.jpg" width="500" height="450" />
+</p>
+
+**Hardware** is the physical layer: CPU, RAM, disks, network interfaces.
+
+**Kernel** is the core that manages the communication between software and
+hardware. It owns scheduling, memory management, the filesystem layer, device
+drivers, and the network stack, and it exposes all of that through system calls.
+
+**Shell** is the interface that reads user commands, invokes programs, and
+returns output. Where the kernel is the innermost layer, the shell is the
+outermost.
+
+**Utilities** are the userland programs that make the system usable: coreutils,
+text processing tools, networking tools, and package management.
+
+### Kernel types
+
+- **Monolithic:** all OS services run in a single kernel address space. Fast,
+  because there is no message passing between subsystems, but a fault anywhere
+  can take down the system. Linux is monolithic, with loadable modules so
+  drivers can be added at runtime.
+- **Microkernel:** only the minimum (scheduling, IPC, basic memory management)
+  runs in kernel space, while drivers and filesystems run as user-space
+  servers. More robust and smaller, at the cost of IPC overhead. QNX and Minix
+  are examples.
+- **Hybrid:** a microkernel design with performance-critical services pulled
+  back into the kernel. Windows NT and XNU (macOS) are examples.
+- **Exokernel:** exposes hardware resources almost directly and leaves
+  abstractions to applications; mainly a research design.
+
+Kernel responsibilities to name in an interview: process scheduling,
+inter-process communication, synchronisation, context switching, memory
+management, and system-call handling.
+
+### Shells
+
+| Shell | Notes |
+| :--- | :--- |
+| `sh` (Bourne) | The original scripting shell; today usually a link to `dash` or `bash` in POSIX mode |
+| `bash` | The default interactive shell on most distributions |
+| `dash` | Small, fast POSIX shell used as `/bin/sh` on Debian and Ubuntu |
+| `ksh` (Korn) | Bourne-compatible with additions; common on commercial UNIX |
+| `csh` / `tcsh` | C-like syntax; poor for scripting |
+| `zsh` | Bash-compatible enough for daily use, richer completion; default on macOS |
+
+Write portable scripts against `sh`, or declare `#!/usr/bin/env bash`
+explicitly. A script with a `#!/bin/sh` shebang that uses bash-only syntax such
+as arrays or `[[ ]]` breaks on Debian, where `/bin/sh` is `dash`.
+
+## Filesystem
+
+### Filesystem hierarchy
+
+| Path | Contents |
+| :--- | :--- |
+| `/` | Root of the entire hierarchy |
+| `/root` | Home directory of the root user |
+| `/home` | Home directories of regular users |
+| `/boot` | Kernel, `initramfs`, and boot loader files such as GRUB configuration |
+| `/etc` | System-wide configuration, for example `/etc/passwd`, `/etc/fstab` |
+| `/usr` | Installed software: `/usr/bin`, `/usr/lib`, `/usr/share` |
+| `/opt` | Self-contained third-party software |
+| `/bin`, `/sbin` | Essential user and administrator binaries; symlinks into `/usr` on modern systems |
+| `/lib` | Shared libraries and kernel modules |
+| `/dev` | Device nodes, for example `/dev/sda`, `/dev/null` |
+| `/proc` | Virtual filesystem of kernel and process state, for example `/proc/cpuinfo` |
+| `/sys` | Virtual filesystem exposing devices, drivers, and cgroups |
+| `/var` | Variable data: logs, spool, caches, `/var/lib/docker` |
+| `/tmp` | Temporary files, world-writable, often cleared at boot |
+| `/mnt` | Mount point for temporary manual mounts |
+| `/media` | Mount point for removable media |
+| `/run` | Runtime state since boot, on tmpfs, for example PID and socket files |
+
+### Inodes
+
+An inode is the on-disk data structure holding a file's metadata and the
+pointers to its data blocks. The filename is not part of the inode: a directory
+entry maps a name to an inode number, which is what makes hard links possible.
+
+An inode holds owner UID, group GID, file type, permission bits and ACLs, size,
+link count, timestamps (access, modification, inode change), and the block
+pointers. It does **not** hold the filename or the file contents.
+
+```bash
+ls -i file            # inode number
+stat file             # all inode fields in readable form
+df -i                 # inode usage per filesystem
+```
+
+A filesystem can run out of inodes while free space remains, which shows up as
+"No space left on device" with `df -h` looking healthy. Millions of tiny files,
+typically cache or session files, are the usual cause; check `df -i`.
+
+### Hard links vs symbolic links
+
+A **hard link** is an additional directory entry pointing at the same inode. All
+names are equal; the data is freed only when the link count reaches zero and no
+process holds the file open. Renaming or moving one name does not affect the
+others.
+
+A **symbolic link** is a small file whose content is a path. It behaves like a
+Windows shortcut and can point at a file, a directory, or nothing at all.
+
+| | Hard link | Symbolic link |
+| :--- | :--- | :--- |
+| Points to | The inode | A pathname |
+| Across filesystems | No | Yes |
+| To a directory | Not permitted | Yes |
+| Survives deletion of the original | Yes | No, becomes a dangling link |
+| Own inode | No, shares it | Yes |
+| Created with | `ln target name` | `ln -s target name` |
+
+### Configuration and virtual filesystems
+
+**`/etc/passwd`** holds one line per account:
+`name:password:UID:GID:comment:home:shell`. The password field is `x` because
+hashes live in `/etc/shadow`, which is readable only by root. A shell of
+`/usr/sbin/nologin` marks a service account that cannot log in.
+
+<p align="center">
+<img src="../images/etc_passwd_file.jpg" width="800" height="300" />
+</p>
+
+**`/etc/fstab`** is the administrator-maintained list of filesystems to mount at
+boot, with device (preferably by `UUID=`), mount point, type, options, dump, and
+fsck order. A wrong entry can leave the system unbootable, so validate with
+`mount -a` before rebooting.
+
+**`/etc/mtab`** is the system-maintained list of currently mounted filesystems;
+on modern systems it is a symlink to `/proc/self/mounts`. A connected but
+unmounted disk does not appear there. Use `findmnt` to read mounts.
+
+The relationship: mount a device manually, confirm it in `/etc/mtab` or
+`findmnt`, then add the equivalent line to `/etc/fstab` so it mounts on boot or
+on `mount -a`.
+
+**`/etc/hosts`** maps hostnames to addresses locally and is consulted before
+DNS, per `/etc/nsswitch.conf`. It is the quickest way to pin or override a name
+during testing.
+
+```text
+127.0.0.1     localhost
+192.168.49.2  hello-world.info
+```
+
+**`/etc/resolv.conf`** configures the resolver library: `nameserver` entries to
+query, plus `search` domains and `options`. On hosts running
+`systemd-resolved` or NetworkManager it is generated, so edit the manager's
+configuration instead or the change is overwritten.
+
+```text
+nameserver 10.0.80.11
+nameserver 10.0.80.12
+search example.internal
+```
+
+**`/proc`** is a virtual filesystem created in memory at boot and gone at
+shutdown. It exposes kernel and per-process state as readable files and is the
+main channel between kernel space and user space: `/proc/cpuinfo`,
+`/proc/meminfo`, `/proc/loadavg`, `/proc/<pid>/status`, `/proc/<pid>/fd`, and
+writable tunables under `/proc/sys` reached through `sysctl`.
+
+### Daemons
+
+A daemon is a background service process with no controlling terminal. It waits
+for requests, serves them, and returns to waiting. Names conventionally end in
+`d`: `sshd`, `crond`, `dockerd`. On current distributions daemons are managed by
+systemd units:
+
+```bash
+systemctl status sshd
+systemctl enable --now sshd
+journalctl -u sshd --since '1 hour ago'
+```
+
+## LVM
+
+Logical Volume Manager adds a flexible layer between disks and filesystems:
+
+`physical volume (PV) -> volume group (VG) -> logical volume (LV) -> filesystem`
+
+- A **PV** is a disk or partition initialised with `pvcreate`.
+- A **VG** pools one or more PVs with `vgcreate`; free extents in the pool can
+  be assigned to any LV.
+- An **LV** is the block device created with `lvcreate`, such as
+  `/dev/vgdata/lvapp`. Put a filesystem on it and mount it normally.
+
+Typical online growth:
+
+```bash
+sudo pvs; sudo vgs; sudo lvs          # inspect before changing anything
+sudo lvextend -r -L +10G /dev/vgdata/lvapp
+```
+
+`-r` grows the filesystem after the LV. Without it, the block device grows but
+the filesystem does not. Extending is routine; shrinking is risky, filesystem
+dependent, usually requires unmounting, and can destroy data if the filesystem
+is not shrunk first. Take and verify a backup before any shrink.
+
+An LVM snapshot is copy-on-write and useful for a short, crash-consistent backup
+window, not as a durable backup: it shares the same disks, consumes VG space as
+the origin changes, and becomes invalid if that space fills.
+
+## Permissions
+
+Three permission bits apply to three identity classes: user (owner), group, and
+others.
+
+| Permission | On a file | On a directory |
+| :--- | :--- | :--- |
+| Read (r, 4) | Read the contents | List the entries |
+| Write (w, 2) | Modify the contents | Create, rename, delete entries |
+| Execute (x, 1) | Run it | Enter it and access entries by name |
+
+Numeric form adds the bits per class:
+
+```bash
+chmod 650 test.txt    # user rw- (4+2), group r-x (4+1), others --- (0)
+chmod 644 file        # owner read/write, everyone else read
+chmod 755 script.sh   # owner all, others read and execute
+```
+
+Symbolic form combines who (`u`, `g`, `o`, `a`), an operator (`+`, `-`, `=`),
+and which bits (`r`, `w`, `x`):
+
+```bash
+chmod ug+rw test.txt      # add read and write for user and group
+chmod o-rwx secret.txt    # remove all access for others
+chmod a=r file            # set exactly read for everyone
+chown user:group file
+umask 022                 # default mask: new files 644, new directories 755
+```
+
+Note that write permission on a **directory** is what allows deleting a file
+inside it, regardless of the file's own permissions. That is why `/tmp` needs
+the sticky bit.
+
+### Special bits
+
+| Bit | Numeric | Effect |
+| :--- | :--- | :--- |
+| SUID | 4000 | Executable runs with the owner's privileges, for example `/usr/bin/passwd` |
+| SGID | 2000 | On a binary, runs with the group's privileges; on a directory, new entries inherit the directory's group |
+| Sticky | 1000 | In a shared directory, only the owner of a file may delete it, for example `/tmp` |
+
+```bash
+chmod 4755 binary      # SUID, shows as rwsr-xr-x
+chmod 2775 shared_dir  # SGID, shows as rwxrwsr-x
+chmod 1777 /tmp        # sticky, shows as rwxrwxrwt
+find / -xdev -perm -4000 -type f 2>/dev/null   # audit one local filesystem
+```
+
+Unnecessary SUID root binaries are a standard privilege-escalation route; audit
+them and remove the bit where it is not needed. A scan from `/` can be expensive
+and can enter network mounts; prefer `find / -xdev ...` per local filesystem,
+run it in a low-traffic period, and inspect results before changing permissions.
+
+Reference: [SUID, SGID and the sticky bit](https://www.redhat.com/sysadmin/suid-sgid-sticky-bit)
+
+## SELinux vs AppArmor
+
+Traditional mode bits and ACLs are discretionary access control: an owner can
+grant access. SELinux and AppArmor add **mandatory access control (MAC)**, so a
+policy can deny an action even when Unix permissions allow it.
+
+| | SELinux | AppArmor |
+| :--- | :--- | :--- |
+| Policy model | Labels every subject and object; rules allow type interactions | Profiles programs by pathname and allowed operations |
+| Common distributions | RHEL, Fedora, CentOS Stream, Amazon Linux | Ubuntu, Debian, SUSE |
+| Modes | Enforcing, permissive, disabled | Enforce, complain, disabled per profile |
+| Strength | Fine-grained and robust across path changes | Easier to read and adopt |
+| First diagnostics | `getenforce`, `ausearch -m AVC`, `sealert` | `aa-status`, kernel/journal `DENIED` messages |
+
+Do not disable MAC to fix a denial. Confirm the application is using the
+expected path and label, inspect the audit event, and make the smallest policy
+change. For SELinux, `restorecon -Rv /path` repairs expected labels and
+`semanage fcontext` makes a custom mapping persistent; `chcon` alone is
+temporary. For AppArmor, update the named profile, test in complain mode, then
+reload it with `apparmor_parser`.
+
+## Processes
+
+### Process vs thread
+
+A process is a program in execution with its own virtual address space. A thread
+is a unit of execution inside a process; threads of one process share the
+address space but each has its own stack and registers.
+
+| | Process | Thread |
+| :--- | :--- | :--- |
+| Weight | Heavier | Lighter |
+| Address space | Its own | Shared with siblings |
+| Creation and teardown cost | Higher | Lower |
+| Context switch cost | Higher, needs an address-space switch | Lower |
+| Isolation | Isolated by default | None inside the process |
+| Communication | IPC: pipes, sockets, shared memory, signals | Shared memory directly, needs locking |
+| Failure blast radius | One process dies | Usually the whole process dies |
+
+The kernel tracks each process through a task structure (the process control
+block) holding PID, parent PID, state, priority, register context, memory maps,
+and open file descriptors. Threads can be implemented at kernel level, at user
+level, or as a hybrid; Linux implements them as tasks sharing memory, created by
+`clone()`.
+
+Shared state is the trade-off: threads communicate cheaply but require locking,
+which is where deadlocks and race conditions come from. Processes cost more but
+fail independently.
+
+### Process states
+
+| State in `ps`/`top` | Meaning |
+| :--- | :--- |
+| `R` | Running or runnable, on a CPU or waiting for one |
+| `S` | Interruptible sleep, waiting on an event, the normal idle state |
+| `D` | Uninterruptible sleep, usually blocked on disk or network I/O |
+| `T` | Stopped by a signal or a debugger |
+| `Z` | Zombie, finished but not yet reaped |
+
+Many processes in `D` state are the signature of a storage problem: the
+processes cannot be killed because they are inside a kernel call, and load
+average climbs even though CPU is idle.
+
+### Zombie and orphan processes
+
+A **zombie** (`Z`, "defunct") has finished executing, but its exit status is
+still in the process table because the parent has not called `wait()`. It holds
+no memory or CPU, only a table entry. A few are normal; a growing count is a bug
+in the parent, and the fix is to restart or fix the parent, since a zombie
+cannot be killed. When the parent dies, `init` adopts and reaps them.
+
+An **orphan** is a process whose parent exited first. It keeps running and is
+re-parented to `init` (PID 1). Orphans are not an error, unlike zombies.
+
+```bash
+ps -eo pid,ppid,stat,cmd | awk '$3 ~ /^Z/'   # list zombies and their parents
+```
+
+### `top` output columns
+
+| Column | Meaning |
+| :--- | :--- |
+| `PID` | Process ID |
+| `USER` | Owner |
+| `PR` | Kernel scheduling priority, lower is more favoured |
+| `NI` | Nice value, `-20` to `19`, user-settable |
+| `VIRT` | Total virtual address space mapped |
+| `RES` | Resident set: physical RAM currently in use |
+| `SHR` | Portion of `RES` that is shared, for example shared libraries |
+| `S` | Process state |
+| `%CPU` | Share of one CPU's time since the last refresh; can exceed 100% for multi-threaded processes |
+| `%MEM` | `RES` as a percentage of total physical memory |
+| `TIME+` | Cumulative CPU time, to hundredths of a second |
+| `COMMAND` | Command name or full command line |
+
+`RES` is the number that matters for memory pressure. Summing `RES` across
+processes over-counts, because shared pages are counted once per process.
+
+Reference: [How to use top](https://www.howtogeek.com/668986/how-to-use-the-linux-top-command-and-understand-its-output/)
+
+## Process priority and scheduling
+
+Linux schedules normal tasks with **CFS** (the Completely Fair Scheduler), which
+allocates CPU time in proportion to a task's weight rather than running a strict
+priority queue. Nice value sets that weight.
+
+### Nice and priority
+
+- **Nice (`NI`)** ranges from `-20` (most favoured) to `19` (least favoured),
+  default `0`. It is a hint about relative CPU share, not a reservation.
+- **Priority (`PR`)** is what the kernel shows: for normal tasks
+  `PR = 20 + NI`, so nice `0` displays as `PR 20` and nice `-20` as `PR 0`.
+  Real-time tasks display as `RT` or a negative value.
+- Each step of nice changes the task's CPU weight by roughly 10%, so nice `-5`
+  against nice `0` is a large difference under contention and no difference at
+  all on an idle machine.
+- **Lowering** a nice value (raising priority) requires root. Any user may
+  raise their own nice value, which is irreversible without privileges.
+
+Syntax for setting and changing priority is in
+[Process priority commands](#process-priority-commands).
+
+### Scheduling policies
+
+| Policy | Use |
+| :--- | :--- |
+| `SCHED_OTHER` (CFS) | Default for all normal processes; nice applies here |
+| `SCHED_BATCH` | CPU-bound background work; the scheduler assumes no interactivity |
+| `SCHED_IDLE` | Runs only when nothing else wants the CPU |
+| `SCHED_FIFO` / `SCHED_RR` | Real-time, priority 1 to 99, always preempts normal tasks |
+
+Real-time policies (`chrt -f 50 ./app`) preempt everything below them, so a
+busy-looping real-time task can make a machine unresponsive. Use them only for
+genuine latency requirements.
+
+### Related controls
+
+- **I/O priority** is separate from CPU priority. A backup that starves the disk
+  needs `ionice -c 3 tar ...` (idle class), not `nice`.
+- **cgroups** are the right tool for enforcing shares between workloads, and are
+  what containers and systemd use. `systemd-run -p CPUQuota=20% ./job` caps a
+  job at 20% of one CPU, which `nice` cannot do because nice only sets relative
+  weight.
+- **OOM priority** is also separate: `/proc/<pid>/oom_score_adj` biases which
+  process the kernel kills under memory pressure.
+
+## cgroups v1 vs v2
+
+Control groups account for and limit CPU, memory, I/O, process count, and other
+resources for a process tree. Containers and systemd services are cgroups with
+namespaces and policy layered on top.
+
+| | cgroups v1 | cgroups v2 |
+| :--- | :--- | :--- |
+| Hierarchy | Separate hierarchy per controller | One unified hierarchy |
+| Process membership | A process can be in different groups per controller | One process belongs to one cgroup |
+| Interface | Controller-specific and inconsistent | Consistent files such as `cpu.max`, `memory.max`, `pids.max` |
+| Memory control | Weaker accounting and delegation | Better pressure, swap, and OOM controls |
+| Modern default | Legacy and compatibility systems | Current systemd distributions and Kubernetes |
+
+Detect the mode with `stat -fc %T /sys/fs/cgroup`: `cgroup2fs` means v2.
+Inspect a service with `systemctl status`, `systemd-cgls`, and
+`systemd-cgtop`. Prefer systemd properties such as `CPUQuota=`,
+`MemoryMax=`, `TasksMax=`, and `IOWeight=` over writing control files by hand,
+because systemd owns the hierarchy and reapplies the configuration.
+
+In v2, `memory.high` throttles and reclaims before failure, while `memory.max`
+is the hard ceiling that can trigger a cgroup OOM kill. `cpu.weight` is a
+relative share under contention; `cpu.max` is a hard quota. The distinction is
+the same as Docker `--cpu-shares` versus `--cpus`.
+
+## Resource limits with ulimit
+
+`ulimit` is a shell builtin that reads and sets per-process resource limits.
+Children inherit the limits, so it affects only programs launched from that
+shell; it does not retroactively change an existing process.
+
+```bash
+ulimit -a                 # inspect all limits
+ulimit -Sn / ulimit -Hn  # soft and hard open-file limits
+ulimit -n 65536          # raise the soft limit, but never above the hard limit
+prlimit --pid <pid>      # inspect limits of an existing process
+```
+
+The **soft limit** is the enforced value a process may raise up to the **hard
+limit**. Only root or a process with the needed capability can raise the hard
+limit. Common failures are `Too many open files` (`nofile`) and inability to
+create threads or processes (`nproc`).
+
+Persistent interactive-user limits belong in `/etc/security/limits.conf` or
+`limits.d`, but systemd services do not use PAM limits: set
+`LimitNOFILE=`, `LimitNPROC=`, and related directives in the unit. For
+containers, use the runtime's `--ulimit` plus cgroup limits; `ulimit` alone does
+not constrain aggregate resource use across a service.
+
+## CPU load average
+
+Load average is the number of tasks that are **running or waiting to run**,
+averaged over the last 1, 5, and 15 minutes. On Linux it also counts tasks in
+uninterruptible sleep (`D` state), so heavy disk or network I/O raises load even
+when the CPU is idle.
+
+```bash
+uptime
+# 15:42:01 up 9 days,  2:14,  2 users,  load average: 3.84, 3.72, 2.41
+cat /proc/loadavg
+nproc                 # number of logical CPUs, the denominator
+```
+
+Read it **relative to the CPU count**, because one logical CPU runs one task at
+a time.
+
+| Load | 1 CPU | 4 CPUs |
+| :--- | :--- | :--- |
+| 0.5 | 50% busy, no queue | 12.5% busy, mostly idle |
+| 1.0 | Fully busy, no queue | 25% busy |
+| 4.0 | 4x oversubscribed, about 3 tasks waiting | Fully busy, no queue |
+| 8.0 | Severely oversubscribed | 2x oversubscribed, about 4 tasks waiting |
+
+So for the example `3.84, 3.72, 2.41`:
+
+- On a **1-CPU** host this is a serious backlog: demand is about 3.8 times
+  capacity, and it has been rising over the last 15 minutes (2.41 to 3.84).
+- On a **4-CPU** host it is near full utilisation with little or no queueing.
+- On a **16-CPU** host it is roughly 24% utilised and unremarkable.
+
+Practical reading:
+
+- Divide by `nproc` to get a utilisation ratio. Sustained above 1.0 per CPU
+  means tasks are waiting.
+- Compare the three numbers to get direction: 1-minute above 15-minute means the
+  load is growing, the reverse means it is draining.
+- High load with low CPU utilisation in `top` means the queue is I/O-bound.
+  Confirm with `iostat -xz 1` and by counting `D`-state tasks in
+  `ps -eo stat,comm`.
+- Load average is a count of tasks, not a percentage. A load of 2.0 is not "200%
+  CPU"; on a 4-CPU host it is comfortable.
+
+## Memory
+
+### Virtual vs resident memory
+
+**Virtual memory** is the abstraction that gives each process its own
+contiguous address space, backed by a mix of physical RAM, files mapped into
+memory, and swap. `VIRT` in `top` is the total size of that mapped address
+space, which includes shared libraries, memory-mapped files, and reserved but
+untouched allocations. It is routinely far larger than actual usage and is a
+poor indicator of pressure.
+
+**Resident memory** (`RES`) is the part of that address space currently held in
+physical RAM. This is the number to watch. Under pressure, the kernel reclaims
+resident pages using an approximate least-recently-used policy: clean
+file-backed pages are dropped, dirty pages are written back, and anonymous
+pages go to swap.
+
+A common wrong statement is "virtual memory is disk space that acts as RAM".
+That describes **swap**, which is only one backing store for a virtual address
+space.
+
+```bash
+free -h                # total, used, free, buff/cache, available
+cat /proc/meminfo       # detailed kernel view
+ps -eo pid,rss,vsz,comm --sort=-rss | head
+```
+
+In `free`, read the **available** column, not **free**. Page cache under
+`buff/cache` is reclaimable on demand, so a healthy Linux host normally shows
+very little truly free memory, and that is by design.
+
+### Swap
+
+Swap is disk or file space the kernel uses to hold anonymous pages that do not
+fit in RAM, letting the system keep running past physical capacity at a very
+large latency cost.
+
+```bash
+swapon --show
+free -h
+sysctl vm.swappiness            # 0 to 100, default 60: bias toward swapping anonymous pages
+```
+
+Sizing, replacing the old "twice physical RAM" rule, which came from systems
+with a few hundred megabytes of memory:
+
+- Small hosts (up to 2 GB RAM): about twice RAM.
+- Mid-range (2 to 8 GB): roughly equal to RAM.
+- Large servers (8 GB and above): 4 to 8 GB is normally sufficient, unless you
+  need hibernation, which requires swap at least the size of RAM.
+- Latency-sensitive databases often run with little or no swap and rely on
+  correct sizing plus monitoring instead, because swapping a database is worse
+  than failing fast.
+- Kubernetes historically required swap to be disabled, and many production
+  clusters still do that for predictable memory accounting. Modern kubelet can
+  use swap when `failSwapOn: false` and the `NodeSwap` feature is enabled. Set
+  `memorySwap.swapBehavior` to `NoSwap` (Pods do not use swap) or
+  `LimitedSwap` (bounded use for supported cgroup v2 configurations). Treat this
+  as an explicit cluster policy: verify the Kubernetes version, container
+  runtime, cgroup mode, and eviction behaviour rather than assuming swap is
+  either always forbidden or always safe.
+
+Continuous swap-in and swap-out (thrashing) is a capacity problem, not something
+to tune away; check `vmstat 1` columns `si` and `so`.
+
+### The OOM killer
+
+When memory cannot be reclaimed, the kernel picks a process and kills it rather
+than letting the whole system stall. It chooses by `oom_score`, which is driven
+mainly by memory footprint and adjusted by
+`/proc/<pid>/oom_score_adj` (`-1000` to `1000`).
+
+```bash
+dmesg -T | grep -i -E 'out of memory|killed process'
+cat /proc/<pid>/oom_score
+```
+
+A process that vanishes with no application-level error and exit code 137 was
+almost certainly OOM-killed. In a container, that usually means the cgroup
+memory limit, not host exhaustion.
+
+## Concurrency problems
+
+### Deadlock
+
+A deadlock is a cycle of processes each holding a resource and waiting for one
+held by another, so none can proceed. All four Coffman conditions must hold at
+once:
+
+- **Mutual exclusion:** a resource can be held by only one process at a time.
+- **Hold and wait:** a process holding a resource can request another.
+- **No preemption:** resources cannot be forcibly taken back.
+- **Circular wait:** a closed chain exists, for example P0 waits on P1, P1 waits
+  on P2, and P2 waits on P0.
+
+Break any one condition and deadlock becomes impossible. The practical fix is to
+break circular wait by acquiring locks in a globally fixed order, or to break
+hold-and-wait with timeouts and `try_lock`.
+
+### Starvation
+
+Starvation is a process that is ready to run but keeps being passed over,
+because higher-priority work continuously takes the resource it needs. Unlike
+deadlock, the system as a whole makes progress; one participant does not.
+
+Causes: strict priority scheduling without ageing, unfair resource allocation
+policies, random selection instead of queueing, and simple resource shortage.
+
+The standard remedy is **ageing**: raise a waiting process's effective priority
+the longer it waits, which guarantees it eventually runs. Linux CFS avoids
+starvation for normal tasks by design, since it distributes time by weight
+rather than by strict priority, but real-time policies (`SCHED_FIFO`) can starve
+normal tasks.
+
+### Deadlock vs starvation vs livelock
+
+| | Deadlock | Starvation | Livelock |
+| :--- | :--- | :--- | :--- |
+| System progress | None among the involved processes | Yes, others proceed | None, though state keeps changing |
+| Cause | All four Coffman conditions hold | Unfair scheduling or allocation | Repeated conflicting retries or back-offs |
+| Blocked processes | Waiting forever, holding resources | Waiting forever, holding nothing | Actively running but achieving nothing |
+| Resolution | Break a condition, or detect and abort a participant | Ageing, fair queueing | Randomised back-off |
+
+Note that "circular wait" is one of the four deadlock conditions, not another
+name for deadlock, and livelock is a distinct third failure mode rather than
+another name for starvation.
+
+## Networking fundamentals
+
+### OSI model
+
+The OSI model describes seven layers that systems use to communicate over a
+network. It was the first standard reference model and remains the shared
+vocabulary for isolating faults, even though the internet actually runs on the
+simpler four-layer TCP/IP model.
+
+Mnemonic, application down to physical: All People Seem To Need Data Processing.
+
+| Layer | Name | Function | Examples |
+| :---: | :--- | :--- | :--- |
+| 7 | Application | Application protocols | HTTP, DNS, SSH, SMTP |
+| 6 | Presentation | Encoding, encryption, compression | TLS, JPEG |
+| 5 | Session | Session establishment and teardown | RPC, NetBIOS |
+| 4 | Transport | End-to-end delivery, ports | TCP, UDP |
+| 3 | Network | Addressing and routing between networks | IP, ICMP, routers |
+| 2 | Data link | Framing on the local segment, MAC addresses | Ethernet, ARP, switches |
+| 1 | Physical | Bits on the medium | Cables, radio, NICs |
+
+<p align="center">
+<img src="../images/OSI_Model3.jpg" width="500" height="450" />
+</p>
+
+<p align="center">
+<img src="../images/OSI_Model2.jpg" width="500" height="450" />
+</p>
+
+TCP/IP collapses this into link, internet, transport, and application layers.
+The mapping matters when reading load balancer documentation: a "layer 4" load
+balancer forwards TCP connections without seeing the request, while a "layer 7"
+load balancer parses HTTP and can route on path, host, and headers.
+
+### TCP
+
+TCP is connection-oriented and reliable. It numbers bytes, acknowledges receipt,
+retransmits what is lost, reorders what arrives out of sequence, and applies
+flow control so a fast sender cannot overwhelm a slow receiver, plus congestion
+control so it cannot overwhelm the network. Use it when every byte matters: HTTP
+and HTTPS, SSH, database connections, file transfer.
+
+### UDP
+
+UDP is connectionless. It sends datagrams with no handshake, no
+acknowledgements, no retransmission, and no ordering guarantee, which makes it
+faster and lower-overhead but unreliable. Use it when timeliness beats
+completeness: video and voice, gaming, metrics, and DNS. Applications that need
+reliability over UDP implement it themselves, as QUIC and HTTP/3 do.
+
+### The TCP three-way handshake
+
+The handshake establishes a connection and synchronises both sides' sequence
+numbers before any data flows.
+
+| Step | Flag | Direction | Sequence | Acknowledgement | Meaning |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | `SYN` | Client to server | `X` | - | "I want to connect, my sequence starts at X" |
+| 2 | `SYN-ACK` | Server to client | `Y` | `X + 1` | "Accepted, and my sequence starts at Y" |
+| 3 | `ACK` | Client to server | `X + 1` | `Y + 1` | "Acknowledged, connection established" |
+
+State transitions: the client goes `SYN-SENT` then `ESTABLISHED`; the server
+goes `LISTEN`, `SYN-RECEIVED`, then `ESTABLISHED`. Teardown is a separate
+four-way exchange of `FIN` and `ACK`, ending in `TIME_WAIT` on the closing side.
+
+Operational reading:
+
+- **Connection timeouts with retransmitted `SYN`s** mean the `SYN` or the
+  `SYN-ACK` is being dropped: a firewall or security group rule, a missing
+  route, or nothing listening on the port. `ss -tan state syn-sent` and
+  `tcpdump -ni any 'tcp[tcpflags] & tcp-syn != 0'` distinguish them.
+- **Connection refused** is different: the packet arrived and the host replied
+  with `RST` because no process is listening. That is a service problem, not a
+  network problem.
+- **SYN flood** is a denial-of-service attack that sends `SYN` packets and never
+  completes the handshake, exhausting the backlog. Mitigations are SYN cookies
+  (`net.ipv4.tcp_syncookies`) and a larger `tcp_max_syn_backlog`.
+- **Many sockets in `TIME_WAIT`** on a busy client is normal; it protects
+  against stale duplicate segments. Fix it with connection reuse and keep-alive,
+  not by disabling the protection.
+- A successful handshake does not guarantee data flows. An MTU mismatch with
+  blocked ICMP fragmentation-needed messages lets small packets through and
+  hangs large transfers, the classic "SSH connects then freezes" symptom.
+
+### Core protocols and ports
+
+| Protocol | Layer | Port | Transport | Notes |
+| :--- | :---: | :---: | :--- | :--- |
+| SSH / SFTP / SCP | 7 | 22 | TCP | Remote shell and file transfer; SFTP is an SSH subsystem, not FTP |
+| SMTP | 7 | 25, 465, 587 | TCP | Sending mail only; 587 with STARTTLS is the modern submission port |
+| DNS | 7 | 53 | UDP, TCP | UDP for queries, TCP for zone transfer and large responses |
+| HTTP | 7 | 80 | TCP | Plaintext web traffic |
+| POP3 / IMAP | 7 | 110 / 143 | TCP | Retrieving mail; 995 and 993 over TLS |
+| NTP | 7 | 123 | UDP | Time synchronisation |
+| HTTPS | 7 | 443 | TCP (QUIC over UDP for HTTP/3) | HTTP inside TLS |
+| FTP | 7 | 21 control, 20 data | TCP | Plaintext, dual channel |
+| MySQL / PostgreSQL | 7 | 3306 / 5432 | TCP | Never expose to the internet |
+| TCP / UDP | 4 | - | - | Transport itself; ports belong to this layer |
+
+HTTPS wraps HTTP in TLS, which provides encryption against eavesdropping,
+integrity against tampering, and server authentication through certificates.
+It is what defeats man-in-the-middle attacks and is mandatory for anything
+handling user data.
+
+### TLS 1.2 vs TLS 1.3 handshake
+
+Both versions authenticate the server's certificate, negotiate cryptographic
+parameters, derive shared symmetric traffic keys, and then carry encrypted
+application data. The important difference is round trips and what is encrypted.
+
+**TLS 1.2, normally two round trips before HTTP data:**
+
+1. Client sends `ClientHello` with supported versions, cipher suites, random
+   value, and extensions.
+2. Server returns `ServerHello`, certificate chain, and key-exchange parameters.
+3. Client validates the hostname, validity, chain, and trust anchor; sends its
+   key-exchange value and `Finished`.
+4. Server derives the same session keys and sends `Finished`. Application data
+   can now flow.
+
+With modern ECDHE, both sides contribute ephemeral values, giving forward
+secrecy. Older TLS 1.2 RSA key exchange lacks it and should be disabled.
+
+**TLS 1.3, one round trip:** the client's first message already includes
+key-share candidates. The server selects one and sends its certificate,
+signature, and `Finished` in one response; the client validates and returns its
+`Finished`, then sends application data. TLS 1.3 removes obsolete RSA key
+exchange, static Diffie-Hellman, CBC suites, and renegotiation, and encrypts
+more of the handshake.
+
+Session resumption avoids a full certificate exchange. TLS 1.3 can send
+**0-RTT early data**, but it is replayable, so use it only for idempotent
+requests and never for operations such as payments or state changes.
+
+### FTP, FTPS, and SFTP
+
+**FTP** uses two channels. The client always opens the control connection to
+server TCP 21:
+
+- In **active mode**, the client sends its chosen address and port with `PORT`;
+  the server opens the data connection from server TCP 20 back to that client
+  port. Client-side NAT and firewalls commonly block this unsolicited inbound
+  connection.
+- In **passive mode**, the client sends `PASV`/`EPSV`; the server returns a
+  high port and the client opens the data connection to it. This works better
+  through client NAT, but the server firewall and security group must allow and
+  the FTP server must advertise a configured passive-port range.
+
+FTP sends credentials and data in plaintext and should not be used on an
+untrusted network.
+
+**FTPS** is FTP with a TLS layer added, comparable to HTTP becoming HTTPS. It
+keeps the multi-port design, so it is awkward behind NAT and strict firewall or
+security group rules.
+
+**SFTP** is not FTP at all: it is a subsystem of SSH running over port 22. One
+port, encrypted by default, and it supports SSH key authentication, which is
+what makes it usable in an unattended CI/CD pipeline. It is the default choice.
+
+### Measuring network performance
+
+- **Latency:** time for data to travel from source to destination, usually
+  reported as round-trip time.
+- **Packet loss:** fraction of transmitted packets that never arrive; even 1%
+  badly degrades TCP throughput.
+- **Throughput:** data actually delivered per unit time, measured with `iperf3`.
+- **Bandwidth:** the theoretical maximum capacity of the link.
+- **Jitter:** variance in latency; the metric that matters for voice and video.
+
+Throughput on a single TCP stream is bounded by roughly window size divided by
+round-trip time, which is why a high-bandwidth intercontinental link still
+transfers a large file slowly without window scaling or parallel streams.
+
+## nftables vs iptables
+
+Both configure the Linux kernel's Netfilter packet-processing hooks. `iptables`
+is the older frontend with separate tools and rule sets for IPv4, IPv6, ARP,
+and bridges. `nftables` is the modern replacement: one `nft` command, one rules
+language, atomic ruleset updates, reusable sets/maps, and native dual-stack
+rules.
+
+On many current distributions, `iptables` is the compatibility frontend
+`iptables-nft`, which translates commands into nftables rules. Check
+`iptables --version` before assuming legacy mode; mixing direct `nft` changes
+with a firewall manager such as firewalld, UFW, Docker, or Kubernetes can cause
+the manager to overwrite or bypass your rules.
+
+```bash
+sudo nft list ruleset                  # read-only inspection
+sudo iptables-save                     # read-only legacy/compatibility view
+sudo nft -c -f rules.nft               # syntax-check without applying
+sudo nft list ruleset > rules.backup   # back up before an approved change
+```
+
+Packets traverse base chains attached to hooks such as `input` (addressed to
+this host), `output` (created here), and `forward` (routed through the host).
+NAT is separate: source NAT/masquerade changes outbound source addresses and
+destination NAT changes the inbound destination.
+
+Never flush a remote host's firewall interactively: one mistake can cut off SSH
+and leave no recovery path. Use a console or out-of-band session, keep an
+automatic rollback timer, validate first, and apply through the distribution's
+persistent firewall service.
+
+## DNS
+
+### What happens when you type a URL
+
+1. **URL parsing and HSTS.** The browser splits the URL into scheme, host, and
+   path, and checks its HSTS list. If the host is listed, `http://` is rewritten
+   to `https://` before any packet is sent.
+2. **Name resolution.** The browser checks its own cache, then the OS cache and
+   `/etc/hosts`, then asks the configured recursive resolver. The resolver, if it
+   has nothing cached, queries a **root** server, then the **TLD** server for
+   `.com`, then the **authoritative** server for the domain, and returns the
+   address. Each answer is cached for its TTL.
+3. **TCP handshake.** `SYN`, `SYN-ACK`, `ACK` to the server on port 443.
+4. **TLS handshake.** Cipher negotiation, certificate presentation and
+   validation against the trust store, and key exchange producing a symmetric
+   session key. TLS 1.3 completes this in one round trip, and session resumption
+   in zero.
+5. **HTTP request and response.** The browser sends `GET /`, a server such as
+   Nginx handles it or proxies to the application, and the response returns with
+   a status code and body.
+6. **Rendering.** HTML is parsed into the DOM, CSS into the CSSOM, the two
+   combine into the render tree, layout computes geometry, and paint and
+   compositing produce pixels. Subresources trigger more requests, reusing the
+   connection.
+
+Where latency actually goes: DNS resolution and the TLS handshake on a first
+visit, then round-trip time on subsequent requests. A CDN, connection keep-alive,
+and TLS session resumption address all three. Render-blocking CSS in `<head>`
+and deferred JavaScript exist for the same reason: the critical rendering path
+needs the CSSOM early and should not wait on scripts.
+
+### Record types
+
+| Record | Purpose |
+| :--- | :--- |
+| `A` | Hostname to IPv4 address |
+| `AAAA` | Hostname to IPv6 address |
+| `CNAME` | Alias to another name; cannot coexist with other records at the same name, so not valid at a zone apex |
+| `ALIAS` / `ANAME` | Provider-specific apex alias; resolves to another name but behaves like an `A` record and can coexist with other records |
+| `MX` | Mail exchanger for the domain, with a preference value |
+| `NS` | Authoritative nameservers for a zone |
+| `PTR` | Address to hostname, the reverse of `A`, used in reverse DNS and mail reputation |
+| `SRV` | Host **and port** for a named service, used by SIP, XMPP, and Kubernetes |
+| `TXT` | Arbitrary text; carries SPF, DKIM, DMARC, and domain-verification tokens |
+| `SOA` | Zone metadata: primary server, serial, refresh, and negative-cache TTL |
+| `CAA` | Which certificate authorities may issue for the domain |
+| `URL` | Provider feature, not a DNS record type: returns an HTTP 301 redirect |
+
+Chained example:
+
+```text
+blog.dnsimple.com.      CNAME  aetrion.github.io.
+aetrion.github.io.      CNAME  github.map.fastly.net.
+github.map.fastly.net.  A      185.31.17.133
+```
+
+Rules worth stating: `A`, `AAAA`, and `ALIAS` resolve a name to an address;
+`CNAME` and `ALIAS` must point at a name, not an address; a `URL` record is a
+redirect, so the browser address bar changes, while the others are invisible to
+the user. Use `A` when the address is known and stable, `CNAME` when you want to
+follow someone else's name, and `ALIAS` when you need apex-level aliasing.
+
+Full list: [DNS record types](https://www.nslookup.io/learning/dns-record-types)
+
+### TTL
+
+TTL is how long a resolver may cache an answer before asking again. It is the
+trade-off between query volume and change propagation: a 24-hour TTL keeps load
+low but means a change can take a day to be visible everywhere.
+
+The operational pattern before a planned migration is to lower the TTL to 60
+seconds a day or two ahead, make the change, verify, then raise it again. Note
+that a "5-minute DNS cutover" is optimistic in practice, because some resolvers
+and many application runtimes cache beyond the TTL. Java in particular caches
+resolved addresses for the process lifetime unless
+`networkaddress.cache.ttl` is set.
+
+### Transport
+
+DNS uses **UDP port 53** for ordinary queries and responses, because a single
+small exchange does not justify a TCP handshake and a failed query can simply be
+retried. It uses **TCP port 53** for zone transfers (AXFR/IXFR) and whenever a
+response is too large for the negotiated UDP size, which is common with DNSSEC.
+DNS over TLS (853) and DNS over HTTPS (443) add privacy.
+
+### DNS as a load balancer
+
+Yes, DNS can distribute traffic. Returning several `A` records for one name
+spreads clients across addresses (round robin), and providers add
+latency-based, geolocation, weighted, and failover routing on top, with health
+checks removing unhealthy endpoints.
+
+Its limits are the reason a real load balancer still sits behind it: client and
+intermediate caching means removal is not immediate, DNS has no view of
+connection counts or server load, and clients may pin to one answer for a long
+time. DNS is therefore the right tool for coarse geographic and regional
+distribution, and a layer 4 or layer 7 load balancer for distribution within a
+region.
+
+## IP addressing and CIDR
+
+**CIDR** (Classless Inter-Domain Routing) writes a network as
+`address/prefix-length`, where the prefix length is the number of leading bits
+that identify the network. `10.0.0.0/24` means the first 24 bits are the
+network, leaving 8 bits, so 256 addresses.
+
+It replaced the fixed class A/B/C system, in which the only choices were 8, 16,
+and 24 bit networks. An organisation needing 400 addresses had to take a class B
+of 65,536 and waste the rest. Arbitrary prefix lengths allow right-sized
+allocations, and adjacent prefixes can be aggregated into one routing table
+entry (supernetting), which is what slowed routing table growth and extended the
+usable life of IPv4.
+
+### Prefix reference
+
+| Prefix | Subnet mask | Total addresses | Usable hosts | Usable in an AWS subnet |
+| :--- | :--- | ---: | ---: | ---: |
+| `/16` | 255.255.0.0 | 65,536 | 65,534 | 65,531 |
+| `/20` | 255.255.240.0 | 4,096 | 4,094 | 4,091 |
+| `/22` | 255.255.252.0 | 1,024 | 1,022 | 1,019 |
+| `/24` | 255.255.255.0 | 256 | 254 | 251 |
+| `/26` | 255.255.255.192 | 64 | 62 | 59 |
+| `/28` | 255.255.255.240 | 16 | 14 | 11 |
+| `/30` | 255.255.255.252 | 4 | 2 | - |
+| `/32` | 255.255.255.255 | 1 | 1 (a single host) | - |
+
+Total addresses are 2 to the power of (32 minus prefix). Two are unusable in a
+normal network: the all-zeros network address and the all-ones broadcast
+address. AWS reserves five per subnet (network, VPC router, DNS, future use, and
+broadcast), which is why a `/28` gives 11 usable addresses there, and why a
+`/28` is the smallest and a `/16` the largest subnet AWS accepts.
+
+### Working out a subnet by hand
+
+For `192.168.10.0/26`: the prefix leaves 6 host bits, so blocks are 64
+addresses wide and the subnets are `192.168.10.0/26`, `.64/26`, `.128/26`, and
+`.192/26`. Within the first, `.0` is the network address, `.63` is the
+broadcast, and `.1` to `.62` are assignable.
+
+The shortcut is that the block size is 256 minus the last non-zero mask octet:
+a `/26` mask ends in 192, and 256 minus 192 is 64.
+
+```bash
+ipcalc 192.168.10.0/26            # network, broadcast, host range
+ip route get 10.0.5.20            # which route and interface would be used
+ip -brief addr                    # interface addresses with prefixes
+```
+
+### RFC 1918 private IPv4 ranges
+
+| Range | CIDR | Size |
+| :--- | :--- | :--- |
+| 10.0.0.0 to 10.255.255.255 | `10.0.0.0/8` | 16.7 million |
+| 172.16.0.0 to 172.31.255.255 | `172.16.0.0/12` | 1 million |
+| 192.168.0.0 to 192.168.255.255 | `192.168.0.0/16` | 65,536 |
+
+These ranges are private-use address space and are not globally routed on the
+internet, so IPv4 hosts using them need NAT for internet egress.
+
+### Special-use IPv4 ranges
+
+These are **not RFC 1918 private space** and must not be described as such:
+
+| CIDR | Purpose |
+| :--- | :--- |
+| `100.64.0.0/10` | Shared address space for carrier-grade NAT (RFC 6598) |
+| `127.0.0.0/8` | Loopback; packets never leave the host |
+| `169.254.0.0/16` | Link-local autoconfiguration; `169.254.169.254` is also used by cloud metadata services |
+| `192.0.2.0/24` | TEST-NET-1, documentation examples |
+| `198.51.100.0/24` | TEST-NET-2, documentation examples |
+| `203.0.113.0/24` | TEST-NET-3, documentation examples |
+| `224.0.0.0/4` | Multicast |
+| `240.0.0.0/4` | Reserved |
+
+Cloud metadata at `169.254.169.254` is routable only from the local workload
+environment but can expose credentials. On EC2 require IMDSv2 and block
+untrusted containers or proxies from reaching it.
+
+### Planning a network
+
+- Size subnets from expected host count plus growth, then keep the same prefix
+  across availability zones so the plan is readable.
+- Never let ranges overlap between environments or accounts. Overlapping CIDRs
+  make VPC peering, VPN, and any later merger impossible without renumbering,
+  and this is the single most common irreversible network design mistake.
+- Reserve contiguous space per region or environment so future ranges can be
+  aggregated into one route.
+- Note that `/31` and `/32` are special cases: `/31` is used for point-to-point
+  links and `/32` denotes a single host, which is the form used in security
+  group and firewall rules.
+
+References: [CIDR explained](https://www.youtube.com/watch?v=z07HTSzzp3o),
+[binary numbers](https://www.javatpoint.com/binary-numbers-list)
+
+## Network interfaces and diagnostics
+
+### Reading interface state
+
+`ifconfig` is deprecated and not installed by default on current distributions.
+Use the `ip` suite: `ip addr`, `ip link`, `ip route`, `ip neigh`, and `ss` in
+place of `netstat`. The `ifconfig` fields still appear in older documentation, so
+know what they mean.
+
+| Field | Meaning |
+| :--- | :--- |
+| `Link encap` | Interface type, for example Ethernet or Local Loopback |
+| `HWaddr` | MAC address; the first three octets identify the vendor |
+| `inet addr` | IPv4 address |
+| `inet6 addr` | IPv6 address, with `Scope` link-local (not routable) or global |
+| `Bcast` | Broadcast address |
+| `Mask` | Subnet mask |
+| `MTU` | Maximum transmission unit, normally 1500 bytes on Ethernet |
+| `UP` | Interface is administratively enabled |
+| `RUNNING` | Interface has carrier and can pass data |
+| `BROADCAST`, `MULTICAST` | Interface supports broadcast and multicast |
+| `RX/TX packets`, `bytes` | Totals received and transmitted |
+| `RX errors` | Malformed frames: CRC, length, alignment, FIFO overruns |
+| `RX dropped` | Frames discarded, for example unexpected VLAN tags |
+| `RX overruns` | The NIC ring buffer filled faster than the kernel drained it |
+| `TX carrier` | Carrier lost, typically a flapping link or duplex mismatch |
+| `TX collisions` | Ethernet collisions; nonzero on a modern switched link means a duplex mismatch |
+| `txqueuelen` | Transmit queue length |
+
+Rising `overruns` or `dropped` on a busy host usually points to CPU starvation
+or an undersized ring buffer rather than a cable fault; check with
+`ethtool -S <iface>` and `ethtool -g <iface>`.
+
+MTU is worth understanding because mismatches produce confusing failures. Jumbo
+frames (MTU 9000) improve throughput on networks that support them end to end,
+but a single hop with a lower MTU, combined with blocked ICMP, causes large
+packets to be dropped silently while small ones succeed.
+
+Interface, socket, path-MTU, and link-layer commands are in
+[Networking commands](#networking-commands).
+
+Reference: [ifconfig](https://www.computerhope.com/unix/uifconfi.htm)
+
+### Ping vs traceroute
+
+`ping` sends ICMP echo requests and tells you whether a host answers and with
+what round-trip time. It answers "is it reachable".
+
+`traceroute` maps the path. It sends packets with increasing TTL so each router
+along the route returns an ICMP time-exceeded message, revealing hop by hop
+which routers are involved and how long each leg takes. It answers "where does
+it break or slow down".
+
+Reading traceroute output correctly matters: middle hops showing `* * *` or high
+latency are often just routers deprioritising ICMP, not a fault. Only the final
+hop's latency and loss are meaningful. `mtr` is better in practice because it
+samples continuously and shows loss per hop over time.
+
+## HTTP status codes
+
+| Class | Meaning | Common examples |
+| :--- | :--- | :--- |
+| 1xx | Informational, protocol-level | 101 Switching Protocols |
+| 2xx | Success | 200 OK, 201 Created, 204 No Content |
+| 3xx | Redirection | 301 Moved Permanently, 302 Found, 304 Not Modified |
+| 4xx | Client error | 400, 401 Unauthorized, 403 Forbidden, 404, 409 Conflict, 429 Too Many Requests |
+| 5xx | Server error | 500, 502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout |
+
+The ones to know cold when debugging behind a proxy or load balancer:
+
+- **401 vs 403:** 401 means not authenticated, 403 means authenticated but not
+  authorised.
+- **502** means the proxy reached the upstream but got an invalid or no
+  response, usually a crashed or unready backend.
+- **503** means the service is deliberately unavailable, for example no healthy
+  targets behind a load balancer.
+- **504** means the upstream did not answer within the proxy's timeout, so the
+  backend is slow rather than down.
+
+Reference: [HTTP status codes](https://restfulapi.net/http-status-codes/)
+
+## SSH
+
+### Key-based login without a password
+
+```bash
+ssh-keygen -t ed25519 -C "user@laptop"     # generate a key pair
+ssh-copy-id user@remote-host               # append the public key to the remote authorized_keys
+ssh-add ~/.ssh/id_ed25519                  # load the private key into the agent
+ssh user@remote-host                       # no password prompt
+```
+
+How it works: the private key stays on your machine, the public key goes into
+`~/.ssh/authorized_keys` on the server, and the server verifies a signature you
+produce with the private key. Nothing reusable crosses the network.
+
+Practical detail:
+
+- Prefer `ed25519` over `rsa`: shorter keys, faster, and no key-size decision to
+  get wrong. Use `rsa -b 4096` only where `ed25519` is unsupported.
+- Permissions are enforced by `sshd` and are the usual reason key auth silently
+  falls back to a password: `~/.ssh` must be `700` and `authorized_keys` `600`,
+  owned by the user. Diagnose with `ssh -v` and the server's auth log.
+- `ssh-agent` holds the decrypted key so a passphrase-protected key is still
+  convenient. Use `ssh -A` agent forwarding sparingly, since it lets the remote
+  host use your agent.
+- Once keys are in place, set `PasswordAuthentication no` and
+  `PermitRootLogin no` in `/etc/ssh/sshd_config`.
+- Use `~/.ssh/config` for per-host settings, including `ProxyJump` for bastion
+  access:
+
+```text
+Host bastion
+  HostName bastion.example.com
+  User ec2-user
+
+Host app-*
+  ProxyJump bastion
+  User ec2-user
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+## systemd and journald
+
+systemd is PID 1 on most Linux distributions. It starts and supervises services,
+orders boot dependencies, activates sockets and timers, tracks processes in
+cgroups, and records service output in journald.
+
+Unit types include `.service`, `.socket`, `.timer`, `.mount`, `.path`, and
+`.target`. Useful service states are:
+
+- `active (running)`: the process is up;
+- `active (exited)`: a one-shot setup completed successfully;
+- `failed`: start or runtime failure; inspect `systemctl status` and the journal;
+- `activating`: start is still in progress or waiting on a dependency.
+
+```ini
+[Unit]
+Description=Example API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=app
+Group=app
+WorkingDirectory=/opt/example
+ExecStart=/opt/example/bin/server
+Restart=on-failure
+RestartSec=5s
+EnvironmentFile=-/etc/example/environment
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Use `systemctl edit example.service` for an override under
+`/etc/systemd/system/example.service.d/`; do not edit a vendor unit under
+`/usr/lib/systemd/system`, because package upgrades replace it. After changing a
+unit run `systemctl daemon-reload`, then `restart` if required. `enable` only
+creates boot-time dependencies; `--now` also starts the service immediately.
+
+journald indexes logs by fields such as unit, PID, priority, and boot:
+
+```bash
+systemctl status example.service
+journalctl -u example.service --since '30 min ago'
+journalctl -u example.service -p warning..alert
+journalctl -b -1                         # previous boot
+journalctl -o json-pretty -n 1           # structured fields
+systemd-analyze critical-chain           # slow boot dependencies
+systemctl cat example.service            # vendor unit plus overrides
+```
+
+Configure persistence and size in `/etc/systemd/journald.conf`; without
+`Storage=persistent` or an existing `/var/log/journal`, logs may be lost at
+reboot. Prefer `reload` when a daemon supports it; `restart` drops the process
+and potentially live connections.
+
+## Nginx redirect
+
+Nginx configuration lives in `/etc/nginx/nginx.conf`, with per-site server
+blocks under `/etc/nginx/conf.d/` or `/etc/nginx/sites-available/` symlinked
+into `sites-enabled/`.
+
+Redirect all HTTP traffic to HTTPS:
+
+```nginx
 server {
     listen 80;
-    server_name example.com;
-
+    server_name example.com www.example.com;
     return 301 https://$host$request_uri;
 }
 ```
 
-</b></details>
-
-<details>
-<summary>Prompt Customization.</code></summary><br><b>
-
-Ubuntu
-`sudo vi .bashrc` : `PS1="\[\033[01;32m\]\d \T \[\033[00m\]\$"`
-
-Mac bash_profile file 
-`export PS1="Dhirendra @\d \T $" ` & ` export PS1=”\u@\d \T $” `  `export PS1="\[\033[0;32m\]Dhirendra @\d \T $\[\033[0m\]" `
-</b></details>
-
-<details>
-<summary>What is Operating System ?.</code></summary><br><b>
-
-Operating system is an interface between user and the computer hardware. The hardware of the computer cannot understand the human readable language as it works on binaries i.e. 0's and 1's. Also it is very tough for humans to understand the binary language, in such case we need an interface which can translate human language to hardware and vice-versa for effective communication. 
-
-* <b> Types of Operating System:</b>  
-  * Single User - Single Tasking Operating System  
-  * Single User - Multitasking Operating System  
-  * Multi User - Multitasking Operating System  
-</b></details>
-
-
-<details>
-<summary>Functions of OS ?.</code></summary><br><b>
-
- OS functions may include managing memory, files, processes, I/O system & devices, security, etc.
-
-<p align="center">
-<img src="/images/OS_functions.jpg" width="800" height="300" /> 
-</p>
-
-In an operating system software performs each of the function:
-
-- `Process management`: It helps OS to create and delete processes. It also provides mechanisms for synchronization and communication among processes.
-- `Memory management`: It performs the task of allocation and de-allocation of memory space to programs in need of this resources.
-- `File management`: It manages all the file-related activities such as organization storage, retrieval, naming, sharing, and protection of files.
-- `Device Management`: It keeps tracks of all devices. This module also responsible for this task is known as the I/O controller. It also performs the task of allocation and de-allocation of the devices.
-- `I/O System Management`: One of the main objects of any OS is to hide the peculiarities of that hardware devices from the user.
-- `Secondary-Storage Management`: Systems have several levels of storage which includes primary storage, secondary storage, and cache storage. Instructions and data must be stored in primary storage or cache so that a running program can reference it.
-- `Security`: it protects the data and information of a computer system against malware threat and authorized access.
-- `Command interpretation`: it interprets the commands given by the and acting system resources to process that commands.
-- `Networking`: A distributed system is a group of processors which do not share memory, hardware devices, or a clock. The processors communicate with one another through the network.
-
-- `Job accounting`: Keeping track of time & resource used by various job and users.
-
-- `Communication management`: Coordination and assignment of compilers, interpreters, and another software resource of the various users of the computer systems.
-
-</b></details>
-
-<details>
-<summary>What is Linux?.</code></summary><br><b>
-
-Linux is an operating system based on UNIX and was first introduced by Linus Torvalds. It is based on the Linux Kernel and can run on different hardware platforms manufactured by Intel, MIPS, HP, IBM, SPARC, and Motorola. Another popular element in Linux is its mascot, a penguin figure named Tux.
-</b></details>
-
-<details>
-<summary>Linux Architecture.</code></summary><br><b>
-
-* The architecture of UNIX can be divided into Four levels of functionality, as shown in Figure .  
-<p align="center">
-<img src="/images/LinuxArchitecture.jpg" width="500" height="450" /> 
-</p>
-
-#### Hardware  
-Hardware consists of all physical devices attached to the System.   
-<b>Example:-</b> Hard disk drive, RAM, Motherboard, CPU etc.
-
-#### Kernel 
-The kernel is the central component of a computer operating systems. The only job performed by the kernel is to the manage the communication between the software and the hardware. A Kernel is at the nucleus of a computer. It makes the communication between the hardware and software possible. While the Kernel is the innermost part of an operating system, a shell is the outermost one.
-
-#### Different types of the kernel are:  
-
-- `Monolithic Kernel` : A monolithic kernel is a single code or block of the program. It provides all the required services offered by the operating system. It is a simplistic design which creates a distinct communication layer between the hardware and software.
-
-- `Micro kernels`  : Microkernel manages all system resources. In this type of kernel, services are implemented in different address space. The user services are stored in user address space, and kernel services are stored under kernel address space. So, it helps to reduce the size of both the kernel and operating system.
-
-- `Hybrid kernels `
-- `Exo kernels  `
-
-#### Features of Kernel
-- `Low-level scheduling of processes`
-- `Inter-process communication`
-- `Process synchronization`
-- `Context switching`
-
-#### Shell  
-Shell is the interface which takes input from users and sends instructions to the Kernel, Also takes the output from Kernel and send the result back to output user and starting applications.  
-  * Types of shells are classified into four:
-    * `Korn shell`
-    * `Bourne shell`
-    * `C shell`
-
-#### Utilities  
-Utilities provides the functionalities of an operating system to the users. 
-
-</b></details>
-
-
-<details>
-<summary>What is OSI model & it's Layers?.</code></summary><br><b>
-
-The Open Systems Interconnection (OSI) model describes seven layers that computer systems use to communicate over a network. It was the first standard model for network communications, adopted by all major computer and telecommunication companies in the early 1980s.
-
-The modern Internet is not based on OSI, but on the simpler TCP/IP model. However, the OSI 7-layer model is still widely used, as it helps visualize and communicate how networks operate, and helps isolate and troubleshoot networking problems.
-
-  * All --> People --> Seem --> To --> Need--> Data --> Processing "Application to physical"
-<p align="center">
-<img src="/images/OSI_Model3.jpg" width="500" height="450" /> 
-</p>
-
-<p align="center">
-<img src="/images/OSI_Model2.jpg" width="500" height="450" /> 
-</p>
-
-</b></details>
-<details>
-<summary>Linux File System Hierarchy.</code></summary><br><b>
-
-|Path     | Description        |
-|:-----: |:---      |
-| / |It is parent directory for all other directories.(root directory)|
-| /root | It is home directory for root user and it provides working environment for root user|
-| /home | It is home directory for other users and it provide working environment for other users|
-| /boot |It contains bootable files for Linux. Like `GRUB (GRand Unified Boot loader)  boot.ini, ntldr` |
-| /etc | It contains all configuration files. Like `User info /etc/passwd` |
-| /usr | By default softwares are installed in /usr directory|
-| /opt | It is optional directory for /usr and it contains third party softwares. |
-| /bin | It contains commands used by all users(Binary files)|   
-| /sbin | It contains commands used by only Super User (root) |
-| /dev | It contains device file like `hard disk /dev/hda` |
-| /proc |  It contain process files and data are not permanent, they keep changing like `information of CPU /proc/cpuinfo` |
-| /var |It is containing variable data like `mails, log files` |   
-| /mnt |It is default mount point for any partition. It is empty by default |
-| /media |It contains all of removable media like `CD-ROM, pen drive` |
-| /lib | It contains library files which are used by OS. Library files in Linux are shared object files|
-
-</b></details>
-
-<details>
-<summary>What is the difference between UNIX and LINUX?.</code></summary><br><b>
-
-Unix originally began as a propriety operating system from Bell Laboratories, which later on spawned into different commercial versions. On the other hand, Linux is free, open source and intended as a non-propriety operating system for the masses.
-</b></details>
-
-<details>
-<summary> What is LILO?.</code></summary><br><b>
-
-LILO is a boot loader for Linux. It is used mainly to load the Linux operating system into main memory so that it can begin its operations.
-</b></details>
-
-<details>
-<summary> What is the importance of the GNU project?.</code></summary><br><b>
-
-This so-called Free software movement allows several advantages, such as the freedom to run programs for any purpose and freedom to study and modify a program to your needs. It also allows you to redistribute copies of software to other people, as well as the freedom to improve software and have it released for the public.
-</b></details>
-
-<details>
-<summary> Describe the root account.</code></summary><br><b>
-
-The root account is like a systems administrator account and allows you full control of the system.
-Here you can create and maintain user accounts, assigning different permissions for each account.
-It is the default account every time you install Linux.
-</b></details>
-
-<details>
-<summary>What happens when you type google.com in Browser OR How DNS Works? .</code></summary><br><b>
-
-In general the process is as follows:
-
-  * The user types an address in the web browser (some_site.com)
-  * The operating system gets a request from the browser to translate the address the user entered
-  * A query created to check if a local entry of the address exists in the system. In case it doesn't, the request is forwarded to the DNS resolver
-  * The Resolver is a server, usually configured by your ISP when you connect to the internet, that responsible for resolving your query by contacting other DNS servers
-  * The Resolver contacts the root nameserver (aka as .)
-  * The root nameserver either responds with the address you are looking for or it responds with the address of the relevant Top Level Domain DNS server (if your address ends with org then the org TLD)
-  * The Resolver then contacts the TLD DNS. TLD DNS might respond with the address you are looking for. If it doesn't has the information, it will provide the address of SLD DNS server
-  * SLD DNS server will reply with the address to the resolver
-  * The Resolver passes this information to the browser while your OS also stores this information in the cache
-  * The user cab browse the website with happiness and joy :D
-</b></details>
-
-<details>
-<summary>What types of DNS records are there?</summary><br><b>
-
-  * A
-  * PTR
-  * MX
-  * AAAA
-  ...
-
-A more detailed list, can be found [here](https://www.nslookup.io/learning/dns-record-types)
-</b></details>
-
-<details>
-<summary> Differences Among A, CNAME, ALIAS, SRV Record and URL records.</code></summary><br><b>
-
-These are the main differences:
-
-* The A record points a name to one or more IP addresses when the IP are known and stable.
-
-i.e.  
-     
-     blog.dnsimple.com.     A        185.31.17.133
-
-* A CNAME record can point a name to another CNAME or to an A record.. It should only be used when there are no other records on that name.
-
-i.e. 
-     
-     blog.dnsimple.com.      CNAME   aetrion.github.io.
-
-     aetrion.github.io.      CNAME   github.map.fastly.net.
-
-     github.map.fastly.net.  A       185.31.17.133
-
-* The ALIAS record maps a name to another name, but can coexist with other records on that name.
-
-* The DNS "service" (SRV) record specifies a host and port for specific services such as voice over IP (VoIP), instant messaging, and so on. Most other DNS records only specify a server or an IP address, but SRV records include a port at that IP address as well. Some Internet protocols require the use of SRV records in order to function.
-
-* The URL record redirects the name to the target name using the HTTP 301 status code.
-
-Important rules:
-
-* The A, CNAME, and ALIAS records cause a name to resolve to an IP. Conversely, the URL record redirects the name to a destination. 
-
-* The URL record is a simple and effective way to apply a redirect for one name to another name, for example redirecting www.example.com to example.com.
-
-* The A name must resolve to an IP. The CNAME and ALIAS records must point to a name.
-
-* `PTR record` : a PTR record resolves the IP address to a domain name which is opposite to A record.
-
-* `MX record` : MX (Mail Exchange) Specifies a mail exchange server for the domain, which allows mail to be delivered to the correct mail servers in the domain.
-
-</b></details>
-
-<details>
-<summary>Explain DNS Records TTL</summary><br><b>
-
-- "DNS TTL (time to live) is a setting that tells the DNS resolver how long to cache a query before requesting a new one. The information gathered is then stored in the cache of the recursive or local resolver for the TTL before it reaches back out to collect new, updated details."
-</b></details>
-
-<details>
-<summary>Is DNS using TCP or UDP?</summary><br><b>
-
-DNS uses UDP port 53 for resolving queries either regular or reverse. DNS uses TCP for zone transfer.
-</b></details>
-
-<details>
-<summary>True or False? DNS can be used for load balancing</summary><br><b>
-
-True.
-</b></details>
-
-<details>
-<summary>Resident & Virtual Memory in Linux .</code></summary><br><b>
-
-`Resident memory` is the part of the process memory that corresponds to the physical memory actually in operational use by this process. Over time, the operating system may swap out some of a process's resident memory according to a least-recently-used algorithm to make room for other code or data.
-
-`Resident memory`, labelled RES: How much physical memory, how much RAM, your process is using. RES is the important number. 
-
-`Virtual memory`, labelled VIRT: How much memory your process thinks it's using. Usually much bigger than RES, thanks to the Linux kernel's clever memory management.Virtual memory is Hard Disk space reserved for the O/S to act as RAM. The O/S “swaps” data in and out of the virtual memory to place it in RAM, or to take it out of RAM.
-</b></details>
-
-<details>
-<summary>Top Command Different column info.</code></summary><br><b>
-
-The column headings in the process list are as follows:
-
-* PID: Process ID.
-
-* USER: The owner of the process.
-
-* PR: Process priority.
-
-* NI: The nice value of the process.
-
-* VIRT: Amount of virtual memory used by the process.
-
-* RES: Amount of resident memory used by the process.
-
-* SHR: Amount of shared memory used by the process.
-
-* S: Status of the process. (See the list below for the values this field can take).
-
-* %CPU: The share of CPU time used by the process since the last update.
-
-* %MEM: The share of physical memory used.
-
-* TIME+: Total CPU time used by the task in hundredths of a second.
-
-* COMMAND: The command name or command line (name + options).
-
-[Detail](https://www.howtogeek.com/668986/how-to-use-the-linux-top-command-and-understand-its-output/)
-</b></details>
-
-<details>
-<summary> Does it help for a Linux system to have multiple desktop environments installed?.</code></summary><br><b>
-
-In general, one desktop environment, like KDE or Gnome, is good enough to operate without issues. It’s all a matter of preference for the user, although the system allows switching from one environment to another. Some programs will work in one environment and not work on the other, so it could also be considered a factor in selecting which environment to use.
-</b></details>
-
-<details>
-<summary> What are the different modes when using vi editor?.</code></summary><br><b>
-
-There are 3 modes under vi:
-* ` Command mode ` – this is the mode where you start in
-* ` Edit mode `  – this is the mode that allows you to do text editing
-* ` Ex mode `    – this is the mode wherein you interact with vi with instructions to process a file.
-
-</b></details>
-
-<details>
-<summary> What is a swap space?.</code></summary><br><b>
-
-- `Swap space` is a certain amount of space used by Linux to temporarily hold some programs that are running concurrently. This happens when RAM does not have enough memory to hold all programs that are executing.
-
-- The preferred `size for a swap partition is twice the amount of physical memory` available on the system.If this is not possible, then the minimum size should be the same as the amount of memory installed. 
-</b></details>
-
-<details>
-<summary> Difference Between Process vs Thread.</code></summary><br><b>
-
-A process is the execution of a program that allows you to perform the appropriate actions specified in a program. It can be defined as an execution unit where a program runs. The OS helps you to create, schedule, and terminates the processes which is used by CPU. The other processes created by the main process are called child process.
-
-A process operations can be easily controlled with the help of PCB(Process Control Block). You can consider it as the brain of the process, which contains all the crucial information related to processing like process id, priority, state, and contents CPU register, etc.
-
-Thread is an execution unit that is part of a process. A process can have multiple threads, all executing at the same time. It is a unit of execution in concurrent programming. A thread is lightweight and can be managed independently by a scheduler. It helps you to improve the application performance using parallelism.
-
-Multiple threads share information like data, code, files, etc. We can implement threads in three different ways:
-* Kernel-level threads
-
-* User-level threads
-
-* Hybrid threads
-
-KEY DIFFERENCE
-
-* Process means a program is in execution, whereas thread means a segment of a process.
-
-* A Process is not Lightweight, whereas Threads are Lightweight.
-
-* A Process takes more time to terminate, and the thread takes less time to terminate.
-
-* Process takes more time for creation, whereas Thread takes less time for creation.
-
-* Process likely takes more time for context switching whereas as Threads takes less time for context switching.
-
-* A Process is mostly isolated, whereas Threads share memory.
-
-* Process does not share data, and Threads share data with each other.
-
-Properties of Process
-
-* Creation of each process requires separate system calls for each process.
-
-* It is an isolated execution entity and does not share data and information.
-
-* Processes use the IPC(Inter-Process Communication) mechanism for communication that significantly increases the number of system calls.
-
-* Process management takes more system calls.
-
-* A process has its stack, heap memory with memory, and data map.
-
-Properties of Thread
-
-* Single system call can create more than one thread
-
-* Threads share data and information.
-
-* Threads shares instruction, global, and heap regions. However, it has its register and stack.
-
-* Thread management consumes very few, or no system calls because of communication between threads that can be achieved using shared memory.
-</b></details>
-
-<details>
-<summary> How do you make your database work for a high number of requests at peak hours?.</code></summary><br><b>
-
-To make the database perform higher.
-
-* ` CPU ` : Increase no. of cores of CPU to keep host responsive. 
-
-* ` Memory ` : Look at the page faults per second in the memory and keep it low. 
-
-* ` Disk space ` : Make sure that you have a high amount of disk space.
-
-* ` Database connections` : Make sure that you have enough database connections.
-
-</b></details>
-
-
-<details>
-<summary> How do you optimize database?.</code></summary><br><b>
-
-For better performance & optimizing the database following steps,
-
-* `Use Indexing `: Index is a data structure that increases the speed of the data retrieval operations.
-
-* `Execution plans `: Execution plan tool in the SQL server is useful in creating indexes.
-
-* `Avoid coding loops `: When possible avoid the loops in your code to increase the performance of the database.
-
-* `Avoid correlated SQL subqueries `: A correlated subquery gets values from the parent query. It decreases the performance of the database operations. So try to avoid it. Finally, Use or avoid temporary tables according to your specific requirements.
-
-</b></details>
-
-<details>
-<summary> If there are no cookies how do you make your application work?.</code></summary><br><b>
-
-The application can make use of the session ID tag to be used for creating sessions in the applications without the need for the cookies. Using the session ID, the application can create individual sessions for users without using cookies.
-</b></details>
-
-<details>
-<summary> Tell me about garbage collection programming.</code></summary><br><b>
-
-Garbage collection is the collection or gaining the memory back from the objects. 
-
-The memory collected are not in use at the moment in any part of the program where the object is used. This process frees up the memory space that is no longer used by the objects and such. This process is implemented differently in different languages.
-
-Most of the high-level programming languages have garbage collection process built into it. Low- level programming languages add garbage collection processes through external libraries. 
-
-For eg: In C programming language, the garbage collection is taken care of by the user by using the malloc() and dealloc() functions. 
-
-In C# programming language, the garbage collection is taken care of automatically. Users don’t need to do anything.
-</b></details>
-
-
-<details>
-<summary> How do you measure network packet?.</code></summary><br><b>
-
-Network performance of a packet is measured using various factors,
-
-* ` Latency `: Amount of time that takes for the data to travel from one location to another.
-
-* ` Packet Loss `: No. of packets transmitted from one location to another that fails to transmit.
-
-* ` Throughput `: No. of items passing through a particular system.
-
-* ` Bandwidth `: Amount of data that can be transferred over a given period of time.
-
-* ` Jitter `: It is defined as the variation in time delay for the data packets that are sent over a network.
-
-</b></details>
-
-<details>
-<summary> What are symbolic links?.</code></summary><br><b>
-
-Symbolic links act similarly to shortcuts in Windows. Such links point to programs, files or directories. It also allows you instant access to it without having to go directly to the entire pathname.
-</b></details>
-
-
-<details>
-<summary>  What are hard links?.</code></summary><br><b>
-
-Hard links point directly to the physical file on disk, and not on the pathname. This means that if you rename or move the original file, the link will not break since the link is for the file itself, not the path where the file is located.
-</b></details>
-
-<details>
-<summary>  What is iNode on Linux and more details on that?.</code></summary><br><b>
-
-The iNode in Linux is an entry table containing information about the regular file and directory. It can be viewed as a data structure that contains the metadata about the files. 
-
-The following are the contents of the iNode.
-
-* ` User ID `     - Owner of the file.
-
-* ` Group ID `    - Owner of the group.
-
-* ` Size of File `- a major or minor number in some files.
-
-* ` Timestamp `   - access time, and modification time.
-
-* ` Attributes `  - some properties of the file.
-
-* ` Access control list `- permission for users.
-
-* ` Link count `  - The number of hard links relative to the inode.
-
-* ` File type `   - Type of the file i.e. regular, directory, or pipe.
-
-   Link to the location of the file and other metadata.
-</b></details>
-
-<details>
-<summary>  What are Daemons?.</code></summary><br><b>
-
-Daemons are services that provide several functions that may not be available under the base operating system. Its main task is to listen for service request and at the same time to act on these requests. After the service is done, it is then disconnected and waits for further requests.
-</b></details>
-
-<details>
-<summary>  How do you switch from one desktop environment to another, such as switching from KDE to Gnome?.</code></summary><br><b>
-
-Assuming you have these two environments installed, just log out from the graphical interface. Then at the login screen, type your login ID and password and choose which session type you wish to load. This choice will remain your default until you change it to something else.
-</b></details>
-
-
-<details>
-<summary>  Understanding ifconfig output?.</code></summary><br><b>
-
-- `ifconfig` is a command line tool used to configure a network interface in Linux.It can be used to set-up any/all the network interfaces such as Ethernet, wireless, modem and so on that are connected to your computer.
-
-#### ifconfig output
-
-- `Link encap:Ethernet` :is the interface is an Ethernet related device.
-- `HWaddr 00:70:40:42:8A:60` :is hardware address or MAC address which is unique to each Ethernet card which is manufactured. Usually, the first half part of this address will contain the manufacturer code which is common for all the Ethernet cards manufactured by the same manufacturer and the rest will denote the device Id which should not be the same for any two devices manufactured at the same place.
-- `inet addr ` : indicates the machine IP address.
-- `inet6 addr `: is IPv6 address assigned to the interface.
-- `Scope` : is scope of IPv6 address. It can be link-local or global. Link-local address is used in local area network and is not routable. Global address is routable.
-- `Bcast` - denotes the broadcast address.
-- `Mask` - is the network mask which we passed using the netmask option (see above).
-- `UP` - This flag indicates that the kernel modules related to the Ethernet interface has been loaded.
-- `BROADCAST` - Denotes that the Ethernet device supports broadcasting - a necessary characteristic to obtain IP address via DHCP.
-- `NOTRAILERS` - indicates trailer encapsulation is disabled. Linux usually ignore trailer encapsulation so this value has no effect at all.
-- `RUNNING` - The interface is ready to accept data.
-- `MULTICAST` - It indicates that the Ethernet interface supports multicasting & allows a source to send a packet(s) to multiple machines as long as the machines are watching out for that packet.
-- `MTU` - `MTU (Maximum Transmission Unit)` is the size of each packet received by the Ethernet card. The value of MTU for all Ethernet devices by default is set to 1500. Though you can change the value by passing the necessary option to the ifconfig command. Setting this to a higher value could hazard packet fragmentation or buffer overflows. Do compare the MTU value of your Ethernet device and the loopback device and see if they are same or different. Usually, the loopback device will have a larger packet length.
-- `RX Packets, TX Packets` - the total number of packets received and transmitted respectively. 
-- `RX Bytes, TX Bytes `- the total amount of data that has passed through the Ethernet interface either way.
-- `RX errors`: shows a total number of packets received with error. This includes too-long-frames errors, ring-buffer overflow errors, CRC errors, frame alignment errors, fifo overruns, and missed packets.
-- `RX dropped` : is a number of dropped packets due to unintended VLAN tags or receiving IPv6 frames when interface is not configured for IPv6.
-- `RX overruns` :  is a number of received packets that experienced fifo overruns, caused by rate at which a buffer gets full and kernel isn’t able to empty it.
-- `RX frame` : is a number of misaligned frames, i.e. frames with length not divisible by 8.
-- `TX carriers`: is a number of packets that experienced loss of carriers. This usually happens when link is flapping.
-- `TX coliisions` : is a number of transmitted packets that experienced Ethernet collisions.
-- `TX txqueuelen` : is length of transmission queue.
-- `Interrupt` - From the data, I come to know that my network interface card is using the interrupt number 9. This is usually set by the system.
-
-[ifconfig](https://www.computerhope.com/unix/uifconfi.htm)
-
-</b></details>
-
-<details>
-<summary> HTTP Rest Api status codes.</code></summary><br><b>
-
-HTTP defines these standard status codes that can be used to convey the results of a client’s request. The status codes are divided into five categories.
-
-* 1xx: Informational – Communicates transfer protocol-level information.
-
-* 2xx: Success – Indicates that the client’s request was accepted successfully.
-
-* 3xx: Redirection – Indicates that the client must take some additional action in order to complete their request.
-
-* 4xx: Client Error – This category of error status codes points the finger at clients.
-
-* 5xx: Server Error – The server takes responsibility for these error status codes.
-
-[Detail Read](https://restfulapi.net/http-status-codes/)
-</b></details>
-
-<details>
-<summary>  What are the kinds of permissions under Linux?.</code></summary><br><b>
-
-* ` Read (r) ` : users may read the files or list the directory
-
-* ` Write (w)` : users may write to the file or new files to the directory
-      
-* ` Execute (x)`: users may run the file or lookup a specific file within a directory
-
-Numeric representation :
-
-| Read (r)| Write (w) | Execute (x) |
-|---------|-----------|-------------|
-|   4     |    2      |      1      |
-
-`chmod 650 test.txt` : The user's permissions are: rw- or 4+2=6
-                       The group's permissions are: r-x or 4+1=5
-                        The others's permissions are: --- or 0
-
-Symbolic Representation :
-
-* Who - represents identities: u,g,o,a (user, group, other, all)
-
-* What - represents actions: +, -, = (add, remove, set exact)
-
-* Which - represents access levels: r, w, x (read, write, execute)
-
-`chmod ug+rw test.txt` : to add the read and write permissions to a file named test.txt for user and group.
-
-[In Detail](https://www.redhat.com/sysadmin/suid-sgid-sticky-bit)
-</b></details>
-
-<details>
-<summary>  Understanding the /etc/passwd File in Linux?.</code></summary><br><b>
-
-<p align="center">
-<img src="/images/etc_passwd_file.jpg" width="800" height="300" /> 
-</p>
-
-</b></details>
-
-<details>
-<summary>  proc file system in Linux?.</code></summary><br><b>
-
-- Proc file system (procfs) is virtual file system created on fly when system boots and is dissolved at time of system shut down.
-- It contains useful information about the processes that are currently running, it is regarded as control and information center for kernel.
-- The proc file system also provides communication medium between kernel space and user space.
-</b></details>
-
-<details>
-<summary> /etc/fstab & /etc/mtab File in Linux?.</code></summary><br><b>
-
-- /etc/fstab is a list of filesystems to be mounted at boot time. If you want your Windows or file-storage partitions mounted once your computer boots, you'll need to put appropriate entries into /etc/fstab.
-- /etc/fstab is a created by the user.
-
-`/etc.mtab`
-- /etc/mtab is a list of currently mounted filesystems. If you have a disk connected but not mounted, it won't show up in the /etc/mtab file. Once you mount it, it will show up there.
-- /etc/mtab is a created by the system.
-
-The format of the files is similar. After mounting a new device, copy the relevant line from /etc/mtab to /etc/fstab so that it will be auto-mounted after boot or when calling mount -a.
-
-</b></details>
-
-<details>
-<summary> /etc/hosts File in Linux?.</code></summary><br><b>
-
-- The mapping of some hostnames to IP addresses .
-
-`Sample Output`
-```shell
-IPAddress  Hostname
-127.0.0.1	 localhost
-127.0.0.1	 ubuntu0
-
-192.168.49.2 hello-world.info
+Practical detail:
+
+- `return 301` is the right construct; a `rewrite` with a regular expression
+  does the same thing more slowly and less clearly.
+- Use `301` for a permanent move, since browsers and search engines cache it,
+  and `302` while testing so a mistake is not cached.
+- `$request_uri` preserves the path and query string. Redirecting to
+  `https://$host` alone silently drops both.
+- Always validate before reloading: `nginx -t` then `systemctl reload nginx`.
+  Reload replaces workers gracefully without dropping connections; restart does
+  not.
+- Behind a load balancer that terminates TLS, redirect on
+  `$http_x_forwarded_proto = "http"` instead, otherwise you create a redirect
+  loop.
+
+## Shell prompt customisation
+
+`PS1` defines the primary prompt. Set it in `~/.bashrc` for interactive bash
+shells, or `~/.bash_profile` on macOS where login shells are the norm.
+
+```bash
+PS1='\u@\h:\w\$ '                              # user@host:dir$
+PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\w\$ '   # green user@host, then default colour
+PS1='\d \T \w\$ '                              # date, 24-hour time, working directory
 ```
-</b></details>
 
-<details>
-<summary> /etc/resolv.conf File in Linux?.</code></summary><br><b>
+Common escapes: `\u` user, `\h` short hostname, `\w` working directory, `\W`
+its basename, `\d` date, `\T` 12-hour time, `\t` 24-hour time, `\$` shows `#`
+for root and `$` otherwise.
 
-- The /etc/resolv.conf is resolver configuration file for Linux and UNIX like operating systems.
-- It is used to configure dns name servers.
-- The file /etc/resolv.conf file contains information that is read by the resolver routines the first time they are invoked by a process.
-- The file is designed to be human readable and contains a list of keywords with values that provide various types of resolver information.
-- You need to update this file with your own caching dns server or ISPs caching dns server that you want to use the resolver should query.
+Wrap colour codes in `\[` and `\]`. Without them bash miscounts the prompt
+width, and long command lines wrap over themselves. A prompt that shows the
+current Kubernetes context, AWS profile, or Git branch is worth the setup on a
+machine that touches production.
 
-`Sample Output`
-```shell
-nameserver 10.0.80.11
-nameserver 10.0.80.12
+## Command reference
+
+Day-to-day syntax grouped by task. Each group links back to the concept section
+that explains the behaviour behind it. Commands that delete data or change
+system state are marked; run the read-only form first and confirm the target
+before running the destructive one.
+
+### System information
+
+```bash
+pwd                          # print working directory
+whoami                       # current username
+id                           # UID, GID, and group membership
+hostname                     # current hostname
+hostnamectl set-hostname web01   # change it persistently
+uname -a                     # kernel name, version, and architecture
+uptime                       # time since boot, users, and load average
+date                         # current date and time
+cal                          # this month's calendar
+last                         # recent logins
+who                          # who is logged in now
+history                      # commands from this shell session
+man pwd                      # manual page for a command
+clear                        # clear the terminal, same as Ctrl+L
+echo testing                 # print text to stdout
 ```
-</b></details>
 
-<details>
-<summary>  What is Traceroute & how does it works?.</code></summary><br><b>
+### Memory and CPU
 
-- A traceroute provides a map of how data on the internet travels from your computer to its destination.
+```bash
+free -h                      # memory in human-readable units
+free -m                      # in megabytes; -b bytes, -k kilobytes, -g gigabytes
+cat /proc/meminfo            # detailed kernel memory accounting
+swapon --show                # active swap devices and usage
+vmstat 1 5                   # five one-second samples: memory, swap, I/O, CPU
+vmstat -s                    # memory statistics as a list
+top                          # live process and resource view
+htop                         # top with a nicer interface, if installed
+nproc                        # number of logical CPUs
+lscpu                        # CPU model, cores, sockets, caches
+cat /proc/cpuinfo            # per-CPU detail
+mpstat -P ALL 1              # per-CPU utilisation over time
+```
 
-- A traceroute works by sending Internet Control Message Protocol (ICMP) packets, and every router involved in transferring the data gets these packets. The ICMP packets provide information about whether the routers used in the transmission are able to effectively transfer the data.
+How to read these numbers, including why `available` matters more than `free`
+and how load relates to CPU count, is in [Memory](#memory) and
+[CPU load average](#cpu-load-average).
 
-- Running traceroute is helpful for figuring out the routing hops data has to go through, as well as response delays as it travels across nodes, which are what send the data toward its destination. Traceroute also enables you to locate points of failure.
+### Files and directories
 
-- `Ping vs Traceroute` : The primary difference between ping and traceroute is that while ping simply tells you if a server is reachable and the time it takes to transmit and receive data, traceroute details the precise route, router by router, as well as the time it took for each hop.
+```bash
+ls                           # list entries
+ls -al                       # long format, including dotfiles
+ls -lh                       # long format with human-readable sizes
+ls -lt                       # newest first; add -r to reverse
+ls -R                        # recurse into subdirectories
+ls -i                        # show inode numbers
+lsof                         # open files and the processes holding them
+lsof /var/log/app.log        # which process holds one file
+lsof -i :8080                # which process listens on a port
 
-</b></details>
+touch file1 file2            # create empty files, or update timestamps
+mkdir mydir
+mkdir -p Technology/{Devops/{docker,ansible,kubernetes},Cloud/{AWS,Azure,GCP}}
+tree Technology/             # verify the structure; ls -R also works
 
-<details>
-<summary>  Usermod command in Linux?.</code></summary><br><b>
-Usermod command is used to add a user to a group, change a user shell, login name, home directory, and more.
+cp image.jpg Downloads/
+cp -rvfp ./Technology /home/Technology   # recursive, verbose, force, preserve attributes
+cp -a src/ dest/             # archive mode: recursive and preserves everything
 
-[Usermod](https://linuxize.com/post/usermod-command-in-linux/)
-</b></details>
+mv file2 Technology/         # move
+mv sample.txt kernelfile     # rename a file
+mv ktdir kerneldir           # rename a directory
 
-<details>
-<summary> What is Deadlock in Linux?.</code></summary><br><b>
+rmdir emptydir               # remove an empty directory only
+rm -rf deletedir             # destructive: removes recursively without prompting
 
-- `Deadlock` happens when every process holds a resource and waits for another process to hold another resource. In other words, a deadlock occurs when multiple processes in the CPU compete for the limited number of resources available in the CPU. In this context, each process keeps a resource and waits for another process to obtain a resource.
+ln target hardlink           # hard link: same inode, same filesystem only
+ln -s target symlink         # symbolic link: a path, may cross filesystems
 
-#### 4 conditions may occur the condition of deadlock. 
+stat file                    # inode metadata: owner, size, links, timestamps
+file archive.bin             # identify content type
+readlink -f symlink          # resolve to the final absolute path
+```
 
-- `Mutual Exclusion` : Only one process can utilize a resource at a time; if another process requests the same resource, it must wait until the process that is utilizing it releases it.
-- `Hold and Wait` : A process should be holding a resource when waiting for the acquirer of another process's resource.
-- `No preemption` : The process holding the resources may not be preempted, and the process holding the resources should freely release the resource after it has finished its job.
-- `Circular Wait` : In a circular form, the process must wait for resources. Let's suppose there are three processes: P0, P1, and P2. P0 must wait for the resource held by P1; P1 must wait for process P2 to acquire the resource held by P2, and P2 must wait for P0 to acquire the process.
+`mkdir -p` with brace expansion creates the whole tree in one command:
 
-</b></details>
+```text
+Technology/
+├── Cloud
+│   ├── AWS
+│   ├── Azure
+│   └── GCP
+└── Devops
+    ├── ansible
+    ├── docker
+    └── kubernetes
+```
 
-<details>
-<summary> What is Starvation in Linux?.</code></summary><br><b>
+`rm -rf` has no undo and no confirmation. Check the path with `ls` first,
+especially when it contains a variable, since an unset variable expands to
+nothing and `rm -rf /$DIR/` becomes `rm -rf /`.
 
-- `Starvation` happens when a low priority program requests a system resource but cannot run because a higher priority program has been employing that resource for a long time. When a process is ready to start executing, it waits for the CPU to allocate the necessary resources. However, because other processes continue to block the required resources, the process must wait indefinitely.
+The difference between the two link types is explained in
+[Hard links vs symbolic links](#hard-links-vs-symbolic-links).
 
-In most priority scheduling algorithms, the problem of starvation arises. The resource is frequently assigned to the higher priority process in a priority scheduling method, which helps to prevent the lower priority process from obtaining the requested resource.
+#### Changing directory
 
-`Starvation` is an issue that can be solved through aging. Aging raises the priority of a procedure that has been waiting for resources for a long period. It also helps to prevent a low-priority procedure from waiting indefinitely for resources.
+```bash
+cd /            # root directory
+cd ~            # home directory; plain cd does the same
+cd ..           # parent directory
+cd -            # previous directory
+```
 
-#### There are some common causes of starvation as follows:
+### Viewing and editing file contents
 
-- Starvation may occur if there aren't enough resources to provide to every process as needed.
-- Starvation can occur if a process is never given the resources it needs for execution due to faulty resource allocation decisions.
-- If higher priority operations constantly monopolize the processor, a lower priority process may have to wait indefinitely.
+```bash
+cat file                     # print the whole file
+cat > file                   # write from stdin, overwriting; end with Ctrl+D
+cat >> file                  # append from stdin
+cat file2 >> file1           # append file2 to file1
+cat file1 file2 > file3      # concatenate into a new file
+tac file                     # print lines in reverse order
 
-#### Some solutions that may be implemented in a system that helps to handle starvation are as follows:
+less /etc/passwd             # page through a file
+head /etc/passwd             # first 10 lines
+head -3 /etc/passwd          # first 3 lines
+tail /etc/passwd             # last 10 lines
+tail -3 /etc/passwd          # last 3 lines
+tail -f /var/log/syslog      # follow appended lines
+tail -F /var/log/syslog      # follow across log rotation
 
-- The resource allocation priority scheme should contain concepts such as aging, in which the priority of a process increases the longer it waits. It prevents starvation.
-- An independent manager may be used for the allocation of resources. This resource manager distributes resources properly and tries to prevent starvation.
-- Random process selection for resource allocation or processor allocation should be avoided since it promotes starvation.
+nl file                      # number the lines
+diff file1 file2             # line differences
+diff -u file1 file2          # unified diff, the format patches use
+md5sum file                  # checksum, for verifying a transfer
+```
 
-</b></details>
+`>` overwrites and `>>` appends. Both create the file if it does not exist. Use
+`set -o noclobber` in a shell where an accidental `>` would be expensive.
 
+Inside `less`: `space` or `f` forward one screen, `b` back one screen, `d` and
+`u` half a screen, `/pattern` search forward, `n` next match, `g` and `G` start
+and end, `v` open the file in your editor, `q` quit. `less` is preferable to
+`more` because it scrolls backwards and does not load the whole file.
 
-<details>
-<summary> Difference Between Deadlock & Starvation ?.</code></summary><br><b>
+Editing modes in `vi` are described in [vi modes](#vi-modes).
 
-1. Deadlock happens when every process holds a resource and waits for another process to hold another resource. In contrast, starvation happens when a low priority program requests a system resource but cannot run because a higher priority program has been employing that resource for a long time.
+### Searching
 
-2. In a deadlock, none of the processes can proceed to execution; instead, each process is blocked while waiting for resources to be acquired by another process. On the other hand, starvation is a situation in which higher-priority processes have an infinite ability to acquire resources. Moreover, lower-priority processes are prevented from getting resources, resulting in their indefinite blocking.
+```bash
+find . -name "process.txt"           # by name, from the current directory
+find / -xdev -type d -name techno 2>/dev/null     # one filesystem; scanning / can be slow
+find / -xdev -type f -name index.html 2>/dev/null # avoid network/pseudo filesystems
+find . -type f -name "*.php"         # by pattern; quote it so the shell does not expand it
+find . -iname "*.LOG"                # case-insensitive
+find /var/log -mtime +7              # modified more than 7 days ago
+find /var/log -size +100M            # larger than 100 MB
+find . -name "*.tmp" -print          # inspect matches first
+find . -name "*.tmp" -delete         # destructive; run only after reviewing -print
+find . -name "*.conf" -exec grep -l listen {} +   # run a command on the matches
 
-3. Deadlock happens when four conditions exist simultaneously: mutual exclusion, hold and wait, no preemption, and circular wait. In contrast, starvation happens when process priorities are enforced while distributing resources or when resource management is unmanaged.
+grep hello sample                    # lines containing a pattern
+grep -i hello sample                 # case-insensitive
+grep -r "TODO" src/                  # recurse through a directory
+grep -n "error" app.log              # with line numbers
+grep -v "debug" app.log              # invert: lines not matching
+grep -c "error" app.log              # count matching lines
+grep -o -i page test.txt | wc -l     # count occurrences, including several per line
+grep -A3 -B3 "panic" app.log         # 3 lines of context each side
+grep -E "error|fatal" app.log        # extended regular expression
 
-4. In a deadlock situation, the process blocks resources. In contrast, high-priority processes continue to use the requested resources in starvation.
+locate nginx.conf                    # query the filename database, needs updatedb
+which python3                        # first match in PATH
+type -a python3                      # every match, plus aliases and builtins
+```
 
-5. Deadlock is also known as circular wait, whereas starvation is known as a Lived lock.
+`grep -c` counts **lines** that match. To count total occurrences when a line
+can match more than once, use `grep -o` and pipe to `wc -l`.
 
-</b></details>
+Searching from `/` can traverse huge network mounts and changing virtual
+filesystems. Narrow the starting path where possible; `-xdev` stays on one
+filesystem and redirecting permission errors keeps results readable.
+`find ... -delete` cannot be undone: run the exact expression with `-print`
+first and quote patterns so the shell does not expand them prematurely.
 
-<details>
-<summary> What is Zombie & Orphan Process in Linux?.</code></summary><br><b>
+### Text filters
 
-- A zombie  or defunct process is a process that has completed execution but still has an entry in the process table: it is a process in the "Terminated state".This usually happens in a program that has parent-child functions. After a child function has finished execution, it sends an exit status to its parent function. Until the parent function receives and acknowledges the message, the child function remains in a “zombie” state, meaning it has executed but not exited.
+Filters read stdin and write stdout, so they compose with pipes.
 
-- A process whose parent process no more exists i.e. either finished or terminated without waiting for its child process to terminate is called an orphan process.
-</b></details>
+```bash
+sort sample.txt              # alphabetic order
+sort -n numbers.txt          # numeric order, so 9 sorts before 10
+sort -h sizes.txt            # human-readable numbers, so 2K sorts before 1M
+sort -r sample.txt           # descending
+sort -u sample.txt           # sort and drop duplicates
+sort -k2 -t, data.csv        # by the second comma-separated field
+sort | uniq -c | sort -rn    # frequency count, highest first
 
-<details>
-<summary> How to Setup SSH without password ?</code></summary><br><b>
+cut -d: -f1 /etc/passwd      # first colon-delimited field: usernames
+cut -d ' ' -f1 sample.txt    # first space-delimited field
+cut -c1-10 file              # first 10 characters of each line
 
-* Generate A New SSH Key Pair on Local Machine `ssh-keygen -t rsa` .
+tr 'a-z' 'A-Z' < file        # translate characters
+tr -s ' ' < file             # squeeze repeated spaces
+tr -d '\r' < file            # strip carriage returns from a Windows file
 
-* Copy Public Key to Remote Machine `ssh-copy-id remote_user@remote_IP` .
-  
-   copy the public key to the remote system that you want to access from your local system without passwords. We will use the ssh-copy-id command that is by default available in most Linux distributions. This command will copy the public key id_rsa.pub to the .ssh/authorized_keys file in the remote system.
+sed 's/Hello/hi/g' sample.txt        # substitute on stdout, file unchanged
+sed -i 's/Hello/hi/g' sample.txt     # edit the file in place, no backup
+sed -i.bak 's/Hello/hi/g' sample.txt # in place, keeping sample.txt.bak
+sed -n '10,20p' file                 # print only lines 10 to 20
+sed '/^#/d' config                   # drop comment lines
 
-* Add Private Key to SSH Authentication Agent on Local Server `ssh-add` .
-  
-  In our local machine, we will add the private key to the SSH authentication agent. This will allow us to log into the remote server without having to enter a password every time.
-</b></details>
+awk '{print $1, $3}' file            # select fields
+awk -F: '{print $1}' /etc/passwd     # with a field separator
+awk '$3 > 100 {print $1}' data       # filter on a field value
+awk '{sum += $2} END {print sum}' data   # aggregate
 
+uniq -c sorted.txt           # count adjacent duplicates; input must be sorted
+wc -l file                   # count lines
+paste file1 file2            # join files side by side
+tee out.log                  # write stdout to a file and pass it along
+xargs -n1 echo               # turn stdin lines into command arguments
+```
 
-<details>
-<summary> What is CIDR?.</code></summary><br><b>
+`sort -n` is numeric and `sort -d` is dictionary order, which ignores
+punctuation and is not numeric. Sorting version-numbered output needs
+`sort -V`, and sorting `du` output needs `sort -h`.
 
-Classless inter-domain routing (CIDR), which stands for Classless Inter-Domain Routing, is an IP addressing scheme that improves the allocation of IP addresses. It replaces the old system based on classes A, B, and C. This scheme also helped greatly extend the life of IPv4 as well as slow the growth of routing tables.
+`sed` without `-i` only changes its output, which is what makes it safe to test
+a substitution before committing to it. Prefer `-i.bak` on a file you cannot
+easily regenerate.
 
-[Reference Video](https://www.youtube.com/watch?v=z07HTSzzp3o)
+### Counting
 
-[Javatpoint](https://www.javatpoint.com/binary-numbers-list)
-</b></details>
+```bash
+wc -l Linux.md               # lines
+wc -w Linux.md               # words
+wc -c Linux.md               # bytes
+wc -m Linux.md               # characters, which differs from bytes for UTF-8
+```
 
-<details>
-<summary> What is CPU load in Linux?.</code></summary><br><b>
+### Disk usage
 
- CPU load is the number of processes which are being executed by CPU or waiting to be executed by CPU. So CPU load average is the average number of processes being or waiting executed over past 1, 5 and 15 minutes. So the number shown above means:
+```bash
+df -h                        # free space per filesystem
+df -Th                       # include the filesystem type
+df -i                        # inode usage, the other way to run out of space
+du -sh folder1               # total size of one directory
+du -h --max-depth=1 /var     # size of each immediate subdirectory
+du -ah /var/log | sort -h | tail -20    # the 20 largest entries
+lsblk                        # block devices, partitions, and mount points
+mount | column -t            # currently mounted filesystems
+findmnt                      # mounts as a readable tree
+ncdu /var                    # interactive disk usage browser, if installed
+```
 
-* load average over the last 1 minute is 3.84
+"No space left on device" while `df -h` shows free space has two causes.
+Exhausted inodes are the first, described in [Inodes](#inodes). The second is a
+deleted file still held open by a process (`lsof +L1`), in which case the space
+returns only when that process restarts.
 
-* load average over the last 5 minute is 3.72
+Growing a logical volume online is covered in [LVM](#lvm).
 
-* load average over the last 15 minute is 2.41
+### Process management
 
-High load average sometimes implies CPU is overloaded with too many processes. However, this can be a different case depending on how many CPU cores are installed. One single CPU core can only handle one task at a time. The more cores system has, the more tasks system can handle in parallel. Below is an example to understand the relationship between load average and CPU cores:
+```bash
+ps                           # your processes in this terminal
+ps -ef                       # every process, full format
+ps aux                       # every process, BSD format with CPU and memory shares
+ps -ef | grep nginx          # find a process by name
+pgrep -a nginx               # same result without the grep line itself
+ps -eo pid,ppid,stat,ni,comm --sort=-%cpu | head
 
-On single core system this would mean:grep -o -i page test.txt | wc -l
+kill 3534                    # send SIGTERM: ask the process to exit
+kill -9 3534                 # SIGKILL: cannot be caught, no cleanup
+kill -HUP 3534               # SIGHUP: many daemons reload configuration
+pkill -f "python worker.py"  # by command line pattern
+killall nginx                # by process name
 
-* The CPU was fully (100%) utilized on average; 1 process was running on the CPU (1.00) over the last 1 minute.
+pstree -p                    # process hierarchy with PIDs
+lsof -p 3534                 # files and sockets held by one process
+strace -p 3534               # system calls, for a hung process
+nohup ./long-job &           # survive terminal logout
+jobs / fg / bg               # shell job control
+Ctrl+Z                       # suspend the foreground job
+```
 
-* The CPU was idle by 60% on average; no processes were waiting for CPU time (0.40) over the last 5 minutes.
+Try `kill` before `kill -9`. `SIGKILL` gives the process no chance to flush
+buffers or release locks, which is how partially written files and stale lock
+files appear. A process stuck in `D` state ignores both, because it is blocked
+in the kernel.
 
-* The CPU was overloaded by 235% on average; 2.35 processes were waiting for CPU time (3.35) over the last 15 minutes.
+Process states, zombies, and orphans are explained in [Processes](#processes),
+which also shows how to list zombies and their parents.
 
-On a dual-core system this would mean:
+### Process priority commands
 
-* The one CPU was 100% idle on average, one CPU was being used; no processes were waiting for CPU time(1.00) over the last 1 minute.
+The relationship between `PR` and `NI`, and the cases where nice has no effect
+at all, are in
+[Process priority and scheduling](#process-priority-and-scheduling).
 
-* The CPUs were idle by 160% on average; no processes were waiting for CPU time. (0.40) over the last 5 minutes.
+```bash
+nice -n 10 ./batch-job           # start with a lower priority
+sudo nice -n -5 ./latency-job    # start with a higher priority; negative needs root
+renice -n 10 -p 3534             # change a running process by PID
+renice -n 5 -u builduser         # change every process of a user
+ps -fl -C "perl test.pl"         # verify the nice value took effect
+ps -eo pid,ni,pri,comm --sort=ni | head
+ionice -c 3 tar czf backup.tar.gz /data   # idle I/O class, for backups
+chrt -p 3534                     # scheduling policy and real-time priority
+systemd-run -p CPUQuota=20% ./job # hard CPU cap through a cgroup
+```
 
-* The CPUs were overloaded by 135% on average; 1.35 processes were waiting for CPU time. (3.35) over the last 15 minutes.
-</b></details>
+Reference: [nice and renice examples](https://www.thegeekstuff.com/2013/08/nice-renice-command-examples/)
 
+### Services and logs
 
-<details>
-<summary> Difference Between Array, List & Map ?.</code></summary><br><b>
+```bash
+systemctl status nginx
+systemctl start nginx / stop nginx / restart nginx
+systemctl reload nginx           # re-read configuration without dropping connections
+systemctl enable --now nginx     # start now and on boot
+systemctl disable nginx
+systemctl list-units --failed    # everything currently broken
+systemctl daemon-reload          # after editing a unit file
 
-- `Array` : It is used to store multiple items of the same data type at contiguous memory locations. 
-            Array can manage arithmetic operations.
-            This makes it easier to calculate the position of each element by simply adding an offset to a base value, i.e., the memory location of the first element of the array (generally denoted by the name of the array).
+journalctl -u nginx              # logs for one unit
+journalctl -u nginx --since '1 hour ago'
+journalctl -f                    # follow all logs
+journalctl -p err -b             # errors and worse since this boot
+journalctl --disk-usage          # how much space the journal uses
 
-- `List` : It is used to collect items that usually consist of elements of multiple data types.
-           List cannot manage arithmetic operations. List preserves the insertion order, it allows positional access and insertion of elements.
+dmesg -T | tail -50              # kernel ring buffer with timestamps
+```
 
-- `Map` : It is an associative container that stores elements in a mapped fashion. Each element has a key value and a mapped value. No two mapped values can have equal key values.
+Prefer `reload` over `restart` for a web server or proxy: reload replaces
+workers gracefully, restart drops in-flight connections. Unit file structure and
+overrides are in [systemd and journald](#systemd-and-journald).
 
-</b></details>
+### Users and groups
 
+`usermod` modifies an existing account: group membership, login shell, home
+directory, username, expiry, and lock state.
+
+```bash
+groupadd devops
+useradd -c "Application operator" -m appuser   # create the account and home
+useradd -r -s /usr/sbin/nologin appsvc   # service account that cannot log in
+passwd appuser                   # set or change a password
+usermod -aG devops appuser       # append; without -a, replace all secondary groups
+usermod -s /bin/bash appuser     # change the login shell
+usermod -d /home/appuser2 -m appuser     # move the home directory
+usermod -L appuser               # lock the account
+userdel appuser                  # delete the account
+userdel -r appuser               # destructive: also deletes home and mail spool
+id appuser                       # verify UID, GID, and groups
+groups appuser                   # group membership only
+getent passwd appuser            # entry from all identity sources
+chage -l appuser                 # password ageing and expiry
+su - appuser                     # switch user with a login shell
+sudo -u appuser command          # run one command as another user
+sudo -l                          # what the current user is allowed to run
+visudo                           # edit sudoers with syntax validation
+```
+
+Always use `usermod -aG`. `usermod -G` replaces the entire secondary group list,
+which is a routine way to remove someone's `sudo` or `docker` access by
+accident. Verify with `id` afterwards. Before `userdel -r`, confirm the username,
+home path, running processes, and data ownership with `getent passwd`, `pgrep
+-u`, and `find <approved-path> -user <name> -print`; the command permanently
+removes the home directory and mail spool.
+
+The account fields these commands write are described in
+[Configuration and virtual filesystems](#configuration-and-virtual-filesystems).
+
+### Permission commands
+
+Numeric and symbolic `chmod` forms, the special bits, and what each bit means on
+a file versus a directory are in [Permissions](#permissions). The commands below
+cover what that section does not.
+
+```bash
+chmod -R g+w shared/             # recursive; check the tree before running it
+chown -R user:group dir/
+chgrp devops file
+getfacl file                     # per-user ACLs beyond the three classes
+setfacl -m u:appuser:rw file     # grant one user access without changing the group
+```
+
+Recursive permission changes are easy to over-apply. Review the target with
+`find <path> -type f -printf '%m %p\n' | sort -u` first, and never run a
+recursive `chmod` from `/` or a home directory root.
+
+### Networking commands
+
+```bash
+ip -brief addr                   # interface addresses
+ip addr add 10.0.0.5/24 dev eth0
+ip link set eth0 up
+ip route                         # routing table
+ip route get 10.0.5.20           # which route a destination would take
+ip neigh                         # ARP table
+ifconfig                         # deprecated; use ip on current systems
+
+ss -ltnp                         # listening TCP sockets and owning processes
+ss -tan state established        # established connections
+ss -s                            # socket summary by state
+netstat -tulpn                   # deprecated equivalent of ss -tulpn
+
+ping -c 4 google.com             # reachability and round-trip time
+ping -c 4 -M do -s 1472 host     # path MTU probe: 1472 + 28 headers = 1500
+traceroute google.com            # hop-by-hop path
+mtr google.com                   # continuous traceroute with per-hop loss
+ipcalc 192.168.10.0/26           # network, broadcast, and host range
+
+dig example.com                  # DNS query with full detail
+dig +short example.com
+dig @8.8.8.8 example.com MX      # query a specific resolver for a record type
+dig -x 8.8.8.8                   # reverse lookup
+nslookup example.com             # simpler, older DNS client
+host example.com
+
+curl -I https://example.com      # response headers only
+curl -sv https://example.com     # verbose, including the TLS handshake
+curl -w '%{time_total}\n' -o /dev/null -s https://example.com   # timing
+wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key   # fetch to stdout
+wget -c https://example.com/big.iso    # resume an interrupted download
+
+tcpdump -ni any port 443 -c 20    # capture 20 packets on a port
+nc -zv host 5432                  # test whether a TCP port accepts connections
+openssl s_client -connect example.com:443 -servername example.com   # inspect a certificate
+ethtool eth0                      # link speed, duplex, and carrier
+
+sudo nft list ruleset             # read-only view of the firewall ruleset
+sudo nft -c -f rules.nft          # syntax-check a ruleset without applying it
+```
+
+`nc -zv host port` is the fastest way to separate a network problem from an
+application problem: if the port accepts a connection, the path and firewall are
+fine and the fault is above the transport layer.
+
+Packet capture and firewall inspection are read-only, but changing rules is not.
+Never flush or replace a remote host's ruleset over the connection you depend
+on; see [nftables vs iptables](#nftables-vs-iptables) for the safe procedure.
+How to read interface counters and traceroute output is in
+[Network interfaces and diagnostics](#network-interfaces-and-diagnostics).
+
+### Archives and transfers
+
+```bash
+tar czf backup.tar.gz /data       # create a gzip-compressed archive
+tar xzf backup.tar.gz             # extract
+tar xzf backup.tar.gz -C /restore # extract into a directory
+tar tzf backup.tar.gz             # list contents without extracting
+gzip file / gunzip file.gz
+zip -r archive.zip dir/ / unzip archive.zip
+
+scp file user@host:/path/         # copy over SSH
+scp -r dir/ user@host:/path/
+rsync -avz --progress src/ user@host:/dest/     # sync, transferring only differences
+rsync -avzn --delete src/ dest/   # dry run of the destructive form, review first
+rsync -avz --delete src/ dest/    # destructive: deletes anything not in the source
+sftp user@host                    # interactive file transfer over SSH
+```
+
+`rsync` is preferable to `scp` for anything large or repeated: it resumes, it
+transfers only changed blocks, and `--dry-run` shows what it would do. Note that
+a trailing slash on the source means "the contents of this directory", and
+omitting it means "this directory itself", so the wrong slash combined with
+`--delete` can empty the destination. Key setup for these transfers is in
+[SSH](#ssh).
+
+### Shell productivity
+
+```bash
+command1 | command2          # pipe stdout into stdin
+command > out.log            # redirect stdout, overwriting
+command >> out.log           # redirect stdout, appending
+command 2> err.log           # redirect stderr
+command > all.log 2>&1       # both streams to one file
+command < input.txt          # read stdin from a file
+command1 && command2         # run command2 only if command1 succeeded
+command1 || command2         # run command2 only if command1 failed
+command &                    # run in the background
+$(command)                   # command substitution
+
+!!                           # repeat the previous command
+sudo !!                      # repeat it with sudo
+!$                           # last argument of the previous command
+Ctrl+R                       # search command history
+Ctrl+A / Ctrl+E              # jump to start or end of the line
+Ctrl+W                       # delete the previous word
+alias ll='ls -alh'           # define a shortcut; put it in ~/.bashrc to persist
+watch -n2 'kubectl get pods' # rerun a command every 2 seconds
+timeout 30 ./flaky-command   # give up after 30 seconds
+seq 1 5 | xargs -I{} echo item{}
+```
+
+Check what `!!` and `!$` expand to before running them with `sudo`; history
+expansion happens without confirmation. Prompt configuration is in
+[Shell prompt customisation](#shell-prompt-customisation).
+
+Reference: [Linux commands walkthrough](https://krishnaprasadkv.github.io/Linux-Commands/)

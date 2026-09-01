@@ -1,1648 +1,1411 @@
+# Kubernetes Interview Study Guide
+
+This file holds the core interview explanations for Kubernetes. Procedural lab
+recipes are kept in separate files so that conceptual answers and hands-on
+command sequences do not drift apart or contradict each other.
+
+## Contents
+
+- [Architecture](#architecture): control-plane flow, etcd quorum, HA design, and
+  cluster interfaces.
+- [Component failures and troubleshooting](#component-failures-and-troubleshooting):
+  failure impact, diagnosis, certificate expiry, live debugging, and recovery.
+- [Scheduling and autoscaling](#scheduling-and-autoscaling): placement, taints,
+  resources, QoS, quotas, eviction, and autoscalers.
+- [Networking](#networking): Pod networking, Services, traffic policies, DNS,
+  exposure, and NetworkPolicy.
+- [Configuration and storage](#configuration-and-storage): ConfigMaps, PV/PVC,
+  StorageClasses, StatefulSets, and databases.
+- [Security](#security): API access, Pod hardening, Secrets, supply chain,
+  nodes, and audit.
+- [Upgrades and maintenance](#upgrades-and-maintenance): version planning,
+  drain, disruption budgets, control-plane certificates, and node operations.
+- [Workloads and extensibility](#workloads-and-extensibility): controllers,
+  Jobs, lifecycle, probes, APIs, operators, admission, GitOps, and rollouts.
+- [Helm](#helm): charts, values, release operations, validation, CRDs, and hooks.
+- [Companion files](#companion-files): procedural material kept separate.
+- [Recommended interview-answer structure](#recommended-interview-answer-structure).
+
+## Architecture
+
+### How does the control plane work?
+
+Kubernetes is a declarative, reconciliation-based system:
+
+1. A client sends a request to `kube-apiserver`.
+2. The API server authenticates, authorizes, validates, and admits the request.
+3. The API server persists desired state in etcd.
+4. Controllers compare desired and observed state and create corrective changes.
+5. The scheduler assigns unscheduled Pods to suitable nodes.
+6. Each node's kubelet asks the container runtime to run assigned containers.
+
+The API server is the control plane's front door and the only core component
+that directly accesses etcd. Components watch the API instead of calling each
+other directly.
+
+**Practical significance:** Creating a Deployment does not directly create
+containers. Controllers create a ReplicaSet and Pods, the scheduler binds the
+Pods, and kubelets run them.
+
+### Core components
+
+| Location | Component | Responsibility |
+| --- | --- | --- |
+| Control plane | `kube-apiserver` | Serves the API and enforces API policy |
+| Control plane | etcd | Stores durable cluster state |
+| Control plane | `kube-scheduler` | Selects nodes for unscheduled Pods |
+| Control plane | `kube-controller-manager` | Runs core reconciliation controllers |
+| Control plane | `cloud-controller-manager` | Integrates supported cloud APIs |
+| Every node | kubelet | Reconciles assigned Pod specs with containers |
+| Every node | container runtime | Manages images and containers through CRI |
+| Commonly every node | `kube-proxy` or replacement | Implements Service forwarding |
+| Cluster add-on | CNI plugin | Configures Pod networking |
+| Cluster add-on | CoreDNS | Provides cluster DNS and service discovery |
 
-### Kubernetes
+### How does etcd provide consistency?
 
-<details>
-<summary> What is Headless Service.</summary><br><b>
+etcd uses Raft consensus and requires a majority quorum:
 
-- a headless service is a type of service that does not have a cluster IP. It is used to directly interface with specific Pods without the necessity of a load-balancing mechanism or a single service IP. Instead, it allows for direct access to Pods via their DNS entries or their individual IPs. This can be particularly useful in certain types of distributed systems, especially those where you need direct communication between your components, such as stateful applications like databases or other services that rely on a consistent network identity.
+`quorum = floor(N / 2) + 1`
 
-- Characteristics of Headless Services
+| Members | Quorum | Failures tolerated |
+| ---: | ---: | ---: |
+| 1 | 1 | 0 |
+| 3 | 2 | 1 |
+| 5 | 3 | 2 |
 
-`No Cluster IP`: Unlike regular services, headless services do not have a cluster IP. Requests to a headless service are routed directly to the Pods.
+An odd member count normally provides the best fault tolerance for the cost.
+Losing quorum prevents normal writes and linearizable reads. Existing workloads
+may continue, but the control plane cannot reliably change state. Quorum does
+not replace regular, tested snapshots.
 
-`DNS Entries`: When a DNS query is made against a headless service, Kubernetes returns a set of IP addresses of the Pods that are matched by the service selector. This DNS response enables direct pod-to-pod communication.
+### How do you design a highly available cluster?
 
-`Stable Network Identity`: This is particularly useful for stateful sets where each pod needs a persistent identifier that persists across rescheduling.
+- Put multiple API servers behind a health-checked load balancer.
+- Run three or five etcd members on fast, low-latency, durable storage.
+- Run multiple schedulers and controller managers with leader election.
+- Spread control-plane and worker nodes across failure domains.
+- Keep spare capacity and multiple replicas of critical workloads.
+- Use topology spread constraints, zone-aware storage, and multi-zone traffic.
+- Back up etcd and test restoration.
 
-</b></details>
+A common three-zone design places one control-plane/etcd member in each zone.
+It can survive one zone loss while retaining etcd quorum. Node distribution
+alone is insufficient if every application replica or volume remains in one
+zone.
 
+### Single versus multiple control-plane nodes
 
-<details>
-<summary> What is Service Discovery?.</summary><br><b>
+| Design | Appropriate use | Main trade-off |
+| --- | --- | --- |
+| Single control plane | Learning and disposable development | Simple, but one host failure stops cluster management |
+| Multiple control planes | Production and availability-sensitive systems | More complex, but removes a host-level control-plane SPOF |
 
-- Service discovery is a key component in distributed systems, enabling services to dynamically discover and communicate with each other without prior knowledge of each other's network locations (IP addresses and ports). This capability is essential in modern cloud-native environments where applications are typically deployed as sets of microservices, which can be dynamically scheduled and moved across a cluster due to scaling operations, updates, or failures.
+Existing Pods do not need the API server to keep their processes running.
+Scheduling, scaling, reconciliation, status updates, and API operations do.
 
-Why Service Discovery is Needed
-In traditional static networks, the network endpoints where services are hosted are relatively fixed and known in advance. However, in dynamic, cloud-based environments like those managed by orchestration platforms (e.g., Kubernetes, Docker Swarm), services are:
+### What are CSI, CRI, and CNI?
 
-Often given ephemeral, non-static IP addresses.
-Scheduled on any node in the cluster.
-Scaled in and out, meaning instances can come up or be brought down at any time.
-Under such conditions, keeping track of where services are and how they can be accessed requires an automated system. This is where service discovery plays a crucial role.
+- **CSI (Container Storage Interface):** lets storage drivers implement volume
+  provisioning, attachment, mounting, and snapshots.
+- **CRI (Container Runtime Interface):** lets kubelet manage runtimes such as
+  containerd and CRI-O.
+- **CNI (Container Network Interface):** defines how plugins configure Pod
+  interfaces, addresses, and routes.
 
-How Service Discovery Works
-Service discovery systems can be categorized broadly into two types:
+A specification defines the contract; a plugin or driver implements it.
 
-Client-Side Discovery:
+## Component failures and troubleshooting
 
-In this model, the client is responsible for determining the network locations of available service instances and for load balancing the requests across them.
-The client queries a service registry, which is a database of available service instances, gets a list of available instances, and makes a load-balanced request.
-Example: Netflix OSS's Eureka.
-Server-Side Discovery:
+Use the pattern **symptom -> scope -> evidence -> recovery -> prevention**.
+Avoid restarting components before collecting logs and events unless service
+restoration is more urgent than diagnosis.
 
-Here, a dedicated server or a set of servers known as the service or API gateway handles the discovery of service instances.
-Clients send requests to this gateway, which then uses a service registry to route the request to available instances.
-Example: Kubernetes services, AWS Elastic Load Balancer.
-Components of a Service Discovery System
-The typical service discovery mechanism consists of the following components:
+### API server unavailable
 
-`Service Registry` : This is where all the service instances register themselves and update their status (alive, dead). It can be thought of as a dynamic database of service endpoints.
+**Impact:** `kubectl` and API requests fail; nodes cannot report status; new
+objects, scheduling decisions, and controller updates cannot be persisted.
+Existing containers and most data-plane forwarding usually continue.
 
-`Registrar`: This component is responsible for registering a service instance with the service registry when the instance starts.
+**Check:** API load-balancer health, API server logs and health endpoints,
+certificates, CPU/memory, and connectivity to etcd.
 
-`Discovery Client`: This component queries the service registry to fetch up-to-date instances of the required services.
+**Recover:** restore etcd connectivity or certificates, restart the failed
+instance, and keep healthy API servers behind the load balancer.
 
-`Health Checking`: This process involves periodically checking the health of services in the registry to ensure that requests are routed only to healthy instances.
+### etcd loses quorum or data
 
-Examples in Kubernetes
-Kubernetes naturally provides service discovery:
+**Impact:** cluster-state writes fail and the API server may return errors.
+Existing workloads continue temporarily, but cannot be reliably changed or
+self-healed.
 
-`Services`: Kubernetes Service object gives a permanent IP address (ClusterIP, NodePort, LoadBalancer) which routes requests to the correct pods by selector. This abstracts the underlying pod IPs which may change on rescheduling.
+**Check:** member health, endpoint status, disk latency/capacity, peer
+connectivity, and alarms for corruption.
 
-`DNS`: Kubernetes Services are automatically discoverable via the cluster's DNS service (e.g., CoreDNS), where they are assigned DNS names. A pod can talk to another service using just the DNS name irrespective of the underlying pod changes.
+**Recover:** repair failed members while quorum exists. For corruption or total
+loss, stop writes and restore a known-good snapshot using the procedure for the
+installed etcd version. Do not independently restore members into one cluster.
 
-</b></details>
+**Prevent:** use an odd member count, dedicated low-latency storage, TLS,
+monitoring, and tested snapshots.
 
-<details>
-<summary>  Kubectl proxy & Kube-proxy.</summary><br><b>
+### Scheduler unavailable
 
-#### kubectl proxy
-- runs on a user's desktop or in a pod
-- proxies from a localhost address to the Kubernetes apiserver
-- client to proxy uses HTTP
-- proxy to apiserver uses HTTPS
-- locates apiserver
-- adds authentication headers
+**Impact:** already-bound Pods and existing workloads are unaffected; new Pods
+remain `Pending` with no `.spec.nodeName`.
 
-#### kube proxy
-- runs on each node
-- proxies UDP and TCP
-- does not understand HTTP
-- provides load balancing
-- is only used to reach services
+**Check:** scheduler logs, leader election, API connectivity, RBAC, and scheduler
+configuration.
 
-</b></details>
+**Recover:** restore the process or configuration. Run redundant instances with
+leader election.
 
-<details>
-<summary> How different types of fields are merged.</summary><br><b>
+### Controller manager unavailable
 
-Merging depends on the type of the field. There are several types of fields:
+**Impact:** existing processes run, but reconciliation stops. ReplicaSets stop
+replacing Pods, Jobs and node lifecycle handling stall, and controller-driven
+scaling stops.
 
-- `primitive`: A field of type string, integer, or boolean. For example, image and replicas are primitive fields. Action: Replace.
+**Check:** controller-manager logs, leader election, API connectivity, RBAC, and
+work-queue/reconciliation metrics.
 
-- `map`, also called object: A field of type map or a complex type that contains subfields. For example, labels, annotations,spec and metadata are all maps. Action: Merge elements or subfields.
+**Recover:** restore the process and verify controller queues converge. Run
+redundant instances with leader election.
 
-- `list`: A field containing a list of items that can be either primitive types or maps. For example, containers, ports, and args are lists. Action: Varies.
+### Kubelet or node failure
 
-When kubectl apply updates a map or list field, it typically does not replace the entire field, but instead updates the individual subelements. For instance, when merging the spec on a Deployment, the entire spec is not replaced. Instead the subfields of spec, such as replicas, are compared and merged.
+**Impact:** the node becomes `NotReady`; its Pods may be unreachable. After node
+lifecycle tolerations expire, controllers can replace managed Pods elsewhere.
+Pods on the failed node are not live-migrated.
 
-</b></details>
+**Check:** node conditions and events, kubelet and runtime status, disk/memory
+pressure, networking, and certificates.
 
+**Recover:** repair kubelet/runtime/networking, or cordon, drain when possible,
+and replace the node. A hard-failed node may require workload-specific fencing
+before force deletion, especially with attached storage.
 
-<details>
-<summary> Type of controller in Kubernetes.</summary><br><b>
+### CNI, Service forwarding, or DNS failure
 
-- `ReplicaSet` - It creates a stable set of pods, all running the same workload. You will almost never create this directly.
-- `Deployment` - It maintains a ReplicaSet with the desired configuration, with some additional configuration for managing updates and rollbacks.
-- `StatefulSet` - It is used to manage stateful applications with persistent storage. Pod names are persistent and are retained when rescheduled (app-0, app-1). Storage stays associated with replacement pods, and volumes persist when pods are deleted.
-- `Job` - A Job creates one or more short-lived Pods and expects them to successfully terminate.
-- `CronJob` - A CronJob creates Jobs on a schedule.
-- `DaemonSet` - It ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. Common for system processes like CNI, Monitor agents, proxies, etc.
+| Symptom | Likely area | First checks |
+| --- | --- | --- |
+| Pod IPs cannot communicate | CNI/routes/policy | CNI Pods and logs, routes, NetworkPolicies |
+| Service IP fails but Pod IP works | `kube-proxy` or eBPF Service implementation | EndpointSlices, node rules, agent logs |
+| Names fail but direct IP works | CoreDNS | DNS Pods, Service/EndpointSlices, `resolv.conf`, upstream DNS |
 
-</b></details>
+Do not flush production iptables rules blindly: rules may belong to Kubernetes,
+the CNI, firewalls, or other host services. The step-by-step network bisection
+is in [Network troubleshooting](#network-troubleshooting).
 
-<details>
-<summary> Pod Security Standards.</summary><br><b>
+### Common workload symptoms
 
-<!-- overview -->
+| Symptom | Common causes | Useful evidence |
+| --- | --- | --- |
+| `CrashLoopBackOff` | App exits, failed liveness probe, bad config, OOM | `describe`, current and `--previous` logs |
+| `Pending` | No fitting node, untolerated taint, unbound PVC | Pod events and scheduler messages |
+| `OOMKilled` | Container exceeded cgroup memory limit | Last state, exit code 137, metrics |
+| `ImagePullBackOff` | Bad image/tag, auth, DNS, or registry | Pod events and runtime logs |
+| Service 503/no endpoints | Selector mismatch or Pods not ready | Service selector and EndpointSlices |
+| `NodeNotReady` | Kubelet, runtime, network, or host pressure | Node conditions and system logs |
 
-The Pod Security Standards define three different _policies_ to broadly cover the security
-spectrum. These policies are _cumulative_ and range from highly-permissive to highly-restrictive.
-This guide outlines the requirements of each policy.
+### Certificate expiry: which TLS is broken?
 
-| Profile | Description |
-| ------ | ----------- |
-| <strong style="white-space: nowrap">Privileged</strong> | Unrestricted policy, providing the widest possible level of permissions. This policy allows for known privilege escalations. |
-| <strong style="white-space: nowrap">Baseline</strong> | Minimally restrictive policy which prevents known privilege escalations. Allows the default (minimally specified) Pod configuration. |
-| <strong style="white-space: nowrap">Restricted</strong> | Heavily restricted policy, following current Pod hardening best practices. |
+Two unrelated certificate systems are commonly confused. Identify which one is
+failing before touching anything.
 
-<!-- body -->
+| Layer | Who it serves | Typical symptom | Where certificates live |
+| --- | --- | --- | --- |
+| Ingress or application TLS | External clients of an app | Browser warning, failed HTTPS handshake to the app hostname | Kubernetes TLS Secret, usually issued by cert-manager or a cloud load balancer |
+| Cluster PKI | API server, kubelets, etcd, controllers | `kubectl` reports `x509: certificate has expired`, nodes go `NotReady` | Node filesystem under `/etc/kubernetes/pki` |
 
-[Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
+An expired Ingress certificate never breaks `kubectl`, and renewing an Ingress
+Secret never fixes cluster PKI.
 
-</b></details>
+#### Ingress or application TLS
 
-<details>
-<summary> Translate Docker-compose to kubernetes.</summary><br><b>
+**Check:** confirm where TLS terminates, then inspect the served certificate and
+the issuing resources:
 
-What's Kompose? It's a conversion tool for all things compose (namely Docker Compose) to container orchestrators (Kubernetes or OpenShift).
-
-### Use Kompose
-
-In a few steps, we'll take you from Docker Compose to Kubernetes. All
-you need is an existing `docker-compose.yml` file.
-
-1. Go to the directory containing your `docker-compose.yml` file. If you don't have one, test using this one.
-
-   ```yaml
-   version: "2"
-
-   services:
-
-     redis-master:
-       image: k8s.gcr.io/redis:e2e
-       ports:
-         - "6379"
-
-     redis-slave:
-       image: gcr.io/google_samples/gb-redisslave:v3
-       ports:
-         - "6379"
-       environment:
-         - GET_HOSTS_FROM=dns
-
-     frontend:
-       image: gcr.io/google-samples/gb-frontend:v4
-       ports:
-         - "80:80"
-       environment:
-         - GET_HOSTS_FROM=dns
-       labels:
-         kompose.service.type: LoadBalancer
-   ```
-
-2. To convert the `docker-compose.yml` file to files that you can use with
-   `kubectl`, run `kompose convert` and then `kubectl apply -f <output file>`.
-
-   ```bash
-   kompose convert
-   ```
-
-[Kompose](https://kubernetes.io/docs/tasks/configure-pod-container/translate-compose-kubernetes/)
-
-</b></details>
-
-<details>
-<summary> Define ConfigMap.</summary><br><b>
-
-Many applications rely on configuration which is used during either application initialization or runtime. Most of the times there is a requirement to adjust values assigned to configuration parameters. ConfigMaps is the kubernetes way to inject application pods with configuration data. ConfigMaps allow you to decouple configuration artifacts from image content to keep containerized applications portable. This page provides a series of usage examples demonstrating how to create ConfigMaps and configure Pods using data stored in ConfigMaps.
-
-You can use either `kubectl create configmap` or a ConfigMap generator in `kustomization.yaml` to create a ConfigMap. Note that `kubectl` starts to support `kustomization.yaml` since 1.14.
-
-Use the `kubectl create configmap` command to create ConfigMaps from `directories`, `files`, or `literal values` :
-
-```shell
-kubectl create configmap <map-name> <data-source>
+```bash
+openssl s_client -connect app.example.com:443 -servername app.example.com </dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+kubectl describe ingress <name> -n <namespace>
+kubectl describe certificate <name> -n <namespace>
+kubectl get certificaterequest,order,challenge -n <namespace>
 ```
 
-where \<map-name> is the name you want to assign to the ConfigMap and \<data-source> is the directory, file, or literal value to draw the data from.
-The name of a ConfigMap object must be a valid
+**Recover:** fix the failing ACME challenge, issuer configuration, DNS record, or
+load-balancer certificate mapping. For an emergency replacement, update the TLS
+Secret referenced by the Ingress and confirm the controller reloaded it.
 
-* `Create ConfigMaps from directories `
-```shell
-kubectl create configmap test-config --from-file=dirPath
-```
-* `Create ConfigMaps from files `
-```shell
-kubectl create configmap test-file3 --from-file=jenkins-deploy-pod-k8s.txt
+**Prevent:** alert well before expiry, monitor `Certificate` readiness, and
+re-test the challenge path after DNS, firewall, or Ingress changes.
 
-#If you want to Define the key to use when creating a ConfigMap from a file.
-kubectl create configmap test-file3 --from-file=testkey=jenkins-deploy-pod-k8s.txt
-```
-* `Create ConfigMaps from literal values `
-```shell
-kubectl create configmap special-config --from-literal=special.how=very --from-literal=special.type=charm
-```
-You can pass in multiple key-value pairs. Each pair provided on the command line is represented as a separate entry in the `data` section of the ConfigMap.
+#### Control-plane certificates on kubeadm clusters
 
-[ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/)
+**Impact:** API requests fail authentication, kubelets cannot report status, and
+the cluster becomes unmanageable while containers keep running.
 
-</b></details>
+**Check:** run this on a control-plane node, because the API may be unreachable:
 
-<details>
-<summary> What Is Pod Eviction ?.</summary><br><b>
-
-A pod eviction is a characteristic function of Kubernetes used in certain scenarios, such as node NotReady, insufficient node resources, and expelling pods to other nodes. There are two eviction mechanisms in Kubernetes:
-
-* `kube-controller-manager`: Periodically checks the status of all nodes and evicts all pods on the node when the node is in NotReady state for more than a certain period.
-
-following startup parameters are provided to control eviction:
-
-1. `pod-eviction-timeout`: After the NotReady state node exceeds a default time of five minutes, the eviction will be executed.
-
-2. `node-eviction-rate`: The drive rate, or the rate at which the node is driven.
-
-3. `secondary-node-eviction-rate`: When there are too many down nodes in the cluster, the corresponding drive rate is also reduced.
-
-4. `unhealthy-zone-threshold`: When the number of node downtimes in the zone exceeds 55 percent, and the zone is unhealthy.
-
-5.` arge-cluster-size-threshold`: Determines whether the cluster is large. A cluster with over 50 (default) nodes is a large cluster.
-
-* `kubelet`: Periodically checks the resources of the node and evicts some pods according to their priority when resources are insufficient.
-
-The specific resources checked are:
-
-* `memory.available`
-
-* `nodefs.available`
-
-* `nodefs.inodesFree`
-
-* `imagefs.available`
-
-* `imagefs.inodesFree`
-
-</b></details>
-
-<details>
-<summary> Pod Lifecycle.</summary><br><b>
-
-A Pod's `status` field is a object, which has a `phase` field.Phase of a Pod is high-level summary of where the Pod is in its lifecycle. Here are the possible values for `phase`:
-
-Value       | Description
-:-----------|:-----------
-`Pending`   | The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run. This includes time a Pod spends waiting to be scheduled as well as the time spent downloading container images over the network.
-`Running`   | The Pod has been bound to a node, and all of the containers have been created. At least one container is still running, or is in the process of starting or restarting.
-`Succeeded` | All containers in the Pod have terminated in success, and will not be restarted.
-`Failed`    | All containers in the Pod have terminated, and at least one container has terminated in failure. That is, the container either exited with non-zero status or was terminated by the system.
-`Unknown`   | For some reason the state of the Pod could not be obtained. This phase typically occurs due to an error in communicating with the node where the Pod should be running.
-
-* When a Pod is being deleted, it is shown as `Terminating` by some kubectl commands.
-This `Terminating` status is not one of the Pod phases.
-A Pod is granted a term to terminate gracefully, which defaults to 30 seconds.
-You can use the flag `--force` to terminate a Pod by force.
-
-If a node dies or is disconnected from the rest of the cluster, Kubernetes
-applies a policy for setting the `phase` of all Pods on the lost node to Failed.
-
-* `Container states `: 3 possible container states: `Waiting`, `Running`, and `Terminated`.
-
-To check the state of a Pod's containers, you can use
-`kubectl describe pod <name-of-pod>`. The output shows the state for each container
-within that Pod.
-
-* `Waiting` : If a container is not in either the `Running` or `Terminated` state, it is `Waiting`.
-A container in the `Waiting` state is still running the operations it requires in order to complete start up: 
-for e.g. , pulling the container image from a container image registry, or applying secret data.
-When you use `kubectl` to query a Pod with a container that is `Waiting`, you also see
-a Reason field to summarize why the container is in that state.
-
-* `Running` : `Running` status indicates that a container is executing without issues. If there
-was a `postStart` hook configured, it has already executed and finished. When you use
-`kubectl` to query a Pod with a container that is `Running`, you also see information
-about when the container entered the `Running` state.
-
-* `Terminated` : `Terminated` state began execution and then either ran to
-completion or failed for some reason. When you use `kubectl` to query a Pod with
-a container that is `Terminated`, you see a reason, an exit code, and the start and
-finish time for that container's period of execution.
-
-If a container has a `preStop` hook configured, this hook runs before the container enters
-the `Terminated` state.
-
-[Pod Lifecycle](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/)
-
-</b></details>
-
-<details>
-<summary> Container Lifecycle Hooks.</summary><br><b>
-
-Kubernetes provides Containers with lifecycle hooks. The hooks enable Containers to be aware of events in their management lifecycle and run code implemented in a handler when the corresponding lifecycle hook is executed.
-
-`There are two hooks that are exposed to Containers:`
-
-`PostStart ` : This hook is executed immediately after a container is created. However, there is no guarantee that the hook will execute before the container ENTRYPOINT. No parameters are passed to the handler.
-
-`PreStop ` : This hook is called immediately before a container is terminated due to an API request or management event such as a liveness/startup probe failure, preemption, resource contention and others. A call to the PreStop hook fails if the container is already in a terminated or completed state and the hook must complete before the TERM signal to stop the container can be sent. The Pod's termination grace period countdown begins before the PreStop hook is executed, so regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period. No parameters are passed to the handler.
-
-[Hooks](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/)
-
-</b></details>
-
-<details>
-<summary> What Are Hooks For?.</summary><br><b>
-
-The primary purpose of lifecycle hooks is to provide a mechanism for detecting and responding to container state changes. The surfaced events track each container’s progress through its linear lifecycle. Before starting to use hooks, it’s important to understand what each of the three lifecycle phases means :`Waiting`, `Running`, and `Terminated`.
-
-Being able to track transitions between these phases gives you more insights into the status of your cluster. Registered hook handlers run within the container, so they can prepare or clean up its environment as it moves in and out of the Running state.
-
-As hooks are managed by Kubernetes, they’re guaranteed to be executed, even in a failure scenario. Your hooks will still run if a container becomes Terminated because Kubernetes evicted its pod. You can reliably handle terminations due to resource constraints and cluster-level errors using lifecycle event handlers.
-
-* `Hook Handlers` : Handlers are the second foundational component of the lifecycle hook system. There are two different types, Exec and HTTP.
-
-[Hooks Handlers](https://www.containiq.com/post/kubernetes-container-lifecycle-events-and-hooks)
-</b></details>
-
-<details>
-<summary> Pod Lifecycle event Handlers.</summary><br><b>
-
-Kubernetes supports the postStart and preStop events. Kubernetes sends the postStart event immediately after a Container is started, and it sends the preStop event immediately before the Container is terminated. A Container may specify one handler per event.
-
-Kubernetes sends the postStart event immediately after the Container is created. There is no guarantee, however, that the postStart handler is called before the Container's entrypoint is called. The postStart handler runs asynchronously relative to the Container's code, but Kubernetes' management of the container blocks until the postStart handler completes. The Container's status is not set to RUNNING until the postStart handler completes.
-
-Kubernetes sends the preStop event immediately before the Container is terminated. Kubernetes' management of the Container blocks until the preStop handler completes, unless the Pod's grace period expires. 
-
-* Kubernetes only sends the preStop event when a Pod is terminated. This means that the preStop hook is not invoked when the Pod is completed.
-
-[Handlers](https://kubernetes.io/docs/tasks/configure-pod-container/attach-handler-lifecycle-event/)
-
-</b></details>
-
-
-<details>
-<summary>Pods's DNS Policy.</summary><br><b>
-
-A DNS query may return different results based on the namespace of the Pod making it. DNS queries that don't specify a namespace are limited to the Pod's namespace. Access Services in other namespaces by specifying it in the DNS query.
-
-For example, consider a Pod in a test namespace. A data Service is in the prod namespace.
-
-A query for data returns no results, because it uses the Pod's test namespace.
-
-A query for data.prod returns the intended result, because it specifies the namespace.
-
-DNS queries may be expanded using the Pod's /etc/resolv.conf. Kubelet sets this file for each Pod. For example, a query for just data may be expanded to data.test.svc.cluster.local. The values of the search option are used to expand queries. 
-
-```
-nameserver 10.32.0.10
-search <namespace>.svc.cluster.local svc.cluster.local cluster.local
-options ndots:5
+```bash
+sudo kubeadm certs check-expiration
+sudo openssl x509 -noout -subject -dates -in /etc/kubernetes/pki/apiserver.crt
 ```
 
-In summary, a Pod in the _test_ namespace can successfully resolve either 
-`data.prod` or `data.prod.svc.cluster.local`.
-
-What objects get DNS records?
-
-1. Services
-2. Pods
-
-## Services
-
-* `A/AAAA records` : "Normal" (not headless) Services are assigned a DNS A or AAAA record,
-depending on the IP family of the Service, for a name of the form
-`my-svc.my-namespace.svc.cluster-domain.example`.  This resolves to the cluster IP
-of the Service.
-
-"Headless" (without a cluster IP) Services are also assigned a DNS A or AAAA record,
-depending on the IP family of the Service, for a name of the form
-`my-svc.my-namespace.svc.cluster-domain.example`.  Unlike normal
-Services, this resolves to the set of IPs of the Pods selected by the Service.
-Clients are expected to consume the set or else use standard round-robin
-selection from the set.
-
-* `SRV records` : SRV Records are created for named ports that are part of normal or [Headless
-Services].
-
-For each named port, the SRV record would have the form
-`_my-port-name._my-port-protocol.my-svc.my-namespace.svc.cluster-domain.example`.
-
-For a regular Service, this resolves to the port number and the domain name:
-`my-svc.my-namespace.svc.cluster-domain.example`.
-
-## Pods
-
-* `A/AAAA records` : 
-
-In general a Pod has the following DNS resolution:
-
-`pod-ip-address.my-namespace.pod.cluster-domain.example`.
-
-For example, if a Pod in the `default` namespace has the IP address 172.17.0.3,
-and the domain name for your cluster is `cluster.local`, then the Pod has a DNS name:
-
-`172-17-0-3.default.pod.cluster.local`.
-
-Any Pods exposed by a Service have the following DNS resolution available:
-
-`pod-ip-address.service-name.my-namespace.svc.cluster-domain.example`.
-
-* Pod's hostname and subdomain fields
-
-Currently when a Pod is created, its hostname is the Pod's `metadata.name` value.
-
-The Pod spec has an optional `hostname` field, which can be used to specify the
-Pod's hostname. When specified, it takes precedence over the Pod's name to be
-the hostname of the Pod. For example, given a Pod with `hostname` set to
-"`my-host`", the Pod will have its hostname set to "`my-host`".
-
-The Pod spec also has an optional `subdomain` field which can be used to specify
-its subdomain. For example, a Pod with `hostname` set to "`foo`", and `subdomain`
-set to "`bar`", in namespace "`my-namespace`", will have the fully qualified
-domain name (FQDN) "`foo.bar.my-namespace.svc.cluster-domain.example`".
-
-For a headless Service, this resolves to multiple answers, one for each Pod
-that is backing the Service, and contains the port number and the domain name of the Pod
-of the form `auto-generated-name.my-svc.my-namespace.svc.cluster-domain.example`.
-
-DNS policies can be set on a per-Pod basis. Currently Kubernetes supports the
-following Pod-specific DNS policies. These policies are specified in the
-`dnsPolicy` field of a Pod Spec.
-
-- "`Default`": The Pod inherits the name resolution configuration from the node
-  that the Pods run on.
-
-- "`ClusterFirst`": Any DNS query that does not match the configured cluster
-  domain suffix, such as "`www.kubernetes.io`", is forwarded to the upstream
-  nameserver inherited from the node. Cluster administrators may have extra
-  stub-domain and upstream DNS servers configured.
-
-- "`ClusterFirstWithHostNet`": For Pods running with hostNetwork, you should
-  explicitly set its DNS policy "`ClusterFirstWithHostNet`".
-  - Note: This is not supported on Windows.
-
-- "`None`": It allows a Pod to ignore DNS settings from the Kubernetes
-  environment. All DNS settings are supposed to be provided using the
-  `dnsConfig` field in the Pod Spec.
-
-[DNS Policy](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/)
-
-</b></details>
-
-
-<details>
-<summary>What is DaemonSet?.</summary><br><b>
-
-A _DaemonSet_ ensures that all (or some) Nodes run a copy of a Pod.  As nodes are added to the
-cluster, Pods are added to them.  As nodes are removed from the cluster, those Pods are garbage
-collected.  Deleting a DaemonSet will clean up the Pods it created.
-
-Some typical uses of a DaemonSet are:
-
-- running a cluster storage daemon on every node
-- running a logs collection daemon on every node
-- running a node monitoring daemon on every node
-
-In a simple case, one DaemonSet, covering all nodes, would be used for each type of daemon.
-A more complex setup might use multiple DaemonSets for a single type of daemon, but with
-different flags and/or different memory and cpu requests for different hardware types.
-
-* `Taints and Tolerations` : Although Daemon Pods respect but following tolerations are added to DaemonSet Pods automatically according to the related features.
-
-| Toleration Key                           | Effect     | Version | Description |
-| ---------------------------------------- | ---------- | ------- | ----------- |
-| `node.kubernetes.io/not-ready`           | NoExecute  | 1.13+   | DaemonSet pods will not be evicted when there are node problems such as a network partition. |
-| `node.kubernetes.io/unreachable`         | NoExecute  | 1.13+   | DaemonSet pods will not be evicted when there are node problems such as a network partition. |
-| `node.kubernetes.io/disk-pressure`       | NoSchedule | 1.8+    | DaemonSet pods tolerate disk-pressure attributes by default scheduler. |
-| `node.kubernetes.io/memory-pressure`     | NoSchedule | 1.8+    | DaemonSet pods tolerate memory-pressure attributes by default scheduler. |
-| `node.kubernetes.io/unschedulable`       | NoSchedule | 1.12+   | DaemonSet pods tolerate unschedulable attributes by default scheduler. |
-| `node.kubernetes.io/network-unavailable` | NoSchedule | 1.12+   | DaemonSet pods, who uses host network, tolerate network-unavailable attributes by default scheduler. |
-
-[DaemonSet](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
-</b></details>
-
-<details>
-<summary>What is StatefulSet?.</summary><br><b>
-
-StatefulSet is the workload API object used to manage stateful applications. Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods. 
-
-Like a Deployment, a StatefulSet manages Pods that are based on an identical container spec.
-
-Unlike a Deployment, a StatefulSet maintains a sticky identity for each of their Pods. These pods are created from the same spec, but are not interchangeable: each has a persistent identifier that it maintains across any rescheduling.
-
-If you want to use storage volumes to provide persistence for your workload, you can use a StatefulSet as part of the solution. Although individual Pods in a StatefulSet are susceptible to failure, the persistent Pod identifiers make it easier to match existing volumes to the new Pods that replace any that have failed.
-
-StatefulSets are valuable for applications that require one or more of the following.
-
-* Stable, unique network identifiers.
-
-* Stable, persistent storage.
-
-* Ordered, graceful deployment and scaling.
-
-* Ordered, automated rolling updates.
-
-StatefulSet Pods have a unique identity that is comprised of an ordinal, a
-stable network identity, and stable storage. The identity sticks to the Pod,
-regardless of which node it's (re)scheduled on.
-
-* `Ordinal Index` : For a StatefulSet with N replicas, each Pod in the StatefulSet will be
-assigned an integer ordinal, from 0 up through N-1, that is unique over the Set.
-
-* `Stable Network ID` : Each Pod in a StatefulSet derives its hostname from the name of the StatefulSet and the ordinal of the Pod. The pattern for the constructed hostname is `$(statefulset name)-$(ordinal)`. for example 3 Pods will be named `web-0,web-1,web-2`.
-
-A StatefulSet can use a Headless Service to control the domain of its Pods. The domain managed by this Service takes the form: 
-
-`$(service name).$(namespace).svc.cluster.local`, where "cluster.local" is the cluster domain.
-
-Each Pod gets a matching DNS subdomain, taking the form: `$(podname).$(governing service domain)`, where the governing service is defined by the `serviceName` field on the StatefulSet.
-
-StatefulSet name, and how that affects the DNS names for the StatefulSet's Pods.
-
-Cluster Domain | Service (ns/name) | StatefulSet (ns/name)  | StatefulSet Domain  | Pod DNS | Pod Hostname |
--------------- | ----------------- | ----------------- | -------------- | ------- | ------------ |
- cluster.local | default/nginx     | default/web       | nginx.default.svc.cluster.local | web-{0..N-1}.nginx.default.svc.cluster.local | web-{0..N-1} |
- cluster.local | foo/nginx         | foo/web           | nginx.foo.svc.cluster.local     | web-{0..N-1}.nginx.foo.svc.cluster.local     | web-{0..N-1} |
- kube.local    | foo/nginx         | foo/web           | nginx.foo.svc.kube.local        | web-{0..N-1}.nginx.foo.svc.kube.local        | web-{0..N-1} |
-
-
-[StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
-</b></details>
-
-<details>
-<summary>What is init container & it's need?.</summary><br><b>
-
-An Init container is the one that starts and executes before other containers in the same Pod. It meant to perform initialization logic for the main application hosted on the Pod. Contain utilities or custom code for setup that is not present in an app image for security reasons. For example, create the necessary user accounts, perform database migrations, create database schemas and so on.
-
-[Init-Containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)
-</b></details>
-
-<details>
-<summary>Pod restart policies available ?.</summary><br><b>
-
-* The spec of a Pod has a restartPolicy field with possible values Always, OnFailure, and Never. 
-
-* The default value is Always.
-
-The restartPolicy applies to all containers in the Pod. restartPolicy only refers to restarts of the containers by the kubelet on the same node. After containers in a Pod exit, the kubelet restarts them with an exponential back-off delay (10s, 20s, 40s, …), that is capped at five minutes. Once a container has executed for 10 minutes without any problems, the kubelet resets the restart backoff timer for that container.
-
-</b></details>
-
-<details>
-<summary>What are the different ways you can apply probes, (liveness or readiness) for a container ?.</summary><br><b>
-
-The kubelet uses liveness probes to know when to restart a container. For example, liveness probes could catch a deadlock, where an application is running, but unable to make progress. Restarting a container in such a state can help to make the application more available despite bugs.
-
-* liveness exec/command : 
-
-* liveness HTTP request :  kubelet sends an HTTP GET request to the server that is running in the container and listening on port 8080. If the handler for the server's /healthz path returns a success code, the kubelet considers the container to be alive and healthy. If the handler returns a failure code, the kubelet kills the container and restarts it.
-
-Any code greater than or equal to 200 and less than 400 indicates success. Any other code indicates failure.
-
-* liveness TCP request : kubelet will attempt to open a socket to your container on the specified port. If it can establish a connection, the container is considered healthy, if it can't it is considered a failure.
-
-* liveness gRPC request : If your application implements gRPC Health Checking Protocol, kubelet can be configured to use it for application liveness checks. You must enable the GRPCContainerProbe feature gate in order to configure checks that rely on gRPC.
-
-The kubelet uses readiness probes to know when a container is ready to start accepting traffic. A Pod is considered ready when all of its containers are ready. One use of this signal is to control which Pods are used as backends for Services. When a Pod is not ready, it is removed from Service load balancers.
-
-The kubelet uses startup probes to know when a container application has started. If such a probe is configured, it disables liveness and readiness checks until it succeeds, making sure those probes don't interfere with the application startup. This can be used to adopt liveness checks on slow starting containers, avoiding them getting killed by the kubelet before they are up and running.
-
-Protect slow starting containers with startup probes
-
-Sometimes, you have to deal with legacy applications that might require an additional startup time on their first initialization. In such cases, it can be tricky to set up liveness probe parameters without compromising the fast response to deadlocks that motivated such a probe. The trick is to set up a startup probe with the same command, HTTP or TCP check, with a failureThreshold * periodSeconds long enough to cover the worse case startup time.
-
-
-[Liveness / Readiness Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
-
-[Youtube](https://www.youtube.com/watch?v=3TJRkKWuVoM&ab_channel=JustmeandOpensource)
-
-</b></details>
-
-<details>
-<summary>Node Affinity & Anti-Affinity ?. </summary><br><b>
-
-You can constrain a Pod so that it can only run on particular set of node(s). There are several ways to do this:
-
-* nodeSelector field matching against node labels
-
-` kubectl get nodes --show-labels `
-
-` kubectl label nodes <your-node-name> disktype=ssd`
-
-* Affinity and anti-affinity
-    * Node affinity functions like the nodeSelector field but is more expressive and allows you to specify soft rules.
+**Recover:** back up `/etc/kubernetes/pki` and the kubeconfig files, renew with
+`kubeadm certs renew`, restart the control-plane static Pods, and redistribute
+regenerated kubeconfigs. The full procedure and its cautions are in
+[Control-plane certificate maintenance](#control-plane-certificate-maintenance).
+
+**Prevent:** upgrade at least annually so renewal happens during upgrades, and
+alert on remaining certificate lifetime from each control-plane node.
+
+### Investigation sequence
+
+```bash
+kubectl get pods -A -o wide
+kubectl describe <kind> <name> -n <namespace>
+kubectl logs <pod> -n <namespace> --all-containers
+kubectl logs <pod> -n <namespace> --previous
+kubectl get events -A --sort-by=.metadata.creationTimestamp
+```
+
+Then inspect the owning controller, node conditions, EndpointSlices, storage,
+and component logs. Events are transient, so collect them early.
+
+### Debugging with ephemeral containers
+
+When an image has no shell, or a Pod crashes before you can exec into it,
+`kubectl debug` attaches tooling without rebuilding the image:
+
+```bash
+# Add an ephemeral container that shares the target container's process namespace.
+kubectl debug -it pod/web -n default --image=busybox:1.36 --target=app
+
+# Copy the Pod and override the entrypoint when the original crashes on startup.
+kubectl debug pod/web -n default --copy-to=web-debug --container=app \
+  --image=busybox:1.36 -it -- sh
+
+# Open a shell on the node itself.
+kubectl debug node/node01 -it --image=busybox:1.36
+```
+
+Ephemeral containers cannot be removed from a running Pod, are never restarted,
+and cannot declare probes or resources. `--target` requires runtime support for
+process-namespace sharing. Node debugging creates a highly privileged Pod with
+host access, so restrict who may use it and treat the session as sensitive.
+
+### Availability-zone loss
+
+A sound design retains API and etcd quorum, has capacity in surviving zones,
+spreads workload replicas, and uses storage that can recover or fail over.
+PodDisruptionBudgets limit voluntary disruption; they do not guarantee
+availability during involuntary zone failure.
+
+## Scheduling and autoscaling
+
+### How does the scheduler place a Pod?
+
+1. **Filter:** remove nodes that violate resources, selectors/affinity, taints,
+   topology, volume, or port constraints.
+2. **Score:** rank feasible nodes using configured scoring plugins.
+3. **Bind:** write the selected node to the Pod binding.
+
+The scheduler uses resource **requests**, not current utilization, for normal
+fit decisions. A `Pending` Pod's events usually identify the failed filters.
+
+### Placement controls
+
+| Mechanism | Meaning | Typical use |
+| --- | --- | --- |
+| `nodeSelector` | Required exact label matches | Simple hardware placement |
+| Required node affinity | Expressive hard node constraint | Specific zones or architectures |
+| Preferred node affinity | Weighted preference | Favor a node group with fallback |
+| Pod affinity | Co-locate with matching Pods | Latency-sensitive peers |
+| Pod anti-affinity | Separate from matching Pods | Replica fault isolation |
+| Topology spread | Bound skew across domains | Even node/zone distribution |
+| `nodeName` | Bypasses scheduler and targets one node | Exceptional low-level use |
+| Taint/toleration | Node repels Pods lacking a match | Dedicated or impaired nodes |
+
+A toleration only permits scheduling; it does not attract a Pod. For dedicated
+nodes, combine a taint with node affinity or a selector.
+
+### What are the taint effects?
+
+| Effect | Existing Pods | New Pods without matching toleration |
+| --- | --- | --- |
+| `NoSchedule` | Remain running | Not scheduled |
+| `PreferNoSchedule` | Remain running | Avoided when feasible; not guaranteed |
+| `NoExecute` | Evicted unless tolerated | Not scheduled |
+
+`tolerationSeconds` on a matching `NoExecute` toleration delays eviction. With
+no value, the Pod tolerates the taint indefinitely. DaemonSet Pods receive some
+system tolerations automatically, including for node readiness and
+unreachability.
+
+```bash
+kubectl taint node node01 workload=gpu:NoSchedule
+kubectl taint node node01 workload=gpu:NoSchedule-
+```
+
+### Requests, limits, and QoS
+
+- A **request** informs scheduling and is the baseline used for resource
+  accounting.
+- A **limit** is runtime enforcement. CPU over a limit is throttled; memory over
+  a limit can cause an OOM kill.
+- Node memory or disk pressure can trigger kubelet eviction. Pod priority,
+  requests relative to usage, and QoS influence eviction order; QoS alone does
+  not fully determine it.
+
+| QoS class | Conditions |
+| --- | --- |
+| Guaranteed | Every container has CPU and memory requests and limits, and each request equals its limit |
+| Burstable | At least one request or limit exists, but Guaranteed conditions are not met |
+| BestEffort | No container has CPU or memory requests or limits |
+
+A frequently missed detail: if a container sets a limit but no request, the
+request defaults to the limit. Specifying only CPU and memory limits therefore
+produces a Guaranteed Pod that reserves the full limit for scheduling, which
+consumes far more allocatable capacity than intended. A LimitRange can also
+inject defaults, so confirm the effective values on a created Pod:
+
+```bash
+kubectl get pod web -o jsonpath='{.spec.containers[*].resources}{"\n"}'
+kubectl get pod web -o jsonpath='{.status.qosClass}{"\n"}'
+```
+
+CPU is compressible: contention mainly causes throttling. Memory is not
+compressible: pressure leads to reclaim, eviction, or OOM termination.
+
+### ResourceQuota and LimitRange
+
+A ResourceQuota caps aggregate consumption in a namespace. A LimitRange
+constrains and defaults individual Pods and containers.
 
 ```yaml
 apiVersion: v1
-kind: Pod
+kind: ResourceQuota
 metadata:
-  name: nginx
+  name: team-quota
+  namespace: team-a
 spec:
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: disktype
-            operator: In
-            values:
-            - ssd            
-  containers:
-  - name: nginx
-    image: nginx
-    imagePullPolicy: IfNotPresent
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    persistentvolumeclaims: "20"
+    requests.storage: 500Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: container-defaults
+  namespace: team-a
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+      max:
+        cpu: "4"
+        memory: 8Gi
 ```
-* Inter-pod affinity/anti-affinity allows you to constrain Pods against labels on other Pods.
 
-* nodeName field
+Once a quota constrains a compute resource, every new Pod in that namespace must
+declare the matching requests and limits or admission rejects it. Pairing the
+quota with a LimitRange that supplies defaults prevents that failure for teams
+that do not set resources explicitly.
+
+Quotas apply at admission to new objects, so lowering a quota does not evict
+existing workloads; it only blocks further growth. Inspect usage with:
+
+```bash
+kubectl describe resourcequota team-quota -n team-a
+```
+
+### Pod priority and preemption
+
+A `PriorityClass` gives Pods an integer priority. If a high-priority Pod cannot
+schedule, preemption may nominate a node and evict lower-priority Pods to make
+room. Priority does not override hard constraints, and a PodDisruptionBudget is
+considered on a best-effort basis during preemption.
+
+### Eviction versus deletion
+
+- **Kubelet eviction:** reacts to node pressure such as low memory or disk.
+- **Node-controller eviction:** replaces managed workloads after a node remains
+  unreachable and Pod tolerations expire.
+- **API eviction:** used by `kubectl drain`; honors PodDisruptionBudgets.
+- **Preemption:** scheduler removes lower-priority Pods for a higher-priority Pod.
+
+Drain behavior and its opt-in flags are covered in
+[Cordon, drain, and uncordon](#cordon-drain-and-uncordon).
+
+### HPA, VPA, and node autoscaling
+
+| Autoscaler | Changes | Trigger |
+| --- | --- | --- |
+| HPA | Replica count | Resource, custom, or external metrics |
+| VPA | Resource requests, and optionally Pods | Historical/current usage |
+| Cluster/node autoscaler | Node count | Unschedulable Pods and removable capacity |
+
+HPA commonly suits scalable stateless workloads. VPA helps right-size requests
+but some update modes restart Pods. Avoid having HPA and VPA both control CPU or
+memory for the same workload; using HPA on custom metrics with VPA on resources
+can be valid.
+
+The node autoscaler reacts primarily to Pods that cannot schedule, not simply to
+high node CPU. Scale-down considers whether Pods can move and whether disruption
+constraints permit removal.
+
+### Scheduling for high availability
+
+Prefer topology spread constraints for balanced replicas across hosts and
+zones. Use anti-affinity when replicas must not share a domain, while accounting
+for the risk that strict rules can leave Pods pending. Ensure the topology label
+exists on all candidate nodes and align storage topology with Pod placement.
+
+## Networking
+
+### What does the Kubernetes network model require?
+
+Each Pod receives an IP. In the standard model, Pods can communicate with other
+Pods across nodes without application-visible NAT, and agents on a node can
+reach that node's Pods. A CNI implementation supplies interfaces, addresses,
+routes or overlays, and often NetworkPolicy enforcement.
+
+Common dataplanes use overlays such as VXLAN/Geneve, routed networking such as
+BGP, or eBPF. CNI is the specification; Calico, Cilium, and Flannel are example
+implementations with different capabilities.
+
+### How do Services route traffic?
+
+A Service provides a stable virtual IP and port over a changing set of ready
+backends. Its selector normally produces EndpointSlices. On each node,
+`kube-proxy` programs iptables, IPVS, or nftables rules; some CNIs replace this
+with eBPF.
+
+`kube-proxy` does not proxy every packet in user space. It installs forwarding
+state. It is distinct from `kubectl proxy`, which runs for a client and exposes
+an authenticated local HTTP proxy to the API server.
+
+### iptables versus IPVS
+
+| Mode | Strength | Trade-off |
+| --- | --- | --- |
+| iptables | Mature and broadly available | Large rule sets can be slower to update and inspect |
+| IPVS | Efficient lookup and multiple balancing algorithms | Requires IPVS kernel support and still uses some iptables |
+
+IPVS is not universally better. Current Kubernetes also offers an nftables mode,
+and eBPF dataplanes can replace `kube-proxy` entirely. Choose based on the
+supported platform, cluster scale, observability, and operational maturity.
+
+### Service exposure
+
+| API | Purpose |
+| --- | --- |
+| `ClusterIP` | Cluster-internal stable virtual IP |
+| `NodePort` | Opens the same high port on node addresses |
+| `LoadBalancer` | Asks an integration to provision or configure an external load balancer |
+| `ExternalName` | Returns a CNAME to an external DNS name |
+| Ingress | HTTP(S) host/path routing through an Ingress controller |
+| Gateway API | Role-oriented, extensible L4/L7 routing APIs |
+
+Ingress is not a Service type and does nothing without a controller. A
+`LoadBalancer` Service often builds on NodePort, although implementations may
+route directly to Pods.
+
+An `ExternalName` Service has no selector, endpoints, or proxying:
 
 ```yaml
 apiVersion: v1
-kind: Pod
+kind: Service
 metadata:
-  name: nginx
+  name: payments-api
 spec:
-  containers:
-  - name: nginx
-    image: nginx
-  nodeName: kube-01
+  type: ExternalName
+  externalName: payments.vendor.example.com
 ```
 
-[Node Affinity & Anti-Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity)
+Because it works purely at DNS level, it cannot target an IP literal, does not
+rewrite ports, and leaves TLS server-name validation against the external name.
+To keep a stable in-cluster name in front of an IP address, create a selectorless
+Service with a manually managed EndpointSlice instead.
 
-</b></details>
+### externalTrafficPolicy and internalTrafficPolicy
 
-<details>
-<summary>Different taint effects ?. </summary><br><b>
+| Setting | Behavior | Trade-off |
+| --- | --- | --- |
+| `externalTrafficPolicy: Cluster` (default) | Any node forwards to endpoints on any node | Even spreading, but SNAT usually hides the client source IP |
+| `externalTrafficPolicy: Local` | A node forwards only to its local endpoints | Preserves the client source IP, but traffic follows Pod distribution |
+| `internalTrafficPolicy: Local` | In-cluster traffic uses same-node endpoints only | Lower cross-node traffic, but fails when no local endpoint exists |
 
-Tolerations are applied to pods, and allow (but do not require) the pods to schedule onto nodes with matching taints.
+With `Local`, nodes that have no ready endpoint fail the load-balancer health
+check so external traffic stops being sent to them. Combine it with a DaemonSet
+or topology spread so every eligible node has a backend, otherwise capacity
+becomes uneven.
 
-Taints and tolerations work together to ensure that pods are not scheduled onto inappropriate nodes. One or more taints are applied to a node; this marks that the node should not accept any pods that do not tolerate the taints.
+### NodeLocal DNSCache
 
-[Taint & Tolerations](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
+NodeLocal DNSCache runs a DNS cache as a DaemonSet on every node. Pods query the
+node-local cache, which answers hits directly and forwards misses to CoreDNS,
+usually over TCP.
 
-</b></details>
+It reduces DNS latency, lowers CoreDNS load, and avoids UDP conntrack races that
+cause intermittent resolution timeouts in large clusters. Deployment must match
+the cluster DNS Service address and the local link address used by the manifest,
+so treat it as a cluster-level rollout that is verified per node rather than a
+per-application change.
 
-<details>
-<summary>What is the use of replica set?.</summary><br><b>
+### How does DNS service discovery work?
 
-A ReplicaSet ensures that a specified number of pod replicas are running at any given time. 
+CoreDNS watches the Kubernetes API and serves records such as:
 
-However, a Deployment is a higher-level concept that manages ReplicaSets and provides declarative updates to Pods along with a lot of other useful features. 
+- Service: `<service>.<namespace>.svc.cluster.local`
+- Short same-namespace name: `<service>`
+- Cross-namespace name: `<service>.<namespace>`
 
-Therefore, we recommend using Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all. 
+A normal Service name resolves to its ClusterIP. A headless Service
+(`clusterIP: None`) resolves to selected Pod addresses, enabling clients to
+discover individual members. Named Service ports also receive SRV records.
 
-This actually means that you may never need to manipulate ReplicaSet objects: use a Deployment instead, and define your application in the spec section.
+Kubelet writes each Pod's `/etc/resolv.conf`. Important `dnsPolicy` values are:
 
-[ReplicaSet](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
+- `ClusterFirst`: use cluster DNS, forwarding non-cluster queries upstream.
+- `ClusterFirstWithHostNet`: cluster-first behavior for `hostNetwork` Pods.
+- `Default`: inherit node resolver settings.
+- `None`: use only explicit `dnsConfig`.
 
-</b></details>
+The API server is discoverable in-cluster through
+`kubernetes.default.svc`. Its ClusterIP is installation-specific; query the
+Service instead of assuming it is the first address in the Service CIDR:
 
-<details>
-<summary>Different types of secrets available in Kubernetes?.</summary><br><b>
+```bash
+kubectl get service kubernetes -n default
+```
 
-|   Type                            |      Usecase             |
-|---------------------------------- |--------------------------|
-|Opaque arbitrary                   | user-defined data        |
-|kubernetes.io/service-account-token| service account token    |
-|kubernetes.io/dockercfg            |serialized .dockercfg file|
-|kubernetes.io/dockerconfigjson     |serialized config.jsonfile|
-|kubernetes.io/basic-auth           |cred for basic auth       |
-|kubernetes.io/ssh-auth             |credentials for SSH auth  |
-|kubernetes.io/tls                  |for a TLS client/server   |
-|bootstrap.kubernetes.io/token      | bootstrap token data     |
+### What is a headless Service?
 
-[Types of Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
-</b></details>
+It has no virtual ClusterIP and no Service-level load balancing. DNS returns
+backend addresses directly. StatefulSets often use one to give each Pod stable
+DNS such as:
 
+`web-0.nginx.default.svc.cluster.local`
 
-<details>
-<summary>Quality of Service for Pods.</code></summary><br><b>
+Headless Services provide discovery, not persistence; StatefulSet identity and
+PVCs provide stable workload identity and storage.
 
-When Kubernetes creates a Pod it assigns one of these QoS classes to the Pod:
+### NetworkPolicy
 
-* Guaranteed : 
-    * Every Container in the Pod must have a memory limit and a memory request.
+NetworkPolicy is additive and only works when the network plugin enforces it.
+A Pod is non-isolated for a direction until selected by a policy for that
+direction. Once isolated, traffic must be allowed by at least one applicable
+policy. Selectors are combined as follows:
 
-    * For every Container in the Pod, the memory limit must equal the memory request. 
+- entries in one `from` or `to` item are ANDed;
+- separate list items are ORed;
+- ingress rules govern incoming traffic and egress rules govern outgoing traffic.
 
-    * Every Container in the Pod must have a CPU limit and a CPU request.
+An empty rule is not a deny rule. `ingress: [{}]` matches every source and
+`egress: [{}]` matches every destination, so either one re-opens the direction
+it appears in. To deny a direction, list it in `policyTypes` and provide no rule
+for it.
 
-    * For every Container in the Pod, the CPU limit must equal the CPU request.
+Start with namespace-scoped default-deny ingress and egress, then explicitly
+allow application flows, DNS, monitoring, and required external endpoints.
+A worked policy is in [CKA-Labs.md](CKA-Labs.md). The wider isolation picture,
+including what NetworkPolicy does not cover, is in
+[Network isolation](#network-isolation).
 
-* Burstable : At least one Container in the Pod has a memory or CPU request or limit.
+### Session affinity and advanced routing
 
-* BestEffort : Containers in the Pod must not have any memory or CPU limits or requests.
-</b></details>
+- A Service can use `sessionAffinity: ClientIP` for basic source-IP affinity.
+  NAT or proxies can collapse many users onto one apparent IP.
+- An Ingress controller may implement cookie affinity for HTTP applications.
+- A service mesh or Gateway implementation can route by headers for canaries or
+  user segments.
 
-<details>
-<summary>What is the difference between a CSI, CRI and CNI?.</code></summary><br><b>
+Prefer stateless applications and external session storage where practical;
+stickiness can hide uneven load and complicate failover.
 
-In Kubernetes, CSI, CRI, and CNI are essential components that abstract and manage specific functionality within the container orchestration platform. Each of these interfaces plays a different role in the ecosystem, focused respectively on storage, runtime, and networking for containers. Understanding these components is key to effectively managing and extending Kubernetes functionalities.
+### Network troubleshooting
 
-1. Container Storage Interface (CSI)
-CSI (Container Storage Interface) is a standard for exposing arbitrary block and file storage systems to containerized workloads on container orchestration systems like Kubernetes. It allows storage providers to develop a driver that works across a range of container orchestration systems.
+1. Test DNS name, Service IP, and Pod IP separately.
+2. Verify selectors and EndpointSlices.
+3. Check readiness; unready Pods are normally excluded from Service backends.
+4. Inspect NetworkPolicies in both source and destination namespaces.
+5. Inspect CNI and Service-dataplane agent logs and node routes/rules.
+6. For external traffic, verify load-balancer health checks, Ingress/Gateway
+   status, TLS, source-IP policy, and cloud firewall rules.
 
-Role:
+## Configuration and storage
 
-- `Storage Abstraction`: CSI allows Kubernetes to abstract the details of how storage is provided and how volumes are managed. Developers can provision, attach, and mount storage without needing to know the details of the underlying storage infrastructure.
-- `Portability`: By using CSI, developers get consistent and portable access to storage across various environments.
-Use Case:
+### ConfigMap versus Secret
 
-Automatically allocating storage as part of a deployment process, integrating seamlessly with cloud providers’ storage solutions like AWS EBS, Azure Disks, or on-premise SAN systems.
+| Object | Intended data | Default API representation |
+| --- | --- | --- |
+| ConfigMap | Non-sensitive configuration | Plain strings or binary data |
+| Secret | Credentials, keys, tokens, certificates | Base64-encoded values |
 
-2. Container Runtime Interface (CRI)
-CRI (Container Runtime Interface) is an API that provides an abstraction layer for container runtime systems such as Docker, containerd, and CRI-O. CRI defines a standard set of operations that the Kubernetes kubelet process uses to manage container lifecycles, helping decouple the kubelet from a specific container runtime.
+Base64 is encoding, not encryption. Protection controls are covered in
+[Protecting Secrets and etcd](#protecting-secrets-and-etcd), and creation and
+consumption recipes are in [Secrets-Recipes.md](Secrets-Recipes.md).
 
-Role:
+### How do applications consume configuration?
 
-- `Runtime Management`: It handles all runtime-based operations in Kubernetes, such as starting and stopping containers, pulling images, handling storage, and more.
-- `Pluggability`: Kubernetes can leverage any container runtime that implements the CRI, allowing a user to swap between different runtimes without altering Kubernetes core code.
+ConfigMaps and Secrets can be exposed as:
 
-- Use Case: Choosing between different container runtimes according to performance, security, or functionality needs, such as Docker, containerd, or CRI-O.
+- environment variables;
+- command arguments populated from environment variables;
+- projected volume files;
+- individual keys through `subPath` mounts.
 
-3. Container Network Interface (CNI)
-CNI (Container Network Interface) is a specification and a set of libraries for writing plugins to configure network interfaces in Linux containers. It’s used in Kubernetes to set up networking layers in a way that pods can communicate with each other and other networks.
+Environment values do not update in a running process when the source changes.
+Projected volume files update eventually, but an application must reload them.
+`subPath` mounts do not receive updates. A common rollout pattern adds a
+configuration checksum to the Pod template so a config change creates new Pods.
 
-Role:
+### PV, PVC, StorageClass, and CSI
 
-- `Network Connectivity`: CNI sets up the network connectivity of containers and provides them with a basic network setup, handling IP addressing as well.
+| Object | Responsibility |
+| --- | --- |
+| PersistentVolume (PV) | Cluster storage resource and lifecycle record |
+| PersistentVolumeClaim (PVC) | Namespaced request for storage |
+| StorageClass | Provisioner, parameters, binding mode, and reclaim policy |
+| CSI driver | Implements storage operations for a provider |
 
-- `Network Isolation`: Ensures that appropriate isolation or communication is maintained between pods, across namespaces, or with external networks.
-  
-- `Extensibility`: Many different networking providers can provide plug-ins that conform to CNI, such as Calico, Flannel, and Weave.
-Use Case:
+Typical dynamic provisioning flow:
 
-Managing pod-to-pod networking, securing network communication, or integrating Kubernetes with specialized network architectures provided by cloud or data center providers.
+1. A workload creates a PVC.
+2. A matching StorageClass and CSI provisioner create a PV.
+3. The PVC binds to the PV.
+4. Kubelet and the CSI driver attach and mount it where required.
 
-</b></details>
+`WaitForFirstConsumer` delays provisioning/binding until scheduling so the
+volume can be created in a compatible zone.
 
-<details>
-<summary>What is the difference between a CNI and a CNI plugin?.</code></summary><br><b>
+### What happens when a Pod or PVC is deleted?
 
-</b></details>   
+A PVC normally outlives a Pod. Deleting a Pod does not delete its PVC.
+StatefulSet `volumeClaimTemplates` also create PVCs with stable ordinal-based
+names; retention behavior can be configured by the StatefulSet PVC retention
+policy.
 
-<details>
-<summary>What is the naming convention of the APIs in Kubernetes? What does v1aplha1 specify?.</code></summary><br><b>
+When a PVC is deleted:
 
-</b></details>   
-   
-<details>
-<summary>What is the cluster IP of the kube-api server?.</code></summary><br><b>
+- `Delete` reclaim policy normally deletes the PV and backing storage;
+- `Retain` leaves the PV in `Released` for manual recovery and cleanup.
 
-</b></details>   
-   
-<details>
-<summary> Can operator do exec in one of your running pods?.</code></summary><br><b>
+`Recycle` is deprecated and should not be used. PV/PVC protection finalizers
+delay deletion while resources are in use; they do not change the reclaim
+policy.
 
-</b></details>    
-   
-<details>
-<summary>What happens to a PVC after pod deletion.</code></summary><br><b>
+### Access modes and volume modes
 
-PVCs have a lifetime independent of pods. If PV still exists it may be because it has ReclaimPolicy set to Retain in which case it won't be deleted even if PVC is gone.
+- `ReadWriteOnce` (RWO): read-write by nodes on one node at a time; multiple Pods
+  on that node may still mount it.
+- `ReadOnlyMany` (ROX): read-only by many nodes.
+- `ReadWriteMany` (RWX): read-write by many nodes.
+- `ReadWriteOncePod` (RWOP): read-write by one Pod cluster-wide when supported.
+- `Filesystem`: mounted filesystem.
+- `Block`: raw block device.
 
-PersistentVolumes can have various reclaim policies, including “Retain”, “Recycle”, and “Delete”. For dynamically provisioned PersistentVolumes, the default reclaim policy is “Delete”. This means that a dynamically provisioned volume is automatically deleted when a user deletes the corresponding PersistentVolumeClaim. This automatic behavior might be inappropriate if the volume contains precious data. Notice that the RECLAIM POLICY is Delete (default value), which is one of the two reclaim policies, the other one is Retain. (A third policy Recycle has been deprecated). In case of Delete, the PV is deleted automatically when the PVC is removed, and the data on the PVC will also be lost.
+Access modes describe requested/provider capability; they are not a general
+authorization mechanism.
 
-In that case, it is more appropriate to use the “Retain” policy. With the “Retain” policy, if a user deletes a PersistentVolumeClaim, the corresponding PersistentVolume is not be deleted. Instead, it is moved to the Released phase, where all of its data can be manually recovered.
+### StatefulSet internals
 
-This may also happens too when persistent volume is protected. You should be able to cross verify this:
+StatefulSets provide:
 
-kubectl describe pvc PVC_NAME | grep Finalizers
+- stable ordinal names such as `db-0`;
+- stable network identity, commonly through a headless Service;
+- one PVC per ordinal when using `volumeClaimTemplates`;
+- ordered rollout and scaling by default;
+- optional parallel Pod management.
 
-</b></details>
+The Pods are replaceable, but their identities are not interchangeable. Use
+StatefulSets for systems that depend on stable membership or storage, not merely
+because an application writes files.
 
+### Database workloads
 
-<details>
-<summary>Get the Node OS image via json path.</code></summary><br><b>
+- Confirm the database supports the storage latency, failure, and attachment
+  semantics of the platform.
+- Spread replicas across zones while keeping volumes schedulable.
+- Use readiness and startup probes; avoid liveness probes that create unsafe
+  restart loops.
+- Define disruption budgets and graceful termination.
+- Back up application-consistently and test restore and failover.
+- Consider a mature operator or managed database when it reduces operational
+  risk.
 
-`kubectl get node -o=jsonpath=’{.items[*].status.nodeInfo.osImage}’ `
+Persistent storage is not a backup, and multiple database Pods are not
+automatically a consistent HA database.
 
-`kubectl describe nodes | grep -i "OS Image" `
-</b></details>
+### Ephemeral volumes
 
-<details>
-<summary>Mark ControlPlane/Master node as `Unschedulable`.</code></summary><br><b>
+`emptyDir` exists for the lifetime of a Pod and is deleted when the Pod is
+removed from its node. It is useful for scratch space or sharing files between
+containers, but not durable application data. It can use node disk or memory
+(`medium: Memory`) and counts toward relevant resource limits and pressure.
 
-`kubectl taint nodes master/controlplane node-role.kubernetes.io/master:NoSchedule- `
-</b></details>
+## Security
 
-<details>
-<summary>The application stores logs at location /log/app.log. View the logs.</code></summary><br><b>
+Think in layers: supply chain, API access, workload isolation, network, secrets,
+node security, and audit/response. RBAC alone is not cluster security.
 
-`  kubectl exec webapp cat /log/app.log `
+### Authentication, authorization, and admission
 
-for searching logs for a pattern
+1. **Authentication** establishes identity, for example OIDC users,
+   certificates, or ServiceAccount tokens.
+2. **Authorization** decides whether that identity may perform the request.
+   RBAC is the common authorizer.
+3. **Admission** validates or mutates an authorized request before persistence.
 
-`kubectl logs foobar -n pods | grep "file-not-found" `
-</b></details>
+TLS protects API traffic, but it does not grant permission.
 
-<details>
-<summary>Get the InternalIP of Node .</code></summary><br><b>
+### How does RBAC work?
 
-`kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}' `
+- `Role`: permissions for namespaced resources within one namespace.
+- `ClusterRole`: permissions for cluster-scoped resources or a reusable set of
+  namespaced permissions.
+- `RoleBinding`: grants a Role or ClusterRole within one namespace.
+- `ClusterRoleBinding`: grants a ClusterRole cluster-wide.
 
-For Node Info
+Bindings target users, groups, or ServiceAccounts. RBAC permissions are
+additive; there are no deny rules.
 
-`kubectl get nodes -o custom-columns=NAME:.metadata.name,VER:.status.nodeInfo.kubeletVersion `
+Apply least privilege: avoid wildcards, restrict Secret access and
+`pods/exec`, separate human and workload identities, and periodically review
+bindings. The ability to create or patch a Pod may allow an identity to use a
+more privileged ServiceAccount or mount accessible Secrets, so evaluate
+privilege-escalation paths rather than verbs in isolation.
 
-` kubectl get nodes -o=jsonpath=’{.items[*].metadata.name}’ `
+```bash
+kubectl auth can-i create deployments -n dev --as alice
+kubectl auth can-i --list -n dev --as system:serviceaccount:dev:app
+```
 
-` kubectl get po -o wide --sort-by=.spec.nodeName `
+### ServiceAccounts
 
-`kubectl get pod -o=custom-columns=NAME:.metadata.name,IMAGE:.spec.containers[*].image --all-namespaces `
+A ServiceAccount is a namespaced workload identity. Modern clusters inject a
+short-lived, audience-bound projected token when needed. Set
+`automountServiceAccountToken: false` for Pods that do not call the API, and
+bind dedicated ServiceAccounts rather than using the namespace's `default`
+account.
 
-for Deployment
+### Pod Security Standards and Admission
 
-`kubectl get deployment -o=jsonpath={.items[0].metadata.name} `
+The standards are cumulative:
 
-</b></details>
+| Profile | Intent |
+| --- | --- |
+| Privileged | Unrestricted; suitable only for explicitly trusted system workloads |
+| Baseline | Prevent known privilege escalations with broad compatibility |
+| Restricted | Current hardening practices for ordinary workloads |
 
-<details>
-<summary>What is the Networking Solution used by this cluster?.</code></summary><br><b>
+Pod Security Admission enforces these profiles through namespace labels in
+`enforce`, `audit`, and `warn` modes. Roll out with audit/warn first and use
+version-pinned labels where predictable upgrades matter. It does not provide
+arbitrary policy logic; use a validating admission policy or policy engine for
+organization-specific requirements. Webhook-based admission trade-offs are in
+[Mutating and validating admission](#mutating-and-validating-admission).
 
-`Check the config file located at /etc/cni/net.d/ `
-</b></details>
-
-<details>
-<summary>What is the default gateway configured on the PODs scheduled on node03?.</code></summary><br><b>
-
-` ip addr show weave `
-
-` ip link show weave`
-</b></details>
-
-<details>
-<summary>What network range are the nodes in the cluster part of?.</code></summary><br><b>
-
- Run the command `ip addr` and look at the IP address assigned to the `ens3 interfaces`. Derive network range from that. 
-</b></details>
-
-
-<details>
-<summary>From the hr pod nslookup the mysql service and redirect the output to a file /root/nslookup.out.</code></summary><br><b>
-
-` kubectl exec -it hr nslookup mysql.payroll > /root/nslookup.out `
-
-` Kubectl run test-dns --image=busybox:1.28 --restart=Never --rm -it nslookup nginx-service > /opt/service.dns `
-
-</b></details>
-
-<details>
-<summary>What type of proxy is the kube-proxy configured to use?.</code></summary><br><b>
-
-` kubectl logs kube-proxy-ft6n7 -n kube-system `
-</b></details>
-
-
-<details>
-<summary>Status & Restart Kubelet.</code></summary><br><b>
-
-`sudo systemctl status kubelet `
-
-`sudo systemctl start kubelet `
-</b></details>
-
-
-<details>
-<summary>Static pod directory.</code></summary><br><b>
-
-Static Pods are managed directly by the kubelet daemon on a specific node, without the API server observing them. Unlike Pods that are managed by the control plane (for example, a Deployment); instead, the kubelet watches each static Pod (and restarts it if it fails).
-
-Static Pods are always bound to one Kubelet on a specific node.
-
-The kubelet automatically tries to create a mirror Pod on the Kubernetes API server for each static Pod. This means that the Pods running on a node are visible on the API server, but cannot be controlled from there. The Pod names will be suffixed with the node hostname with a leading hyphen.
-
-`Dir : /etc/kubernetes/manifests/ `
-</b></details>
-
-
-<details>
-<summary>Sort Deployment, Service & Pod by their name.</code></summary><br><b>
-
-` kubectl get deploy --sort-by=.metadata.name `
-` kubectl get services --sort-by=.metadata.name `
-` kubectl get pod --sort-by=.metadata.name `
-</b></details>
-
-<details>
-<summary>List all the pod using foo service in namespace production and write the output in a file.</code></summary><br><b>
-
-` kubectl  get po -n production —selectors=labelsUsedByFooService `
-</b></details>
-
-
-<details>
-<summary>Deploy a pod called web-foo using the nginx:alpine image.</code></summary><br><b>
-
-`kubectl run web-foo --image=nginx:alpine --restart=Never`
-</b></details>
-
-<details>
-<summary>Deploy a pod  with  security context `root` to change system time.</code></summary><br><b>
+### Workload hardening
 
 ```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu-sleeper
-  namespace: default
-spec:
-  securityContext:
-    runAsUser: 1010
-  containers:
-  - command:
-    - sleep
-    - "4800"
-    image: ubuntu
-    name: ubuntu-sleeper
+securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+containers:
+  - name: app
+    image: registry.example.com/app@sha256:replace-me
     securityContext:
+      allowPrivilegeEscalation: false
       capabilities:
-        add: ["SYS_TIME"]
-
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
 ```
-</b></details>
 
+Also:
 
-<details>
-<summary>Create a static pod named static-busybox 
-with busybox image & command sleep 1000.</code></summary><br><b>
+- avoid privileged containers, host namespaces, `hostPath`, and host ports;
+- set a known non-root UID/GID when the image supports it;
+- add only the specific Linux capability required;
+- use read-only mounts and a writable `emptyDir` only where needed;
+- set resource requests/limits to reduce noisy-neighbor and denial-of-service risk;
+- use RuntimeClass sandboxing for higher-risk workloads where supported.
 
-` kubectl run --restart=Never --image=busybox static-busybox --dry-run -o yaml --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml `
-</b></details>
+`runAsNonRoot` alone is incomplete if the image identity is ambiguous; test the
+image and set `runAsUser` where appropriate.
 
+### Network isolation
 
-<details>
-<summary>Is it possible to edit the specifications of existing pod for modifying the resource limits ?.</summary><br><b>
+Use a CNI that enforces NetworkPolicy. Establish default-deny ingress and egress,
+then allow only required service, DNS, monitoring, and external traffic; the rule
+semantics are in [NetworkPolicy](#networkpolicy). NetworkPolicy is namespaced and
+additive; it does not filter node-level traffic in every implementation and is not
+a replacement for cloud firewalls.
 
-No, recreate it using updated spec.
-</b></details>
+### Protecting Secrets and etcd
 
-<details>
-<summary>Create a pod from the busybox image. Add an init container in such a way that it should create a file in the location of /opt/myfile. This file should be accessible from the nginx image as well. The name of pod should be base-pod.</code></summary><br><b>
+- Enable Kubernetes encryption at rest with a KMS provider where possible and
+  rotate/re-encrypt existing data.
+- Use TLS for etcd client and peer traffic and restrict network access to etcd.
+- Grant Secret `get`, `list`, and `watch` sparingly; list/watch can expose all
+  values in scope.
+- Prefer short-lived credentials and an external secret manager with workload
+  identity.
+- Back up etcd encrypted, restrict backup access, and test recovery.
+- Protect API audit logs because requests and responses can contain sensitive data.
 
-`kubectl run --generator=run-pod/v1 base-pod --image=busybox --dry-run -o yaml >pod.yaml `
+Encryption at rest protects storage media and backups; it does not protect a
+Secret from an identity authorized to read it or from a compromised Pod that
+receives it.
 
-` kubectl exec -it init-pod-example init -c nginx  -- /bin/bash `
-`ls -l /opt`
-</b></details>
+### Supply-chain and node security
 
-<details>
-<summary>Create a pod named multi-pod with a single container for   images running inside : nginx + redis + memcached+ consul.</code></summary><br><b>
+- Use minimal maintained images, pin digests, scan continuously, and verify
+  signatures/provenance at admission.
+- Keep Kubernetes, the host OS, runtime, and CNI patched.
+- Restrict registry access and image pull credentials.
+- Harden kubelet access, disable anonymous access, and use authorization.
+- Limit SSH, isolate control-plane/etcd hosts, and protect cloud instance metadata.
+- Treat a compromised node as compromise of workloads and credentials on it;
+  cordon, isolate, rotate credentials, rebuild, and investigate.
+
+### Audit and detection
+
+Enable an API audit policy that records security-relevant metadata without
+unnecessarily logging Secret bodies. Monitor privileged Pod creation, RBAC
+changes, exec/attach, Secret access, admission failures, unusual API clients,
+and node/runtime alerts. Send logs to tamper-resistant remote storage and
+practice credential rotation and incident recovery.
+
+## Upgrades and maintenance
+
+### How do you plan a safe upgrade?
+
+1. Read release notes and the version-skew policy for the exact distribution.
+2. Inventory deprecated APIs, admission integrations, CRDs, CNIs, CSIs,
+   operators, and client tooling.
+3. Confirm backups and perform a test restore, especially for etcd and
+   application data.
+4. Check control-plane, node, workload, storage, and network health.
+5. Validate the target release in a representative non-production environment.
+6. Upgrade one supported minor version at a time when required.
+7. Upgrade control-plane instances first, then worker nodes in small batches.
+8. Verify API health, controllers, nodes, DNS/networking, storage, and
+   application service-level indicators after each batch.
+9. Retain a tested rollback or recovery plan. An etcd restore is disaster
+   recovery, not a routine downgrade mechanism.
+
+Managed services and kubeadm differ, so use the vendor's procedure rather than
+assuming component commands are portable.
+
+### Control-plane and worker order
+
+Maintain a supported skew among `kube-apiserver`, kubelet,
+`kube-controller-manager`, `kube-scheduler`, and `kubectl`. The API server is
+normally upgraded before kubelets. Upgrade redundant control-plane instances
+sequentially to retain API availability, then rotate worker pools or upgrade
+workers in controlled batches.
+
+Do not manually upgrade etcd merely because Kubernetes is being upgraded. Use
+the distribution's supported etcd version and process.
+
+### Cordon, drain, and uncordon
+
+- `cordon` marks a node unschedulable; existing Pods remain.
+- `drain` uses the eviction API to remove evictable Pods and cordons the node.
+- `uncordon` makes the node schedulable again.
+
+Start with the safe form. `--ignore-daemonsets` is required on nearly every real
+cluster because DaemonSet Pods are managed per node and are never evicted:
+
+```bash
+kubectl cordon node01
+kubectl drain node01 --ignore-daemonsets --timeout=5m
+# Perform maintenance and verify kubelet/runtime health.
+kubectl uncordon node01
+```
+
+If the drain stalls, read the message before adding flags. Each override trades
+away a protection:
+
+| Flag | Effect | Risk accepted |
+| --- | --- | --- |
+| `--ignore-daemonsets` | Proceeds despite DaemonSet Pods, which stay running | None in normal use; node agents remain on the node |
+| `--delete-emptydir-data` | Allows evicting Pods with `emptyDir` volumes | That scratch data is destroyed permanently |
+| `--force` | Deletes Pods with no managing controller | Those Pods are not recreated anywhere |
+| `--disable-eviction` | Deletes Pods directly, bypassing the eviction API | PodDisruptionBudgets are ignored; avoid outside emergencies |
+| `--grace-period` | Overrides the Pod termination grace period | Shortening it can cut off shutdown and data flushing |
+
+```bash
+# Opt in only after confirming the affected data and Pods are expendable.
+kubectl drain node01 \
+  --ignore-daemonsets \
+  --delete-emptydir-data \
+  --force \
+  --timeout=10m
+```
+
+A blocked drain is usually correct feedback: a PodDisruptionBudget has no spare
+replica, or a workload has no controller to recreate it. Fix the underlying
+capacity or ownership problem rather than forcing the eviction.
+
+### PodDisruptionBudgets
+
+A PDB limits simultaneous **voluntary** disruptions by specifying
+`minAvailable` or `maxUnavailable`. It does not protect against node crashes,
+zone failures, direct Pod deletion, or all rollout behavior. A PDB with no spare
+replicas can block maintenance indefinitely.
+
+Design applications with:
+
+- enough replicas and failure-domain spread;
+- readiness probes that represent service capability;
+- graceful termination and suitable termination grace periods;
+- storage detach/failover behavior that fits drain timing;
+- PDBs aligned with real availability requirements.
+
+### Control-plane certificate maintenance
+
+Cluster PKI is separate from application or Ingress TLS. kubeadm issues
+control-plane client and serving certificates with a one-year lifetime, while
+the cluster CA is long-lived. Telling the two layers apart during an incident is
+covered in
+[Certificate expiry: which TLS is broken?](#certificate-expiry-which-tls-is-broken).
+
+`kubeadm upgrade` renews these certificates as part of the upgrade, so clusters
+that are upgraded at least yearly rarely reach expiry. For a cluster that is not
+being upgraded, renew explicitly:
+
+```bash
+# 1. Back up the PKI directory and the generated kubeconfig files first.
+sudo cp -a /etc/kubernetes/pki "/root/pki-backup-$(date +%F)"
+sudo cp -a /etc/kubernetes/*.conf "/root/kubeconfig-backup-$(date +%F)/"
+
+# 2. Renew one certificate, or all kubeadm-managed certificates.
+sudo kubeadm certs renew apiserver
+sudo kubeadm certs renew all
+
+# 3. Confirm the new dates.
+sudo kubeadm certs check-expiration
+```
+
+Renewal writes new files but does not reload running components. Restart the
+control-plane static Pods afterwards, commonly by moving the manifests out of
+the static Pod directory and back, then verify API availability. Repeat the
+process on every control-plane node.
+
+Two cautions:
+
+- `kubeadm certs renew all` also refreshes the embedded client certificates in
+  files such as `admin.conf`, so redistribute updated kubeconfigs. A copy taken
+  earlier keeps failing until it is replaced.
+- Never run `kubeadm init phase certs` against a live cluster to fix expiry.
+  Regenerating a CA invalidates every existing certificate and kubeconfig.
+
+Kubelet client certificates rotate automatically when rotation is enabled;
+kubelet serving certificates may require approval of the pending CSRs.
+
+### Zero-downtime expectations
+
+Cluster maintenance can be disruption-free only when workloads are designed
+for it. Sequential node upgrades, spare capacity, topology distribution, PDBs,
+and graceful shutdown reduce risk, but single-replica or non-failover stateful
+applications still have downtime.
+
+### Node maintenance checklist
+
+1. Confirm cluster health and spare capacity.
+2. Cordon and drain one node or a small safe batch.
+3. Confirm replacement Pods are ready and service indicators are healthy.
+4. Patch or replace the node, runtime, kubelet, and required agents.
+5. Verify node conditions, versions, CNI/CSI/DaemonSets, and logs.
+6. Uncordon and observe scheduling.
+7. Continue only when the cluster has returned to steady state.
+
+Replacing immutable worker nodes is often safer and more repeatable than
+in-place upgrades.
+
+## Workloads and extensibility
+
+### Workload controllers
+
+| Controller | Use |
+| --- | --- |
+| Deployment | Stateless replicas, rolling updates, and rollback |
+| ReplicaSet | Maintains replica count; normally managed by a Deployment |
+| StatefulSet | Stable ordinal identity, storage, and ordered lifecycle |
+| DaemonSet | Runs a Pod on every eligible node |
+| Job | Runs finite work to completion |
+| CronJob | Creates Jobs on a schedule |
+
+DaemonSet Pods receive several automatic tolerations so node-level agents such
+as networking and logging can run where ordinary Pods may not. A DaemonSet does
+not necessarily run on every node: selectors, affinity, and taints still matter.
+StatefulSet storage and identity details are in
+[StatefulSet internals](#statefulset-internals).
+
+### Job and CronJob fields
+
+| Job field | Effect |
+| --- | --- |
+| `completions` | Number of successful Pod completions required |
+| `parallelism` | Maximum Pods running concurrently |
+| `completionMode` | `NonIndexed` (default) or `Indexed` for per-index work |
+| `backoffLimit` | Pod retries before the Job is marked `Failed` |
+| `activeDeadlineSeconds` | Wall-clock limit; running Pods are terminated |
+| `ttlSecondsAfterFinished` | Automatic cleanup after completion or failure |
+| `podFailurePolicy` | Fail fast or ignore specific exit codes and conditions |
+| `suspend` | Pauses or resumes Pod creation |
+
+Job Pod templates must set `restartPolicy` to `OnFailure` or `Never`.
+`backoffLimit` counts Pod failures, so a container that restarts in place under
+`OnFailure` consumes retries differently than a Pod that is replaced.
 
 ```yaml
-apiVersion: v1
-kind: Pod
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: multi-pod
+  name: report
 spec:
-  containers:
-  - image: nginx
-    name: nginx
-  - image: redis
-    name: redis
-  - image: memcached
-    name: memcached
-  - image: consul
-    name: consul 
-```
-</b></details>
-
-
-<details>
-<summary> Schedule a pod in a specific node.</code></summary><br><b>
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  creationTimestamp: null
-  labels:
-    run: nginx
-  name: nginx
-spec:
-  tolerations:
-      - key: node-role.kubernetes.io/master
-        effect: NoSchedule
-  containers:
-  - image: nginx
-    name: nginx
-    resources: {}
-  nodeSelector:
-     disktype: ssd
-  dnsPolicy: ClusterFirst
-  restartPolicy: Always
-status: {}
- 
-```
-</b></details>
-
-<details>
-<summary>Create a Deployment using nginx image.</code></summary><br><b>
-
-`kubectl create deployment --image=nginx nginx --replicas=2 --dry-run=client -o yaml > nginx-deploy.yaml `
-</b></details>
-
-<details>
-<summary>Expose the deployment using Nodeport serviceType on port 80.</code></summary><br><b>
-
-`kubectl expose deployment nginx --type=NodePort --port=80 --name=nginx-service --dry-run -o yaml > nginx-service.yaml `
-</b></details>
-
-<details>
-<summary>Scale deployment to replicas=5.</code></summary><br><b>
-
-`kubectl scale deployment.v1.apps/presentation --replicas=5 ` 
-</b></details>
-
-<details>
-<summary>Create a new deployment called nginx-deploy, 
-
-* Deployment : nginx-deploy
-* image nginx:1.16 and 1 replica & Record the version. 
-* Next upgrade the deployment to version 1.17 using rolling update. 
-* Make sure that the version upgrade is recorded in the resource annotation.</code></summary><br><b>
- 
-`kubectl run nginx-deploy --image=nginx:1.16 --replicas=1 --record `
-`kubectl rollout history deploy nginx-deploy `
-
-`kubectl set image deployment/nginx-deploy nginx-deploy=nginx:1.17 --record `
-
-#verify
-
-`kubectl rollout history deploy nginx-deploy `
-
-`kubectl describe deploy nginx-deploy | grep -i image `
-
-`kubectl describe pod nginx-deploy-5bd9796fd6-z92f9 | grep image `
-</b></details>
-
-<details>
-<summary> Deploy nginx daemonSet and ensure it is running on each nodes and don't override any taints (so basically asking don't use any tolerance in your manifest file).</code></summary><br><b>
-
-```yaml
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
- name: nginx-daemonset
-spec:
- selector:
-   matchLabels:
-     app: nginx-app
- template:
-   metadata:
-     labels:
-       app: nginx-app
-   spec:
-     containers:
-       - name: nginx-app
-         image: nginx
-
-```
-</b></details>
-
-<details>
-<summary> Deploy an init container and create a file in init container and that file should be available in the main container also (basically you need to mount volumes in both the container).</code></summary><br><b>
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: init-pod-example
-  labels:
-    app: init-demo
-spec:
-  containers:
-    - name: nginx
-      image: nginx
-      volumeMounts:
-        - name: vol1
-          mountPath: "/var/www/html"
-  initContainers:
-    - name: busybox
-      image: busybox
-      volumeMounts:
-        - name: vol1
-          mountPath: "/demo"
-      command: ['sh','-c','echo "Hello World" > /demo/hello.txt']
-  volumes:
-  - name: vol1
-    hostPath:
-      path: /tmp/demo
-```
-</b></details>
-
-
-<details>
-<summary> Deploy kubernetes cluster using kubeadm.</code></summary><br><b>
-
-* Install kubeadm package on each node
-
-* Run “kubeadm init” on the master node.
-
-* Run below commands on the master node
-
-* mkdir -p $HOME/.kube
-
-* sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-
-* sudo chown $(id -u):$(id -g) $HOME/.kube/config”
-
-* Install weavenet network plugin using the below command
-
-` kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')" `
-
-</b></details>
-
-
-<details>
-<summary>To get the Nodes CIDR.</code></summary><br><b>
-
-`kubectl get nodes -o jsonpath=’{.items[*].spec.podCIDR}’ `
-</b></details>
-
-
-<details>
-<summary>Create Configmap.</code></summary><br><b>
-
-`kubectl create configmap webapp-config-map --from-literal=APP_COLOR=darkblue  --from-literal=APP_Name=demo `
-</b></details>
-
-<details>
-<summary>Create a Secret by providing credentials on the command line. 
-
-* create a pod and inject that secret as a volume.
-* create a another pod and inject that secret as a env variable.</code></summary><br><b>
-
-` kubectl create secret generic test-secret --from-literal='username=my-app' --from-literal='password=39528$vdg7Jb' `
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: secret-test-pod
-spec:
-  containers:
-  - name: test-container
-    image: nginx
-    volumeMounts:
-    # name must match the volume name below
-    - name: secret-volume
-      mountPath: /etc/secret-volume
-  # Secret data is exposed to Containers in the Pod through a Volume.
-  volumes:
-  - name: secret-volume
-    secret:
-    secretName: test-secret
+  completions: 5
+  parallelism: 2
+  backoffLimit: 3
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: report
+          image: registry.example.com/report:1.4.0
 ```
 
-`kubectl create secret generic backend-user --from-literal=backend-username='backend-admin'`
+| CronJob field | Effect |
+| --- | --- |
+| `schedule` | Cron expression for Job creation |
+| `timeZone` | IANA zone name; otherwise the controller's time reference applies |
+| `concurrencyPolicy` | `Allow`, `Forbid`, or `Replace` |
+| `startingDeadlineSeconds` | How late a missed run may still start |
+| `successfulJobsHistoryLimit` | Completed Jobs retained |
+| `failedJobsHistoryLimit` | Failed Jobs retained |
+| `suspend` | Stops creating new Jobs |
+
+A CronJob guarantees neither exactly-once execution nor perfectly timed runs, so
+Job workloads should be idempotent. If many scheduled runs are missed, the
+controller stops attempting to catch up and reports the problem in events.
+
+### Pod lifecycle
 
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: env-single-secret
-spec:
-  containers:
-  - name: envars-test-container
-    image: nginx
-    env:
-    - name: SECRET_USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: backend-userkubectl create secret generic backend-user --from-literal=backend-username='backend-admin'
-          key: backend-username
-```
-</b></details>
+Pod phases are `Pending`, `Running`, `Succeeded`, `Failed`, and `Unknown`.
+`Terminating` is a `kubectl` display state, not a Pod phase. Container states
+are `Waiting`, `Running`, and `Terminated`.
+
+The Pod `restartPolicy` is `Always`, `OnFailure`, or `Never` and applies to app
+and regular init containers on the same node. Controllers replace Pods;
+`restartPolicy` governs kubelet container restarts inside one Pod.
 
-<details>
-<summary> To sort Nodes by CPU, or add -r at the end if you want the largest at the top.</code></summary><br><b>
+### Init containers and sidecars
+
+Init containers run to successful completion before app containers. Use them
+for bounded setup such as generating config or waiting for a dependency, not
+for long-running services. They can share volumes with app containers.
+
+Sidecar containers provide supporting behavior such as proxies or log
+processing. Kubernetes supports sidecar-style init containers with
+`restartPolicy: Always` on supported versions, providing lifecycle ordering.
 
-`kubectl top pod | sort -k2 -n `
-</b></details>
-
-
-<details>
-<summary> Label a Node.</code></summary><br><b>
-
-`kubectl label node node01 color=blue `
-</b></details>
-
-<details>
-<summary> Sort Pods by CPU Usage.</code></summary><br><b>
-
-`kubectl top pods --all-namespaces  --sort-by cpu `
-</b></details>
-
-<details>
-<summary> List Pod with labels.</code></summary><br><b>
-
-`kubectl get pods --show-labels `
-</b></details>
+### Probes
 
-<details>
-<summary>How to find out on which node a certain pod is running?.</summary><br><b>
-
-`kubectl get po -o wide`
-</b></details>
-
-<details>
-<summary> List all Persistence Volumes order by name and write to file or List all PV order by capacity.</code></summary><br><b>
-
-`kubectl get pv --sort-by=.metadata.name `
-
-` kubectl get pv --sort-by=.spec.capacity.storage `
-</b></details>
-
-<details>
-<summary> Create pod with PV and mount path /data/redis and volume must not be persistent (Create empty directory)</code></summary><br><b>
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: two-containers
-spec:
-
-  restartPolicy: Never
-
-  volumes:
-  - name: shared-data
-    emptyDir: {}
-
-  containers:
-
-  - name: nginx-container
-    image: nginx
-    volumeMounts:
-    - name: shared-data
-      mountPath: /data/redis
-
-```
-</b></details>
-
-
-<details>
-<summary> Create a 'Persistent Volume' with given specification,
-
-* Volume Name: pv-log
-* Storage: 100Mi
-* Access modes: ReadWriteMany
-* Host Path: /pv/log.</code></summary><br><b>
-
-```yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-1
-spec:
-  accessModes:
-    - ReadWriteMany
-  capacity:
-    storage: 100Mi
-  hostPath:
-    path: /pv/log
-
-```
-</b></details>
-
-
-<details>
-<summary> Create a 'Persistent Volume Claim' with given specification,
-
-* Volume Name: my-pvc
-* Storage: 50Mi
-* Access modes: ReadWriteMany
-* VolumeMode / plugin : Filesystem.</code></summary><br><b>
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: my-pvc
-spec:
-  accessModes:
-    - ReadWriteMany   #ReadWriteOnce pv & pvc should have access modes otherwise they won't bund will be in pending state
-  volumeMode: Filesystem
-  resources:
-    requests:
-      storage: 50Mi
-
-```
-</b></details>
-
-
-<details>
-<summary> Network policy to
-
-* allow pods listeing on 9000
-* allow pods accessible from a namespace </code></summary><br><b>
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-port-from-namespace
-   namepsace: fubar
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
-    ingress:
-    - {}
-  egress:
-  - to:
-    - podSelector: {}
-    ports:
-    - protocol: TCP
-      port: 9000
-
-  - to:
-    - podSelector:
-        matchLabels:
-          name: corp-net
-
-```
-</b></details>
-
-
-<details>
-<summary> Create a network policy to 
-
-* allow traffic from the 'Internal' application only to the 'payroll-service' and 'db-service'
-
-You might want to enable ingress traffic to the pod to test your rules in the UI. </code></summary><br><b>
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: internal-policy
-  namespace: default
-spec:
-  podSelector:
-    matchLabels:
-      name: internal
-  policyTypes:
-  - Egress
-  - Ingress
-  ingress:
-    - {}
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          name: mysql
-    ports:
-    - protocol: TCP
-      port: 3306
-
-  - to:
-    - podSelector:
-        matchLabels:
-          name: payroll
-    ports:
-    - protocol: TCP
-      port: 8080
-
-  - ports:
-    - port: 53
-      protocol: UDP
-    - port: 53
-      protocol: TCP
-
-```
-</b></details>
-
-
-<details>
-<summary> Create ingress
-
-* Name: pong
-* Namespace ing-internal
-* Targetport: 5678  </code></summary><br><b>
-
-```yaml
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: pong
-  namespace: ing-internal
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /hello
-        backend:
-          serviceName: hello
-          servicePort: 5678
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx-kusc00401
-  labels:
-    env: test
-spec:
-  containers:
-  - name: nginx-kusc00401
-    image: nginx
-    imagePullPolicy: IfNotPresent
-  nodeSelector:
-    disk: spinning
-
-```
-</b></details>
-
-<details>
-<summary> How many ClusterRoles do you see defined in the cluster?.</code></summary><br><b>
-
-` kubectl get clusterroles --no-headers | wc -l  `
-
-` kubectl get clusterrolebinding --no-headers  | wc -l `
-
-` kubectl get clusterroles --no-headers -o json | jq '.items | length'`
-</b></details>
-
-
-<details>
-<summary> Create Role & Rolebinding for `developer` to list pods .</code></summary><br><b>
-
-` kubectl auth can-i list pods --as developer `
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  namespace: default
-  name: developer
-rules:
-- apiGroups: [""] # "" indicates the core API group
-  resources: ["pods"]
-  verbs: ["list", “create”]
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: dev-user-binding
-  namespace: default
-subjects:
-# You can specify more than one "subject"
-- kind: User
-  name: dev-user # "name" is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-roleRef:
-  # "roleRef" specifies the binding to a Role / ClusterRole
-  kind: Role #this must be Role or ClusterRole
-  name: developer # this must match the name of the Role or ClusterRole you wish to bind to
-  apiGroup: rbac.authorization.k8s.io
-
-```
-</b></details>
-
-
-<details>
-<summary> Create Clusterrole & clusterrolebinding for `new-user` to list nodes .</code></summary><br><b>
-
-` kubectl auth can-i list nodes --as new-user `
-
-` kubectl create clusterrole storage-admin --verb=get,list,watch,delete --resource=persistentvolumes --resource=storageclasses `
-
-` kubectl create clusterrolebinding michelle-storage-admin --clusterrole=storage-admin --user=new-user `
-
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  # "namespace" omitted since ClusterRoles are not namespaced
-  name: new-user
-rules:
-- apiGroups: [""]
-  #
-  # at the HTTP level, the name of the resource for accessing Secret
-  # objects is "secrets"
-  resources: ["nodes"]
-  verbs: ["list"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: node-reader-new-user
-subjects:
-- kind: User
-  name: manager # Name is case sensitive
-  apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: new-user
-  apiGroup: rbac.authorization.k8s.io
-```
-</b></details>
-
-
-<details>
-<summary> Create a taint on node01 with key of 'spray', value of 'mortein' and effect of 'NoSchedule'.
-</code></summary><br><b>
-
-` kubectl taint nodes node01 spray=mortein:NoSchedule `
-</b></details>
-
-<details>
-<summary> Remove the taint on master, which currently has the taint effect of NoSchedule.</code></summary><br><b>
-
-` kubectl taint nodes node01 spray=mortein:NoSchedule- `
-</b></details>
-
-<details>
-<summary> Drain Node node02.</code></summary><br><b>
-
-` kubectl drain node02 --ignore-daemonsets `
-</b></details>
-
-# ETCD
-
-<details>
-<summary>Update ETCD POD to use the new hostPath directory /var/lib/etcd-from-backup by modifying the pod definition file at /etc/kubernetes/manifests/etcd.yaml. 
-
-* When this file is updated, the ETCD pod is automatically re-created as this is a static pod placed under the /etc/kubernetes/manifests directory.</summary><br><b>
-
-Update volumes and volume mounts to point to new path
-
-```yaml
- volumes:
-  - hostPath:
-      path: /var/lib/etcd-from-backup
-      type: DirectoryOrCreate
-    name: etcd-data
-  - hostPath:
-      path: /etc/kubernetes/pki/etcd
-      type: DirectoryOrCreate
-    name: etcd-certs
+| Probe | Failure effect | Purpose |
+| --- | --- | --- |
+| Startup | Restarts container after threshold | Protect slow startup from liveness checks |
+| Readiness | Removes Pod from ready endpoints | Decide whether to receive traffic |
+| Liveness | Restarts container after threshold | Recover a process that cannot make progress |
+
+Exec, HTTP, TCP, and gRPC handlers are available subject to version support.
+Readiness failure does not restart a container. Poor liveness probes can amplify
+an outage, so keep them independent of optional downstream dependencies.
+
+### Lifecycle hooks and termination
+
+`postStart` runs after container creation but is not guaranteed to run before
+the entrypoint. `preStop` runs before normal Kubernetes-initiated termination
+when the container is still running. The termination grace countdown begins
+before `preStop`; hooks are not guaranteed during node loss, process crash, or
+forced termination. Therefore, hooks must not be the only mechanism protecting
+data correctness.
+
+### Labels and annotations
+
+Labels are indexed identifying metadata used by selectors. Annotations hold
+non-identifying metadata for tools and controllers, and their values are always
+strings.
+
+| Annotation | Purpose |
+| --- | --- |
+| `kubernetes.io/description` | Human-readable description of the object |
+| `kubernetes.io/change-cause` | Reason recorded in `kubectl rollout history` |
+| `deployment.kubernetes.io/revision` | Revision tracked by the Deployment controller |
+| `kubectl.kubernetes.io/default-container` | Default container for `logs` and `exec` |
+| `cluster-autoscaler.kubernetes.io/safe-to-evict` | Allows or blocks autoscaler eviction |
+| `helm.sh/hook` | Marks a resource as a Helm lifecycle hook |
+| `helm.sh/resource-policy` | Set to `keep` to survive `helm uninstall` |
+
+Prefer structured API fields over annotations where a field exists. Ingress
+class belongs in `spec.ingressClassName`, and metrics scraping under the
+Prometheus Operator belongs in `ServiceMonitor` or `PodMonitor` objects rather
+than scrape annotations.
+
+Controller-specific annotations are implementation behavior rather than portable
+API guarantees, so verify them against the installed controller version.
+
+### CRDs, controllers, and operators
+
+A CustomResourceDefinition adds a resource type to the Kubernetes API. A
+controller watches resources and reconciles desired state. An operator combines
+CRDs and controllers to encode application-specific operations such as backup,
+upgrade, and failover.
+
+A CRD without a controller stores custom objects but performs no domain action.
+Operators should expose status conditions, use finalizers carefully, be
+idempotent, and handle upgrades and backup compatibility.
+
+### Mutating and validating admission
+
+- Mutating admission can default or modify an accepted request.
+- Validating admission accepts or rejects the resulting object.
+
+Use admission for guardrails such as image policy and security requirements.
+Webhook outages can block API operations depending on `failurePolicy`; deploy
+webhooks redundantly, scope them narrowly, set timeouts, and avoid intercepting
+their own recovery resources.
+
+### API versions
+
+An API version is commonly `<group>/<version>`, for example `apps/v1`; core
+resources use `v1`. Stability levels are:
+
+- `v1alpha1`: experimental and may change or disappear without compatibility;
+- `v1beta1`: approaching stability but still subject to incompatible change;
+- `v1`: stable with strong compatibility expectations.
+
+A resource's preferred served version is not necessarily its storage version,
+which matters when planning CRD schema migrations.
+
+### Apply and field ownership
+
+Patch behavior depends on the operation and the schema: some list fields merge
+by key while others are replaced wholesale. Client-side apply compares against a
+last-applied annotation. Server-side apply records per-field ownership in
+`managedFields` and reports conflicts between managers, which makes shared
+ownership between CI, operators, and humans explicit.
+
+### GitOps
+
+GitOps stores declarative desired state in version control and uses an in-cluster
+controller such as Argo CD or Flux to reconcile it. Benefits include review,
+auditability, drift detection, and repeatable rollback. Git history alone does
+not roll back external state or database changes.
+
+Argo CD emphasizes application views and a UI; Flux emphasizes composable
+controllers and toolkit APIs. Both support automated pull-based reconciliation.
+
+### Deployment strategies
+
+- **Rolling update:** incrementally replaces Pods using `maxSurge` and
+  `maxUnavailable`.
+- **Blue-green:** runs old and new environments, then switches traffic.
+- **Canary:** sends a controlled traffic percentage or audience to a new
+  version and promotes based on evidence.
+
+A standard Deployment approximates replica-based canaries but does not provide
+precise traffic weighting. Use a Gateway/service mesh or rollout controller
+when weighted routing and automated analysis are required.
+
+### Kompose
+
+Kompose converts Compose definitions into starter Kubernetes manifests:
+
+```bash
+kompose convert
 ```
 
-Note: as the ETCD pod has changed it will automatically restart, and also kube-controller-manager and kube-scheduler. Wait 1-2 to mins for this pods to restart. You can make a watch "docker ps | grep etcd" to see when the ETCD pod is restarted.
+The result requires review for probes, resources, security, storage, Services,
+and production architecture. Conversion is not production validation.
 
-Note2: If the etcd pod is not getting Ready 1/1, then restart it by kubectl delete pod -n kube-system etcd-controlplane and wait 1 minute.
+## Helm
 
+### What is a Helm chart?
 
-</b></details>
+A chart is a versioned package of Kubernetes templates, default values, and
+metadata. Helm renders the chart and tracks each installation as a release.
 
-
-<details>
-<summary>Take the backup of ETCD at the location /opt/etcd-backup.db on the master node.</summary><br><b>
-
-ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /opt/etcd-backup.db
-</b></details>
-
-<details>
-<summary>Restore ETCD Snapshot to a new folder.</summary><br><b>
-Restore the snapshot to a new directory, note that the directory should NOT exists - it's created in the restore process. I'll fetch the cluster endpoint details from the current /etc/kubernetes/manifests/etcd.yaml file
-
-`kubectl describe pods etcd-controlplane -n kube-system `
-
-ETCDCTL_API=3 etcdctl etcdctl snapshot restore etcd.db \
---endpoints=https://127.0.0.1:2379 \
---cacert=/etc/kubernetes/pki/etcd/ca.crt \
---cert=/etc/kubernetes/pki/etcd/server.crt \
---key=/etc/kubernetes/pki/etcd/server.key \
---name=controlplane \
---data-dir /var/lib/etcd-from-backup \
---initial-cluster=controlplane=https://127.0.0.1:2380 \
---initial-cluster-token=etcd-cluster-1 \
---initial-advertise-peer-urls=https://127.0.0.1:2380 \
-
-Deprecated: Use `etcdutl snapshot restore` instead.
-
-Notice that ETCD is listening on two ports. Which of these have more client connections established?
-
-` netstat -anp | grep etcd `
-
-That's because 2379 is the port of ETCD to which all control plane components connect to. 
-
-2380 is only for etcd peer-to-peer connectivity. When you have multiple master nodes.
-
-</b></details>
-
-<details>
-<summary>Create a CertificateSigningRequest object with the name john with the contents of the john.csr file.</summary><br><b>
-
-
-` openssl req -new -key john.key -out john.csr -config csr.conf `
-
-`openssl x509 -req -in /etc/kubernetes/pki/apiserver-etcd-client.csr -CA /etc/kubernetes/pki/etcd/ca.crt -CAkey /etc/kubernetes/pki/etcd/ca.key -CAcreateserial -out /etc/kubernetes/pki/apiserver-etcd-client.crt `
-
-` cat john.csr | base64 | tr -d "n" `
-
-```yaml
-apiVersion: certificates.k8s.io/v1beta1
-kind: CertificateSigningRequest
-metadata:
-  name: john-developer
-spec:
-  request: #enter the bas64 value of .csr file #$(cat john.csr | base64 | tr -d '\n')
-  usages:
-  - digital signature
-  - key encipherment
-  - server auth
-
+```text
+my-chart/
+├── Chart.yaml
+├── values.yaml
+├── values.schema.json
+├── templates/
+│   ├── _helpers.tpl
+│   ├── deployment.yaml
+│   └── service.yaml
+├── charts/
+├── crds/
+└── .helmignore
 ```
 
-` kubectl auth can-i  create pods --as dev-user `
+- `Chart.yaml`: chart metadata and dependencies.
+- `values.yaml`: default user configuration.
+- `values.schema.json`: optional validation for values.
+- `templates/`: Go templates rendered into manifests.
+- `charts/`: packaged dependencies.
+- `crds/`: CRDs installed before templates, with special lifecycle behavior.
 
-` kubectl auth can-i  create pods `
+Charts make related resources reusable and configurable, but templates should
+remain simple enough that rendered output can be reviewed.
 
-` kubectl auth can-i list secrets --namespace deve --as test-user `
+### Values and precedence
 
-` kubectl get secret mynamespace-user-token-xxxxx -n mynamespace -o "jsonpath={.data.token}" | base64 -D `
+Later, more specific values override earlier values. Common precedence from low
+to high is:
 
-</b></details>
+1. chart `values.yaml`;
+2. parent chart values for a subchart;
+3. files passed with `-f`/`--values`, in command order;
+4. `--set`, `--set-string`, `--set-file`, or `--set-json`.
 
+Use version-controlled values files for repeatability. Use `--set` sparingly for
+small automation overrides; shell escaping and type coercion make complex data
+error-prone.
 
-<details>
-<summary>CKA Useful Links </summary><br><b>
+```bash
+helm upgrade --install web ./chart \
+  -f values-production.yaml \
+  --set-string image.tag=1.2.3
+```
 
-[CKA](https://prabhatsharma.in/blog/cka-practice-test-1/)
+#### Values on upgrade: reuse versus reset
 
-[CKA GUIDE](https://devopscube.com/cka-exam-study-guide/)
+`helm upgrade` decides what to do with the values a previous release already
+carried, and the flags are a common source of surprise:
 
-[CKA Simulator](https://killer.sh/course/preview/e84d0e31-4fff-4c42-8afd-be1bdbc0d994)
+| Flag | Starting point | Typical failure mode |
+| --- | --- | --- |
+| `--reuse-values` | The previous release's values, then this command's overrides | Retired values persist and new chart defaults are not picked up |
+| `--reset-values` | The chart's defaults, then this command's overrides | Overrides supplied in earlier upgrades are silently dropped |
+| `--reset-then-reuse-values` | Chart defaults, then previously supplied values, then this command's overrides | Available only on newer Helm releases |
 
+The reliable practice is to pass the complete set of values files on every
+upgrade so the outcome does not depend on flag semantics or release history.
+Confirm what the cluster actually holds before and after:
 
-[CKAD-exercises](https://github.com/dgkanatsios/CKAD-exercises/blob/main/README.md)
+```bash
+helm get values web            # user-supplied values only
+helm get values web --all      # merged computed values
+helm upgrade --help            # verify flag behavior for the installed version
+```
 
-</b></details>
+### Core commands
+
+```bash
+helm install <release> <chart>
+helm upgrade <release> <chart>
+helm upgrade --install <release> <chart>
+helm history <release>
+helm rollback <release> <revision>
+helm uninstall <release>
+helm repo update
+```
+
+`install` creates a release. `upgrade` creates a new release revision from a
+chart and values. `rollback` creates another revision based on an earlier one;
+it does not reverse external side effects such as database migrations.
+`repo update` refreshes local repository indexes and does not upgrade releases.
+
+### Rendering and validation
+
+```bash
+helm lint ./chart
+helm template web ./chart -f values-production.yaml
+helm install web ./chart --dry-run
+helm get manifest web
+helm get values web --all
+```
+
+Rendering catches template problems but not every API, admission, runtime, or
+controller error. Validate rendered manifests against the target Kubernetes
+version and test an actual upgrade.
+
+### Helm diff
+
+The community `helm-diff` plugin previews rendered changes:
+
+```bash
+helm diff upgrade web ./chart -f values-production.yaml
+helm diff revision web 2 3
+```
+
+It reduces surprise but does not predict all defaulting, mutation, immutable
+field behavior, hooks, or external controller effects.
+
+### Dependencies and CRDs
+
+Declare dependencies in `Chart.yaml`, then run:
+
+```bash
+helm dependency update ./chart
+```
+
+Helm installs CRDs from `crds/` if absent, but does not template, upgrade, or
+delete them automatically. Plan CRD schema and controller upgrades explicitly,
+especially when stored custom resources may no longer match a new schema.
+
+### Hooks and release safety
+
+Hooks can run Jobs around install, upgrade, rollback, or delete events. They can
+block a release and may not be managed like ordinary resources. Define deletion
+policies and make hook Jobs idempotent.
+
+For safer production upgrades, pin chart and image versions, inspect diffs,
+validate schemas, set `--wait` and an appropriate `--timeout`, and understand
+`--atomic`: it attempts rollback on failure but cannot undo external side
+effects.
+
+## Companion files
+
+Procedural material stays outside this guide so that command sequences can be
+practised without rereading the explanations:
+
+- [Secret recipes](Secrets-Recipes.md): creating and consuming Secrets.
+- [CKA labs](CKA-Labs.md): imperative commands, JSONPath, RBAC, networking,
+  storage, workloads, node maintenance, and etcd exercises.
+
+## Recommended interview-answer structure
+
+1. Give a direct one- or two-sentence definition.
+2. Explain the control flow or key distinction.
+3. State practical significance or a production example.
+4. Mention one important limitation or failure mode.
+
+For troubleshooting questions, use:
+
+1. symptom and blast radius;
+2. evidence to collect;
+3. most likely causes;
+4. safe recovery;
+5. prevention and monitoring.
