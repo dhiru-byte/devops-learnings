@@ -1,576 +1,1494 @@
-### Docker
---------------------------------------------------------------------------------------
-<details>
-<summary>Create image out of running container.</code></summary><br><b>
+# Docker
 
-docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
+Interview notes on Docker concepts, images, networking, storage, and runtime
+behaviour, followed by [troubleshooting scenarios](#troubleshooting-scenarios)
+that apply those concepts to realistic failures.
 
-```shell
-docker commit my-container my-image:my-tag
+## Contents
+
+- [Concepts](#concepts)
+- [Architecture and isolation](#architecture-and-isolation)
+- [Images and layers](#images-and-layers)
+- [Dockerfile](#dockerfile)
+- [COPY vs ADD](#copy-vs-add)
+- [CMD vs ENTRYPOINT](#cmd-vs-entrypoint)
+- [Container lifecycle](#container-lifecycle)
+- [attach vs exec](#attach-vs-exec)
+- [Networking](#networking)
+- [Storage](#storage)
+- [Resource limits](#resource-limits)
+- [Logging](#logging)
+- [Registries and image transfer](#registries-and-image-transfer)
+- [Docker Compose](#docker-compose)
+- [Cleanup](#cleanup)
+- [Security practices](#security-practices)
+- [Docker in CI/CD](#docker-in-cicd)
+- [Troubleshooting scenarios](#troubleshooting-scenarios)
+  - [First-response triage](#first-response-triage)
+  - [1. Container exits immediately with code 0](#1-container-exits-immediately-with-code-0)
+  - [2. Container killed with exit code 137](#2-container-killed-with-exit-code-137)
+  - [3. Container in a restart loop](#3-container-in-a-restart-loop)
+  - [4. Port is already allocated](#4-port-is-already-allocated)
+  - [5. Published port is open but connections are refused](#5-published-port-is-open-but-connections-are-refused)
+  - [6. One container cannot resolve another by name](#6-one-container-cannot-resolve-another-by-name)
+  - [7. Container has no internet or DNS access](#7-container-has-no-internet-or-dns-access)
+  - [8. No space left on device on the host](#8-no-space-left-on-device-on-the-host)
+  - [9. Every build rebuilds everything](#9-every-build-rebuilds-everything)
+  - [10. Build succeeds but the file is missing at runtime](#10-build-succeeds-but-the-file-is-missing-at-runtime)
+  - [11. Permission denied on a mounted volume](#11-permission-denied-on-a-mounted-volume)
+  - [12. Data disappeared after redeploy](#12-data-disappeared-after-redeploy)
+  - [13. `docker stop` always takes ten seconds](#13-docker-stop-always-takes-ten-seconds)
+  - [14. Zombie processes accumulate inside a container](#14-zombie-processes-accumulate-inside-a-container)
+  - [15. Application is slow inside the container but fast on the host](#15-application-is-slow-inside-the-container-but-fast-on-the-host)
+  - [16. Works on my machine, fails on the server](#16-works-on-my-machine-fails-on-the-server)
+  - [17. `docker logs` returns nothing](#17-docker-logs-returns-nothing)
+  - [18. A secret was baked into an image](#18-a-secret-was-baked-into-an-image)
+  - [19. Cannot debug a distroless or scratch container](#19-cannot-debug-a-distroless-or-scratch-container)
+  - [20. Container clock or timezone is wrong](#20-container-clock-or-timezone-is-wrong)
+  - [21. Cannot connect to the Docker daemon](#21-cannot-connect-to-the-docker-daemon)
+- [Examples in this repository](#examples-in-this-repository)
+- [Reference](#reference)
+
+## Concepts
+
+### What is Docker?
+
+Docker is a container platform that packages an application together with its
+dependencies into an image, and runs that image as an isolated process on a
+shared host kernel.
+
+What it actually gives you:
+
+- **Identical runtime everywhere.** The image contains the libraries, binaries,
+  and configuration, so the same artifact runs on a laptop, in CI, and in
+  production.
+- **Fast start and low overhead.** A container is a process with namespaces and
+  cgroups applied, so it starts in milliseconds and does not carry a guest OS.
+- **Immutable, versioned artifacts.** Images are content-addressed and tagged,
+  so a deployment is reproducible and a rollback is a tag change.
+- **Layer caching.** Unchanged layers are reused across builds and pulls, which
+  cuts both build and deploy time.
+- **Density.** Many containers fit on one host because they share the kernel,
+  which is what makes per-service deployment economical.
+
+### What is a container?
+
+A container is a running process, plus the filesystem from an image, isolated
+from other processes using Linux kernel features. It has its own view of the
+process tree, network stack, mounts, and hostname, but it uses the host kernel
+rather than its own.
+
+### Containers vs virtual machines
+
+| | Virtual machine | Container |
+| :--- | :--- | :--- |
+| Abstracts | The machine | The application process |
+| Kernel | Its own guest kernel | Shares the host kernel |
+| Size | Gigabytes | Megabytes |
+| Start time | Tens of seconds to minutes | Milliseconds to seconds |
+| Isolation | Strong, hardware-level via hypervisor | Process-level via namespaces and cgroups |
+| Overhead | Full OS per instance | One process tree per instance |
+
+A hypervisor divides physical hardware among guest machines. A **type 1**
+(bare-metal) hypervisor runs directly on the hardware, for example ESXi or KVM.
+A **type 2** (hosted) hypervisor runs as an application on an existing OS, for
+example VirtualBox.
+
+The two are complementary rather than competing: in the cloud, containers
+almost always run inside VMs, so the VM supplies the hard tenancy boundary and
+the container supplies the packaging and density.
+
+### Where Docker falls short
+
+- **No real orchestration.** A single daemon does not do scheduling, rolling
+  updates, or self-healing across hosts. Swarm is minimal; Kubernetes is the
+  practical answer.
+- **Stateful workloads need help.** Local volumes are tied to one host, so
+  multi-host state needs a network volume plugin, a CSI driver, or a managed
+  database outside the cluster.
+- **Shared kernel is the isolation limit.** A kernel exploit or a kernel version
+  requirement is not solved by a container. Windows containers need a Windows
+  host, and Linux containers need a Linux kernel.
+- **Observability is external.** Logs, metrics, and traces need a collection
+  stack; `docker logs` on one host is not monitoring.
+- **Image sprawl.** Without lifecycle policies on the registry and disciplined
+  base images, storage and vulnerability surface grow steadily.
+
+Note that "Docker has no storage option" is a common but wrong statement:
+volumes, bind mounts, and tmpfs mounts are built in. See
+[Storage](#storage).
+
+## Architecture and isolation
+
+### Components
+
+- **Docker client (`docker`)** sends commands to the daemon over the REST API,
+  by default through the `/var/run/docker.sock` Unix socket.
+- **Docker daemon (`dockerd`)** builds images, manages networks and volumes, and
+  drives the container lifecycle.
+- **containerd** is the runtime the daemon delegates to for image pull and
+  container supervision; **runc** is what actually creates the container by
+  applying namespaces and cgroups.
+- **Registry** stores and serves images over HTTP. Public examples are Docker
+  Hub and GitHub Container Registry; private examples are Amazon ECR, Harbor,
+  and Artifactory.
+
+Because the daemon socket is root-equivalent, anyone in the `docker` group can
+gain root on the host. Treat that group membership as administrator access.
+
+### Namespaces and cgroups
+
+Namespaces give a container its own **view** of the system; cgroups **limit**
+what it may consume. Both are Linux kernel features, not Docker features.
+
+| Namespace | What it isolates |
+| :--- | :--- |
+| PID | Process IDs, so the container has its own PID 1 |
+| Mount (mnt) | The filesystem tree |
+| Network (net) | Interfaces, routing tables, iptables rules, ports |
+| UTS | Hostname and domain name |
+| IPC | Shared memory and semaphores |
+| User | UID and GID mapping, used by user-namespace remapping |
+| Cgroup | The container's view of its own cgroup hierarchy |
+
+cgroups enforce CPU, memory, block I/O, and process-count limits. Namespaces
+without cgroups means one container can starve the host; cgroups without
+namespaces means no isolation.
+
+## Images and layers
+
+An **image** is a read-only, layered filesystem plus configuration metadata
+(entrypoint, command, environment, exposed ports, user). A **layer** is the
+filesystem diff produced by one build instruction. A **container** is an image
+plus a thin writable layer on top.
+
+- Only `RUN`, `COPY`, and `ADD` create filesystem layers. Instructions such as
+  `ENV`, `WORKDIR`, `EXPOSE`, `LABEL`, and `CMD` only change metadata.
+- Layers are shared: ten containers from one image consume one copy of the
+  image layers plus ten small writable layers.
+- A layer is additive. Deleting a file in a later layer hides it but does not
+  shrink the image, so `RUN rm secret.key` after a `COPY secret.key` still ships
+  the secret. Remove it in the same layer, or use a multi-stage build.
+
+```bash
+docker images                             # list images
+docker images -a                          # include intermediate layers
+docker images --no-trunc                  # full image IDs
+docker images --filter=reference='alpine' # filter by name
+docker history <image>                    # per-layer size and originating instruction
+docker image inspect <image>              # full configuration
 ```
 
-`my-container` is the name or ID of the running container.
-`my-image` is the name of the new image.
-`my-tag` is the optional tag for the new image.
-
-</b></details>
-
-<details>
-<summary>Create a Docker image from a file or URL.</code></summary><br><b>
-
-docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
-
-```shell
-docker import my_archive.tar my-image:tag
-
-```
-`my_archive.tar`  is a tarball archive file, and `my-image:tag` is the name and tag you want to assign to the imported Docker image.
-</b></details>
-
-<details>
-<summary>Difference between docker run and docker create.</code></summary><br><b>
-
-`docker run` command is used to create and start a new container based on a specified image.
-
-`docker create` command is used to create a new container based on an image, but it does not start the container.
-</b></details>
-
-<details>
-<summary>What is Docker & it's feature ?.</code></summary><br><b>
-
-Docker is an open-source containerization platform. It is used to automate the deployment of any application, using lightweight, portable containers.
-
-Docker’s most essential features include:
-
-* Application agility
-* Developer productivity
-* Easy modeling
-* Operational efficiencies
-* Placement and affinity
-* Version control
-</b></details>
-
-<details>
-<summary> Different type of Networking in Docker.</code></summary><br><b>
-
-• bridge:  The default network driver. If you don’t specify a driver, this is the type of network you are creating. Bridge networks are usually used when your applications run in standalone containers that need to communicate, are best when you need multiple containers to communicate on the same Docker host.
-
-• host: For standalone containers, remove network isolation between the container and the Docker host, and use the host’s networking directly, are best when the network stack should not be isolated from the Docker host, but you want other aspects of the container to be isolated. 
-
-• overlay: Overlay networks connect multiple Docker daemons together and enable swarm services to communicate with each other. You can also use overlay networks to facilitate communication between a swarm service and a standalone container, or between two standalone containers on different Docker daemons. This strategy removes the need to do OS-level routing between these containers. are best when you need containers running on different Docker hosts to communicate, or when multiple applications work together using swarm services.
-
-• macvlan: Macvlan networks allow you to assign a MAC address to a container, making it appear as a physical device on your network. The Docker daemon routes traffic to containers by their MAC addresses. Using the macvlan driver is sometimes the best choice when dealing with legacy applications that expect to be directly connected to the physical network, rather than routed through the Docker host’s network stack, are best when you are migrating from a VM setup or need your containers to look like physical hosts on your network, each with a unique MAC address.
-
-• none: For this container, disable all networking. Usually used in conjunction with a custom network driver. none is not available for swarm services. 
-</b></details>
-
-<details>
-<summary> Does Docker have any downsides?.</code></summary><br><b>
-
-Docker isn’t perfect. It comes with its share of drawbacks, including:
-
-* Lacks a storage option.
-* Monitoring options are less than ideal.
-* You can’t automatically reschedule inactive nodes.
-* Automatic horizontal scaling set up is complicated.
-</b></details>
-
-<details>
-<summary> Explain the various Docker components.</code></summary><br><b>
-
-* `Docker Client`: Performs Docker build pull and run operations to open up communication with the Docker Host. The Docker command then employs Docker API to call any queries to run.
-
-* `Docker Host`: Contains Docker daemon, containers, and associated images. The Docker daemon establishes a connection with the Registry. The stored images are the type of metadata dedicated to containerized applications.
-
-* `Registry`: This is where Docker images are stored. There are two of them, 
-
-public registry and  private one. 
-Docker Hub and Docker Cloud are two public registries available for use by anyone.
-</b></details>
-
-
-<details>
-<summary> What is a container?.</code></summary><br><b>
-
-Containers are deployed applications bundled with all necessary dependencies and configuration files. All of the elements share the same OS kernel  and run as isolated systems in the host operating system.. Since the container isn’t tied to any one IT infrastructure, it can run on a different system or the cloud.
-</b></details>
-
-<details>
-<summary> Explain virtualization.</code></summary><br><b>
-
-A hypervisor is a software that makes virtualization happen because of which is sometimes referred to as the Virtual Machine Monitor. This divides the resources of the host system and allocates them to each guest environment installed such as a server, data storage, or application.
-Virtualization lets you divide a system into a series of separate sections, each one acting as a distinct individual system. The virtual environment is called a virtual machine.
-
-* Native Hypervisor: This type is also called a Bare-metal Hypervisor and runs directly on the underlying host system which also ensures direct access to the host hardware which is why it does not require base OS.
-
-* Hosted Hypervisor: This type makes use of the underlying host operating system which has the existing OS installed.
-
-
-</b></details>
-
-<details>
-<summary> What’s the difference between virtualization and containerization?.</code></summary><br><b>
-
-Virtualization is an abstract version of a physical machine, while containerization is the abstract version of an application.
-</b></details>
-
-
-<details>
-<summary> Describe a Docker container’s lifecycle.</code></summary><br><b>
-
-* Create container
-* Run container
-* Pause container
-* Unpause container
-* Start container
-* Stop container
-* Restart container
-* Kill container
-* Destroy container
-</b></details>
-
-<details>
-<summary> What are docker images?.</code></summary><br><b>
-
-They are executable packages(bundled with application code & dependencies, software packages, etc.) for the purpose of creating containers. 
-Docker images can be deployed to any docker environment and the containers can be spun up there to run the application.
-</b></details>
-
-<details>
-<summary> What is a DockerFile?.</code></summary><br><b>
-
-It is a  file that has all Instructions which need to build a docker image. filename should be `Dockerfile`
-</b></details>
-
-<details>
-<summary> What can you tell about Docker Compose?.</code></summary><br><b>
-
-It is a YAML file consisting of all the details regarding various services, networks, and volumes that are needed for setting up the Docker-based application. So, docker-compose is used for creating multiple containers, host them and establish communication between them. For the purpose of communication amongst the containers, ports are exposed by each and every container.
-</b></details>
-
-<details>
-<summary> Can you tell something about docker namespace?.</code></summary><br><b>
-
-A namespace is basically a Linux feature that ensures OS resources partition in a mutually exclusive manner. This forms the core concept behind containerization as namespaces introduce a layer of isolation amongst the containers. In docker, the namespaces ensure that the containers are portable and they don't affect the underlying host. Examples for namespace types that are currently being supported by Docker – PID, Mount, User, Network, IPC.
-</b></details>
-
-<details>
-<summary> Difference between COPY & ADD Instruction in Dockerfile?.</code></summary><br><b>
-
-Both the commands have similar functionality, but COPY is more preferred because of its higher transparency level than that of ADD.
-
-* COPY provides just the basic support of copying local files into the container whereas
-
-* ADD provides additional features like remote URL and tar extraction support.
-</b></details>
-
-
-<details>
-<summary> Can you tell the differences between a docker Image and Layer?.</code></summary><br><b>
-
-Image: This is built up from a series of read-only layers of instructions. An image corresponds to the docker container and is used for speedy operation due to the caching mechanism of each step.
-
-Layer: Each layer corresponds to an instruction of the image’s Dockerfile. In simple words, the layer is also an image but it is the image of the instructions run.
-
-The result of building a dockerfile is an image. Whereas the instructions present in this file add the layers to the image. The layers can be thought of as intermediate images. 
-</b></details>
-
-<details>
-<summary>  Where are docker volumes stored in docker?.</code></summary><br><b>
-
-Volumes are created and managed by Docker and cannot be accessed by non-docker entities. They are stored in Docker host filesystem at 
-/var/lib/docker/volumes/
-</b></details>
-
-<details>
-<summary> Can you differentiate between Daemon Logging and Container Logging?.</code></summary><br><b>
-
-In docker, logging is supported at 2 levels and they are logging at the Daemon level or logging at the Container level.
-Daemon Level has kind of logging has four levels- Debug, Info, Error, and Fatal.
-- Debug has all the data that happened during the execution of the daemon process.
-- Info carries all the information along with the error information during the execution of the daemon process.
-- Errors have those errors that occurred during the execution of the daemon process.
-- Fatal has the fatal errors that occurred during the execution.
-
-Container Level:
-- Container level logging can be done using the command: sudo docker run –it <container_name> /bin/bash
-- In order to check for the container level logs, we can run the command: sudo docker logs <container_id>
-
-</b></details>
-
-<details>
-<summary> Difference between CMD and ENTRYPOINT?.</code></summary><br><b>
-
-* `CMD` command provides executable defaults for an executing container. In case the executable has to be omitted then the usage of ENTRYPOINT instruction along with the JSON array format has to be incorporated.
-
-* `ENTRYPOINT` specifies that the instruction within it will always be run when the container starts. 
-This command provides an option to configure the parameters and the executables. If the DockerFile does not have this command, then it would still get inherited from the base image mentioned in the FROM instruction.
-
-* Most commonly used ENTRYPOINT is /bin/sh or /bin/bash for most of the base images.As part of good practices, every DockerFile should have at least one of these two commands.
-</b></details>
-
-<details>
-<summary> What is the default IP address of the Docker host?.</code></summary><br><b>
-
-` 172.17. 0.0/16`
-</b></details>
-
-<details>
-<summary> Pull, create, and run 'hello-world'.</code></summary><br><b>
-
-` docker run hello-world`
-</b></details>
-
-<details>
-<summary> Get the Docker version.</code></summary><br><b>
-
-` docker version `
-</b></details>
-
-<details>
-<summary> Container Lifecycle</code></summary><br><b>
-
-* [`docker create`](https://docs.docker.com/engine/reference/commandline/create) creates a container but does not start it.
-* [`docker rename`](https://docs.docker.com/engine/reference/commandline/rename/) allows the container to be renamed.
-* [`docker run`](https://docs.docker.com/engine/reference/commandline/run) creates and starts a container in one operation.
-* [`docker rm`](https://docs.docker.com/engine/reference/commandline/rm) deletes a container.
-* [`docker update`](https://docs.docker.com/engine/reference/commandline/update/) updates a container's resource limits.
-
-If you want a transient container, 
-
-`docker run --rm` : will remove the container after it stops.
-
-`docker run -v $HOSTDIR:$DOCKERDIR` : To map a directory on the host to a docker container.
-
-If you want to remove also the volumes associated with the container, the deletion of the container must include the `-v` switch like in `docker rm -v`.
-</b></details>
-
-
-<details>
-<summary> Starting and Stopping.</code></summary><br><b>
-
-* [`docker start`](https://docs.docker.com/engine/reference/commandline/start) starts a container so it is running.
-* [`docker stop`](https://docs.docker.com/engine/reference/commandline/stop) stops a running container.
-* [`docker restart`](https://docs.docker.com/engine/reference/commandline/restart) stops and starts a container.
-* [`docker pause`](https://docs.docker.com/engine/reference/commandline/pause/) pauses a running container, "freezing" it in place.
-* [`docker unpause`](https://docs.docker.com/engine/reference/commandline/unpause/) will unpause a running container.
-* [`docker wait`](https://docs.docker.com/engine/reference/commandline/wait) blocks until running container stops.
-* [`docker kill`](https://docs.docker.com/engine/reference/commandline/kill) sends a SIGKILL to a running container.
-* [`docker attach`](https://docs.docker.com/engine/reference/commandline/attach) will connect to a running container.
-
-If you want to detach from a running container, use `Ctrl + p, Ctrl + q`.
-If you want to integrate a container with a [host process manager](https://docs.docker.com/engine/admin/host_integration/), start the daemon with `-r=false` then use `docker start -a`.
-
-If you want to expose container ports through the host, see the [exposing ports](#exposing-ports) section.
-
-Restart policies on crashed docker instances are [covered here](http://container42.com/2014/09/30/docker-restart-policies/).
-</b></details>
-
-<details>
-<summary> CPU Constraints.</code></summary><br><b>
-
-
-You can limit CPU, either using a percentage of all CPUs, or by using specific cores.  
-
-For example, you can tell the [`cpu-shares`](https://docs.docker.com/engine/reference/run/#/cpu-share-constraint) setting.  The setting is a bit strange -- 1024 means 100% of the CPU, so if you want the container to take 50% of all CPU cores, you should specify 512.  See <https://goldmann.pl/blog/2014/09/11/resource-management-in-docker/#_cpu> for more:
-
-```sh
-docker run -it -c 512 agileek/cpuset-test
+### Creating images without a Dockerfile
+
+```bash
+docker commit <container> my-image:my-tag   # snapshot a running container
+docker import archive.tar my-image:my-tag   # import a root filesystem tarball
 ```
 
-You can also only use some CPU cores using [`cpuset-cpus`](https://docs.docker.com/engine/reference/run/#/cpuset-constraint).  See <https://agileek.github.io/docker/2014/08/06/docker-cpuset/> for details and some nice videos:
+Both are debugging or migration tools, not a build process: the result is not
+reproducible, `commit` output has no build context recorded, and `import` drops
+image history and configuration such as `ENTRYPOINT`. Production images should
+come from a Dockerfile in version control.
 
-```sh
-docker run -it --cpuset-cpus=0,4,6 agileek/cpuset-test
+## Dockerfile
+
+A `Dockerfile` is the build recipe for an image. The default filename is
+`Dockerfile`; use `docker build -f <path>` for anything else.
+
+| Instruction | Purpose |
+| :--- | :--- |
+| `FROM` | Base image for the following instructions; starts a build stage |
+| `RUN` | Execute a command in a new layer |
+| `COPY` | Copy files or directories from the build context |
+| `ADD` | Like `COPY`, plus remote URLs and local archive extraction |
+| `CMD` | Default command or default arguments, overridable at run time |
+| `ENTRYPOINT` | The executable the container always runs |
+| `ENV` | Environment variable, persisted in the image and at run time |
+| `ARG` | Build-time variable; not runtime configuration unless copied into `ENV`, `LABEL`, or generated files |
+| `WORKDIR` | Working directory for later instructions and at run time |
+| `USER` | UID/GID for later `RUN`, `CMD`, and `ENTRYPOINT` |
+| `EXPOSE` | Documents the listening port; does not publish it |
+| `VOLUME` | Declares a mount point that gets an anonymous volume if unmounted |
+| `LABEL` | Key/value metadata such as source commit and maintainer |
+| `HEALTHCHECK` | Command that reports container health |
+| `STOPSIGNAL` | Signal used to stop the container, default `SIGTERM` |
+| `SHELL` | Shell used for shell-form `RUN`, `CMD`, `ENTRYPOINT` |
+| `ONBUILD` | Deferred instruction that runs when this image is used as a base |
+| `.dockerignore` | Not an instruction: excludes paths from the build context |
+
+`MAINTAINER` is deprecated; use `LABEL maintainer="..."` instead.
+
+### Build practices that matter
+
+- **Order by change frequency.** Copy dependency manifests and install
+  dependencies before copying application source, so a code change does not
+  invalidate the dependency layer.
+- **One logical step per `RUN`.** Chain package install and cleanup in a single
+  `RUN` so the cleanup actually reduces image size.
+- **Always write a `.dockerignore`.** Excluding `.git`, `node_modules`, and
+  build output shrinks the context sent to the daemon and prevents accidental
+  inclusion of local secrets.
+- **Pin base images** to a specific tag or digest. `FROM ubuntu:latest` makes
+  builds non-reproducible.
+- **Use multi-stage builds** so compilers and build tools stay out of the
+  runtime image.
+- **Run as a non-root user** with `USER`.
+- **Never pass secrets through `ARG` or `ENV`.** `ENV` and `LABEL` are stored in
+  the final image configuration. An `ARG` is not automatically present at run
+  time or in `docker image inspect`, but it can leak through provenance,
+  command history, build logs, cache metadata, or files created by a `RUN`.
+  Copying it into `ENV` or `LABEL` makes it persist explicitly. Use BuildKit
+  secret mounts (`RUN --mount=type=secret,...`) or inject secrets at run time.
+
+Multi-stage example:
+
+```dockerfile
+FROM golang:1.22 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /out/app ./cmd/app
+
+FROM gcr.io/distroless/static:nonroot
+COPY --from=build /out/app /app
+USER nonroot:nonroot
+ENTRYPOINT ["/app"]
 ```
 
-Note that Docker can still **see** all of the CPUs inside the container -- it just isn't using all of them.  See <https://github.com/docker/docker/issues/20770> for more details.
-</b></details>
+### Minimal image with one package installed
 
-<details>
-<summary> Memory Constraint.</code></summary><br><b>
+Ubuntu base with only `sqlite3` installed. Note that a Dockerfile has no
+end-of-line comments: `#` is only a comment when it is the first non-whitespace
+character on the line, so comments must sit on their own line.
 
-You can also set [memory constraints](https://docs.docker.com/engine/reference/run/#/user-memory-constraints) on Docker:
+```dockerfile
+FROM ubuntu:22.04
 
-```sh
-docker run -it -m 300M ubuntu:14.04 /bin/bash
+# Keep apt from prompting during the build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install sqlite3 only, then drop the package lists in the same layer
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/usr/bin/sqlite3"]
+CMD ["--help"]
 ```
-</b></details>
 
-<details>
-<summary> Different objects Info.</code></summary><br><b>
+`docker run <image>` opens the sqlite3 help; `docker run <image> /data/app.db`
+opens that database, because the run argument replaces `CMD` and is appended to
+`ENTRYPOINT`.
 
-* [`docker ps`](https://docs.docker.com/engine/reference/commandline/ps) shows running containers.
-* [`docker logs`](https://docs.docker.com/engine/reference/commandline/logs) gets logs from container.  (You can use a custom log driver, but logs is only available for `json-file` and `journald` in 1.10).
-* [`docker inspect`](https://docs.docker.com/engine/reference/commandline/inspect) looks at all the info on a container (including IP address).
-* [`docker events`](https://docs.docker.com/engine/reference/commandline/events) gets events from container.
-* [`docker port`](https://docs.docker.com/engine/reference/commandline/port) shows public facing port of container.
-* [`docker top`](https://docs.docker.com/engine/reference/commandline/top) shows running processes in container.
-* [`docker stats`](https://docs.docker.com/engine/reference/commandline/stats) shows containers' resource usage statistics.
-* [`docker diff`](https://docs.docker.com/engine/reference/commandline/diff) shows changed files in the container's FS.
+## COPY vs ADD
 
-`docker ps -a` shows running and stopped containers.
+Use `COPY` unless you specifically need one of `ADD`'s two extra behaviours.
+`COPY` copies files and directories from the build context; `ADD` does that and
+also fetches remote URLs and auto-extracts local archives.
 
-`docker stats --all` shows a list of all containers, default shows just running.
-</b></details>
+| | `COPY` | `ADD` |
+| :--- | :--- | :--- |
+| Local files and directories | Yes | Yes |
+| Remote URL as source | No | Yes |
+| Auto-extract local tar archive | No | Yes, for recognised compression |
+| Git repository as source | No | Yes, only with the BuildKit Dockerfile frontend |
+| Behaviour predictable from the line alone | Yes | No |
 
-<details>
-<summary> Image Lifecycle.</code></summary><br><b>
+Why `COPY` is the default choice:
 
-* [`docker images`](https://docs.docker.com/engine/reference/commandline/images) shows all images.
-* [`docker import`](https://docs.docker.com/engine/reference/commandline/import) creates an image from a tarball.
-* [`docker build`](https://docs.docker.com/engine/reference/commandline/build) creates image from Dockerfile.
-* [`docker commit`](https://docs.docker.com/engine/reference/commandline/commit) creates image from a container, pausing it temporarily if it is running.
-* [`docker rmi`](https://docs.docker.com/engine/reference/commandline/rmi) removes an image.
-* [`docker load`](https://docs.docker.com/engine/reference/commandline/load) loads an image from a tar archive as STDIN, including images and tags (as of 0.7).
-* [`docker save`](https://docs.docker.com/engine/reference/commandline/save) saves an image to a tar archive stream to STDOUT with all parent layers, tags & versions (as of 0.7).
-* [`docker history`](https://docs.docker.com/engine/reference/commandline/history) shows history of image.
-* [`docker tag`](https://docs.docker.com/engine/reference/commandline/tag) tags an image to a name (local or registry).
+- `ADD some.tar.gz /opt/` silently extracts, while `ADD app.jar /opt/` silently
+  copies. A reviewer cannot tell which happens without knowing the file type.
+- `ADD https://...` gives no checksum verification, no retry control, and leaves
+  the downloaded file in a layer even after later deletion. Prefer
+  `RUN curl -fsSL <url> -o file && echo "<sha> file" | sha256sum -c`, which is
+  explicit and verifiable.
+- Both support `--chown=user:group` and `--chmod`. Without `--chown`, files are
+  owned by root regardless of the current `USER`.
 
-</b></details>
+Legitimate `ADD` use: unpacking a base root filesystem tarball, as official
+distro images do. Git URL sources such as `ADD https://github.com/org/repo.git
+/src` require BuildKit and a current Dockerfile syntax/frontend; the classic
+builder does not support them. Pin a commit or tag and use `--keep-git-dir` only
+when the build truly needs `.git`, otherwise the result can change between
+builds.
 
-<details>
-<summary> What command is used for remove all stopped containers, unused networks, build caches, and dangling images?.</code></summary><br><b>
+## CMD vs ENTRYPOINT
 
-` docker system prune -f`
+`ENTRYPOINT` is the executable that always runs. `CMD` supplies the default
+arguments, and anything you pass to `docker run` replaces `CMD`. To replace the
+`ENTRYPOINT` you need `docker run --entrypoint`.
 
-* `docker system prune`
-* `docker volume prune`
-* `docker network prune`
-* `docker container prune`
-* `docker image prune`
-</b></details>
+| | `ENTRYPOINT` | `CMD` |
+| :--- | :--- | :--- |
+| Role | Fixed executable | Default arguments or default command |
+| Overridden by run arguments | No | Yes |
+| Overridden by | `--entrypoint` | Trailing arguments of `docker run` |
+| Inherited from base image | Yes | Yes, and reset to empty when `ENTRYPOINT` is set in a later stage |
 
-<details>
-<summary> Copying Files From/To  docker containers.</code></summary><br><b>
+Exec form versus shell form matters more than the choice between the two
+instructions:
 
-` docker cp myfile.txt ccae4670f030:/usr/share`
+```dockerfile
+ENTRYPOINT ["nginx", "-g", "daemon off;"]   # exec form: nginx is PID 1
+ENTRYPOINT nginx -g 'daemon off;'           # shell form: /bin/sh -c is PID 1
+```
 
-Syntax to Copy from Container to Docker Host  
-` docker cp {options} CONTAINER:SRC_PATH DEST_PATH `
-</b></details>
+With shell form the shell becomes PID 1, so `SIGTERM` from `docker stop` goes to
+the shell and often is not forwarded. The container then ignores the graceful
+stop and is killed by `SIGKILL` after the timeout. Always use exec form for the
+process you want to receive signals.
 
-<details>
-<summary> Clean your docker host using the commands (in bash).</code></summary><br><b>
- 
-` docker stop  $(docker ps -aq) `
-` docker rm -f $(docker ps -a -q) `
-` docker volume rm $(docker volume ls -q) `
-</b></details>
+Common combinations:
 
-<details>
-<summary> Network Lifecycle.</code></summary><br><b>
+| Pattern | Result |
+| :--- | :--- |
+| `ENTRYPOINT ["app"]` + `CMD ["--help"]` | `docker run img` runs `app --help`; `docker run img --port 80` runs `app --port 80` |
+| `CMD ["app", "--help"]` only | `docker run img` runs `app --help`; `docker run img bash` runs `bash` |
+| `ENTRYPOINT ["app"]` only | Arguments always append; the image cannot easily run a shell |
 
+Practical guidance:
 
-* [`docker network connect`](https://docs.docker.com/engine/reference/commandline/network_connect/) NETWORK CONTAINER Connect a container to a network
-* [`docker network disconnect`](https://docs.docker.com/engine/reference/commandline/network_disconnect/) NETWORK CONTAINER Disconnect a container from a network
+- For a single-purpose image, set `ENTRYPOINT` to the binary and `CMD` to the
+  default flags. This makes the image behave like the command it wraps.
+- For an image people need to poke at, use `CMD` alone so `docker run img bash`
+  works.
+- An `ENTRYPOINT` script that ends in `exec "$@"` is the standard way to do
+  setup work and still hand PID 1 to the real process.
+- "ENTRYPOINT should be `/bin/sh`" is wrong: that turns every argument into a
+  shell string and breaks signal handling.
 
-You can specify a [specific IP address for a container](https://blog.jessfraz.com/post/ips-for-all-the-things/):
+## Container lifecycle
 
-```sh
-# create a new bridge network with your subnet and gateway for your ip block
+States: created, running, paused, restarting, exited, dead. `docker run` is
+`docker create` plus `docker start`.
+
+```bash
+docker create --name web nginx      # create without starting
+docker start web                    # start an existing container
+docker run -d --name web nginx      # create and start in one step
+docker run --rm -it alpine sh       # remove automatically on exit
+docker stop web                     # SIGTERM, then SIGKILL after the grace period
+docker stop -t 30 web               # extend the grace period to 30 seconds
+docker kill web                     # SIGKILL immediately
+docker kill -s HUP web              # send a specific signal
+docker restart web
+docker pause web / docker unpause web   # freeze and resume with the cgroup freezer
+docker rename web web-old
+docker update --memory 512m web     # change resource limits in place
+docker rm web                       # delete a stopped container
+docker rm -f web                    # delete a running or paused container
+docker rm -v web                    # also delete its anonymous volumes
+docker wait web                     # block until it exits, print the exit code
+```
+
+### Can a paused container be removed?
+
+Not with a plain `docker rm`: it refuses and tells you to unpause first. Either
+unpause and stop it, or use `docker rm -f`, which kills the container and then
+removes it. The same applies to a running container.
+
+### Inspecting containers
+
+```bash
+docker ps                           # running containers
+docker ps -a                        # all containers, including exited
+docker logs -f --tail 100 web       # container stdout/stderr
+docker inspect web                  # full JSON: mounts, networks, IP, exit code
+docker top web                      # processes inside the container
+docker stats                        # live CPU, memory, network, block I/O
+docker stats --all                  # include non-running containers
+docker diff web                     # files changed in the writable layer
+docker port web                     # published port mappings
+docker events                       # daemon event stream
+docker cp myfile.txt web:/usr/share # host to container
+docker cp web:/var/log/app.log ./   # container to host
+```
+
+`docker inspect -f '{{.State.ExitCode}}' web` and
+`docker inspect -f '{{.State.OOMKilled}}' web` are the two fastest checks after
+an unexpected exit.
+
+## attach vs exec
+
+`docker attach` connects your terminal to the container's existing PID 1 streams.
+`docker exec` starts a new process inside the running container.
+
+| | `docker attach` | `docker exec` |
+| :--- | :--- | :--- |
+| Target | The existing main process | A new process |
+| Multiple sessions | Yes, all see the same stream | Yes, independent |
+| Requires the container to be running | Yes | Yes |
+| Survives container restart | No | No, the exec process is not restarted |
+
+- `docker exec -it web sh` is what you want almost always. `attach` is only for
+  watching or driving the main process, for example an interactive shell that
+  is itself PID 1.
+- On an attached session, `Ctrl-C` sends `SIGINT` to the main process, which
+  usually stops the container. Detach without stopping it using
+  `Ctrl-P` then `Ctrl-Q`, or attach with `--sig-proxy=false`.
+- `docker exec` cannot be used on a stopped container. To inspect one, either
+  `docker cp` the files out, or `docker commit` it to an image and run a shell
+  on that image.
+
+## Networking
+
+### Drivers
+
+| Driver | Use it when |
+| :--- | :--- |
+| `bridge` | Default. Containers on one host that need to talk to each other and to be reachable through published ports. |
+| `host` | The container should use the host network stack directly, for example for high packet rates or when it must bind the host's own ports. No network isolation, no port publishing. |
+| `overlay` | Containers on different hosts must communicate, for example Swarm services. Traffic is encapsulated between daemons, so no manual routing is needed. |
+| `macvlan` | The container needs its own MAC and IP on the physical LAN, so it appears as a separate host. Typical for legacy apps and for migrating from VMs. |
+| `ipvlan` | Like `macvlan` but shares the host MAC, which suits switches that limit MACs per port. |
+| `none` | No network at all beyond loopback. Used for batch jobs that must not reach the network. |
+
+`docker run --network=none nginx` gives the container only its loopback
+interface, so no inbound or outbound traffic is possible. The process still
+starts; it just cannot be reached and cannot reach anything.
+
+### Default bridge vs user-defined bridge
+
+Always create a user-defined bridge for multi-container applications.
+
+| | Default `bridge` | User-defined bridge |
+| :--- | :--- | :--- |
+| Service discovery by name | No | Yes, via the embedded DNS resolver at 127.0.0.11 |
+| Container isolation | All containers share one network | Only attached containers can reach each other |
+| Attach/detach while running | No | Yes |
+| Configurable subnet and gateway | Limited | Yes |
+
+The default bridge is `docker0`. Its default subnet is `172.17.0.0/16` and the
+gateway address, which is the host as seen from containers, is `172.17.0.1`.
+That subnet is the bridge network, not "the IP address of the Docker host"; the
+host's own address on your LAN is unrelated and configurable via the daemon's
+`default-address-pools`.
+
+```bash
+docker network ls
+docker network create --driver bridge app-net
 docker network create --subnet 203.0.113.0/24 --gateway 203.0.113.254 iptastic
-
-# run a nginx container with a specific ip in that block
-$ docker run --rm -it --net iptastic --ip 203.0.113.2 nginx
-
-# curl the ip from any other place (assuming this is a public ip block duh)
-$ curl 203.0.113.2
-```
-</b></details>
-
-<details>
-<summary> List Docker Images.</code></summary><br><b>
-
-`docker images` : to list Docker Images.
-
-`docker images -a` : Show all images(default hides intermediate images).
-
-`docker images alpine:3.7` : List images by name and tag.
-
-`docker images --no-trunc` : List the full length image IDs.
-
-`docker images --filter=reference='alpine'` : List images with filter.
-
-</b></details>
-
-<details>
-<summary> Saving Images & Containers as Tar Files for Sharing.</code></summary><br><b>
-
-save and load work with Docker images.
-
-save works with Docker images. It saves everything needed to build a container from scratch. Use this command if you want to share an image with others.
-
-load works with Docker images. Use this command if you want to run an image exported with save. Unlike pull, which requires connecting to a Docker registry, load can import from anywhere (e.g. a file system, URLs).
-
-export works with Docker containers, and it exports a snapshot of the container’s file system. Use this command if you want to share or back up the result of building an image.
-
-import works with the file system of an exported container, and it imports it as a Docker image. Use this command if you have an exported file system you want to explore or use as a layer for a new image.
-
-Load an image from file:
-
-```sh
-docker load < my_image.tar.gz
+docker network inspect app-net             # subnet, gateway, attached containers
+docker network connect app-net web         # attach a running container
+docker network disconnect app-net web
+docker run -d --name db --network app-net postgres:16
+docker run -it --network app-net alpine ping db   # resolves by container name
+docker run --rm -it --network iptastic --ip 203.0.113.2 nginx
 ```
 
-Save an existing image:
+### Publishing ports
 
-```sh
-docker save my_image:my_tag | gzip > my_image.tar.gz
+`EXPOSE` in a Dockerfile is documentation only. Traffic reaches a container
+because you published a port at run time.
+
+```bash
+docker run -p 8080:80 nginx          # host 8080 to container 80, all host interfaces
+docker run -p 127.0.0.1:8080:80 nginx # bind only to loopback on the host
+docker run -P nginx                   # publish every EXPOSEd port to a random host port
 ```
 
-Import a container as an image from file:
+In Compose, `expose` only records the port for other containers on the same
+network, while `ports` actually maps it onto the host. The repository file
+`docker-compose-diff-expose_&_ports.yaml` in the parent directory demonstrates
+the difference.
 
-```sh
+Containers on the same user-defined network reach each other on the container
+port directly by name, so `ports` is only needed for traffic entering from
+outside Docker.
+
+## Storage
+
+A container's writable layer is copy-on-write and disappears with the
+container. Anything that must survive has to be on a mount.
+
+| Type | Managed by | Lives at | Use for |
+| :--- | :--- | :--- | :--- |
+| Volume | Docker | `/var/lib/docker/volumes/<name>/_data` on Linux | Database files and any container-produced state |
+| Bind mount | You | Any host path you choose | Source code in development, host config and logs |
+| tmpfs mount | Docker | Host memory only | Secrets and scratch data that must never hit disk |
+
+### Volumes
+
+```bash
+docker volume create pgdata
+docker volume ls
+docker volume inspect pgdata
+docker volume rm pgdata
+docker volume prune                  # remove unused volumes
+
+docker run -d --name db -v pgdata:/var/lib/postgresql/data postgres:16
+docker run -d --name db --mount source=pgdata,target=/var/lib/postgresql/data postgres:16
+docker run --rm --volumes-from db alpine tar cf - /var/lib/postgresql/data > backup.tar
+```
+
+Practical detail:
+
+- Named volumes are created on first use and are **not** deleted with the
+  container. `docker rm -v` removes anonymous volumes only, which is how
+  orphaned volumes accumulate; check with `docker volume ls -f dangling=true`.
+- The host path above is owned by root and is Docker's internal layout. It is
+  readable on a Linux host, but you should treat it as private and go through
+  `docker run`, `docker cp`, or a helper container instead of editing it. On
+  Docker Desktop the path is inside the Linux VM, not on macOS or Windows.
+- Volumes work across containers: `--volumes-from` and mounting the same named
+  volume in several containers are the standard backup and sidecar patterns.
+- Network volume drivers (NFS, EBS, Portworx) let a volume follow a container to
+  another host, which is what local volumes cannot do.
+
+### Bind mounts
+
+`-v /host/path:/container/path` maps a host directory into the container. The
+long form is clearer and fails loudly on a typo:
+`--mount type=bind,source=/host/path,target=/container/path,readonly`.
+
+The short `-v` form creates a missing host directory silently, while
+`--mount type=bind` errors out. Bind mounts also expose the host filesystem and
+carry host UID/GID semantics, so mounting `/var/run/docker.sock` or a host
+config directory read-write is a privilege escalation risk.
+
+### Storage driver and the writable layer
+
+`overlay2` is the default storage driver on modern Linux. Reads come from the
+image layers; the first write to a file copies it up into the container's
+writable layer, so write-heavy workloads on the writable layer are slower and
+grow disk usage per container. That is the technical reason databases belong on
+volumes, which bypass the union filesystem.
+
+```bash
+docker info | grep -i 'storage driver'
+docker system df                     # space used by images, containers, volumes, cache
+docker system df -v                  # per-object breakdown
+```
+
+## Resource limits
+
+By default a container can use all host CPU and memory. Set limits explicitly.
+
+```bash
+docker run -it --cpus=1.5 --memory=512m --memory-swap=512m myapp
+docker run -it --cpuset-cpus=0,4,6 myapp     # pin to specific cores
+docker run -it --cpu-shares=512 myapp        # relative weight under contention
+docker run -it --pids-limit=200 myapp        # cap process count
+docker update --cpus=2 --memory=1g myapp     # adjust a running container
+```
+
+Practical detail:
+
+- `--cpus` is the option to use. `--cpus=1.5` means one and a half cores worth
+  of CPU time per period, enforced as a hard cap.
+- `--cpu-shares` is only a **relative weight** among competing containers, with
+  1024 as the default. It does nothing when the host is idle, so `--cpu-shares=512`
+  does not mean "50% of the CPU". Treat it as a priority, not a limit.
+- `--memory` is a hard limit. Exceeding it means the kernel OOM-kills the
+  process, the container exits with code 137, and
+  `docker inspect -f '{{.State.OOMKilled}}'` reports `true`. Set
+  `--memory-swap` equal to `--memory` to forbid swap use.
+- Inside the container, tools such as `free`, `nproc`, and `/proc/cpuinfo` still
+  report host-wide values unless the runtime virtualises them. Runtimes that
+  size thread pools from `nproc` will over-allocate; pass the limit explicitly
+  through configuration.
+
+## Logging
+
+Docker logging happens at two levels: the daemon and the container.
+
+**Daemon logs** record the engine's own behaviour and are the place to look for
+pull failures, storage driver errors, and networking problems. Verbosity is set
+with `--log-level` or `"log-level"` in `/etc/docker/daemon.json`, with the
+levels `debug`, `info` (default), `warn`, `error`, and `fatal`. Read them with
+`journalctl -u docker.service` on systemd hosts.
+
+**Container logs** are whatever the main process writes to stdout and stderr,
+captured by the container's log driver.
+
+```bash
+docker logs web
+docker logs -f --since 10m --timestamps web
+docker logs --tail 100 web
+```
+
+Practical detail:
+
+- Applications in containers should log to stdout/stderr, not to files inside
+  the container. A file in the writable layer is invisible to `docker logs` and
+  is lost with the container.
+- The default driver is `json-file`, which writes to
+  `/var/lib/docker/containers/<id>/<id>-json.log` and **does not rotate** unless
+  configured. Unbounded container logs filling the disk is a routine incident;
+  set `max-size` and `max-file` in `daemon.json`.
+- `docker logs` works with `json-file`, `local`, and `journald`. With a shipping
+  driver such as `awslogs`, `fluentd`, `gelf`, or `splunk`, `docker logs`
+  returns nothing and you read logs in the destination system.
+
+## Registries and image transfer
+
+A **repository** is a named collection of tagged images, for example
+`library/nginx`. A **registry** is the server hosting repositories and serving
+the HTTP API, for example Docker Hub, Amazon ECR, or a self-hosted Harbor.
+
+```bash
+docker login registry.example.com
+docker logout registry.example.com
+docker pull nginx:1.27-alpine
+docker tag myapp:1.4.0 registry.example.com/team/myapp:1.4.0
+docker push registry.example.com/team/myapp:1.4.0
+docker rmi myapp:1.4.0
+```
+
+Reference images from a public registry by digest (`nginx@sha256:...`) or at
+least by an immutable tag when supply-chain integrity matters; a mutable tag can
+be repointed at different content. Scan images before promotion and mirror
+critical bases into your own registry.
+
+### save/load vs export/import
+
+`save` and `load` work on **images** and keep layers, tags, and history.
+`export` and `import` work on a **container's filesystem** and keep neither
+history nor configuration.
+
+```bash
+docker save my_image:my_tag | gzip > my_image.tar.gz   # image, with all layers
+docker load < my_image.tar.gz                          # restore that image
+
+docker export my_container | gzip > my_container.tar.gz  # flat filesystem snapshot
 cat my_container.tar.gz | docker import - my_image:my_tag
 ```
 
-Export an existing container:
+Use `save`/`load` to move a real image between hosts without a registry, for
+example into an air-gapped environment. `export`/`import` produces a single
+flattened layer with no `ENTRYPOINT`, `CMD`, or `ENV`, so the resulting image
+usually needs those supplied again. It is useful for inspecting a filesystem or
+squashing a base layer, not for shipping applications.
 
-```sh
-docker export my_container | gzip > my_container.tar.gz
+## Docker Compose
+
+Compose describes a multi-container application declaratively in a YAML file:
+services, images or build contexts, environment, networks, volumes, and
+dependencies. One command brings the whole set up with a shared default
+network.
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs -f api
+docker compose exec api sh
+docker compose config          # render and validate the merged configuration
+docker compose down            # stop and remove containers and networks
+docker compose down -v         # also remove named volumes, destroys data
 ```
 
-Difference between loading a saved image and importing an exported container as an image.
+Practical detail:
 
-Loading an image using the `load` command creates a new image including its history.  
-Importing a container as an image using the `import` command creates a new image excluding the history which results in a smaller image size compared to loading an image.
-</b></details>
+- Compose creates a default network for the project, so services reach each
+  other by service name. Explicit `links` are obsolete.
+- `depends_on` waits for the container to start, not for the application to be
+  ready. Pair it with `condition: service_healthy` and a `HEALTHCHECK`.
+- Compose is for local development and single-host deployments. Multi-host
+  production belongs on an orchestrator.
 
-<details>
-<summary> Registry & Repository.</code></summary><br><b>
+## Cleanup
 
-A repository is a *hosted* collection of tagged images that together create the file system for a container.
+Inspect the candidates and reclaimable space before deleting anything:
 
-A registry is a *host* -- a server that stores repositories and provides an HTTP API for [managing the uploading and downloading of repositories](https://docs.docker.com/engine/tutorials/dockerrepos/).
+```bash
+docker system df -v
+docker ps -a --filter status=exited
+docker image ls --filter dangling=true
+docker volume ls --filter dangling=true
+docker network ls --filter type=custom
+docker builder du
+```
 
-Docker.com hosts its own [index](https://hub.docker.com/) to a central registry which contains a large number of repositories.  Having said that, the central docker registry [does not do a good job of verifying images](https://titanous.com/posts/docker-insecurity) and should be avoided if you're worried about security.
+Then apply the narrowest cleanup that removes only reviewed objects:
 
-* [`docker login`](https://docs.docker.com/engine/reference/commandline/login) to login to a registry.
-* [`docker logout`](https://docs.docker.com/engine/reference/commandline/logout) to logout from a registry.
-* [`docker search`](https://docs.docker.com/engine/reference/commandline/search) searches registry for image.
-* [`docker pull`](https://docs.docker.com/engine/reference/commandline/pull) pulls an image from registry to local machine.
-* [`docker push`](https://docs.docker.com/engine/reference/commandline/push) pushes an image to the registry from local machine.
-</b></details>
+```bash
+docker system prune              # stopped containers, unused networks, dangling images, build cache
+docker system prune -a --volumes # also unused images and volumes, destructive
+docker container prune
+docker image prune -a
+docker network prune
+docker volume prune
+docker builder prune             # build cache only
+```
 
-<details>
-<summary> Dockerfile Instruction.</code></summary><br><b>
+Blunt reset of a disposable development host, only after reviewing the lists
+above:
 
+```bash
+docker ps -aq                            # inspect every affected container ID
+docker volume ls -q                      # inspect every affected volume name
+docker stop $(docker ps -aq)
+docker rm -f $(docker ps -aq)
+docker volume rm $(docker volume ls -q)
+```
 
-* [.dockerignore](https://docs.docker.com/engine/reference/builder/#dockerignore-file)
-* [FROM](https://docs.docker.com/engine/reference/builder/#from) Sets the Base Image for subsequent instructions.
-* [MAINTAINER (deprecated - use LABEL instead)](https://docs.docker.com/engine/reference/builder/#maintainer-deprecated) Set the Author field of the generated images.
-* [RUN](https://docs.docker.com/engine/reference/builder/#run) execute any commands in a new layer on top of the current image and commit the results.
-* [CMD](https://docs.docker.com/engine/reference/builder/#cmd) provide defaults for an executing container.
-* [EXPOSE](https://docs.docker.com/engine/reference/builder/#expose) informs Docker that the container listens on the specified network ports at runtime.  NOTE: does not actually make ports accessible.
-* [ENV](https://docs.docker.com/engine/reference/builder/#env) sets environment variable.
-* [ADD](https://docs.docker.com/engine/reference/builder/#add) copies new files, directories or remote file to container.  Invalidates caches. Avoid `ADD` and use `COPY` instead.
-* [COPY](https://docs.docker.com/engine/reference/builder/#copy) copies new files or directories to container.  By default this copies as root regardless of the USER/WORKDIR settings.  Use `--chown=<user>:<group>` to give ownership to another user/group.  (Same for `ADD`.)
-* [ENTRYPOINT](https://docs.docker.com/engine/reference/builder/#entrypoint) configures a container that will run as an executable.
-* [VOLUME](https://docs.docker.com/engine/reference/builder/#volume) creates a mount point for externally mounted volumes or other containers.
-* [USER](https://docs.docker.com/engine/reference/builder/#user) sets the user name for following RUN / CMD / ENTRYPOINT commands.
-* [WORKDIR](https://docs.docker.com/engine/reference/builder/#workdir) sets the working directory.
-* [ARG](https://docs.docker.com/engine/reference/builder/#arg) defines a build-time variable.
-* [ONBUILD](https://docs.docker.com/engine/reference/builder/#onbuild) adds a trigger instruction when the image is used as the base for another build.
-* [STOPSIGNAL](https://docs.docker.com/engine/reference/builder/#stopsignal) sets the system call signal that will be sent to the container to exit.
-* [LABEL](https://docs.docker.com/config/labels-custom-metadata/) apply key/value metadata to your images, containers, or daemons.
-* [SHELL](https://docs.docker.com/engine/reference/builder/#shell) override default shell is used by docker to run commands.
-* [HEALTHCHECK](https://docs.docker.com/engine/reference/builder/#healthcheck) tells docker how to test a container to check that it is still working.
-</b></details>
+Never run these on a shared or production host: they delete data volumes and
+every container without confirmation. In production, prune specific object types
+on a schedule with filters such as `--filter "until=168h"`.
 
-<details>
-<summary> Docker Volumes.</code></summary><br><b>
+## Security practices
 
-* [`docker volume create`](https://docs.docker.com/engine/reference/commandline/volume_create/)
-* [`docker volume rm`](https://docs.docker.com/engine/reference/commandline/volume_rm/)
-* [`docker volume ls`](https://docs.docker.com/engine/reference/commandline/volume_ls/)
-* [`docker volume inspect`](https://docs.docker.com/engine/reference/commandline/volume_inspect/)
+- Run as a non-root user. Add a `USER` instruction, and enforce it at run time
+  with `--user 1000:1000` where the image cannot be changed.
+- Drop capabilities and privileges: `--cap-drop=ALL` then add back only what is
+  needed, `--security-opt=no-new-privileges`, and a read-only root filesystem
+  (`--read-only`) with a tmpfs for scratch space.
+- Never use `--privileged` or mount `/var/run/docker.sock` into a container
+  unless you accept that the container is equivalent to host root.
+- Keep secrets out of images. Environment variables and labels persist in image
+  configuration and appear in `docker inspect`; build arguments can leak
+  through provenance, commands, logs, cache, or generated files even though an
+  unused `ARG` is not a runtime environment variable. Use a secrets manager, a
+  mounted file, or BuildKit secret mounts.
+- Use minimal bases such as `alpine` or distroless to cut the vulnerability
+  surface, pin versions, and rebuild regularly to pick up base image patches.
+- Scan images in the pipeline and fail the build on fixable high-severity
+  findings.
 
-Volumes are useful in situations where you can't use links (which are TCP/IP only). For instance, if you need to have two docker instances communicate by leaving stuff on the filesystem.
+## Docker in CI/CD
 
-You can mount them in several docker containers at once, using `docker run --volumes-from`.
+**Continuous integration** means every change is merged into the mainline
+frequently and validated automatically by a build and test run, so integration
+problems surface in minutes rather than at release time.
 
-Because volumes are isolated filesystems, they are often used to store state from computations between transient containers. That is, you can have a stateless and transient container run from a recipe, blow it away, and then have a second instance of the transient container pick up from where the last one left off.
+**Continuous delivery** means every change that passes the pipeline is
+automatically packaged and kept releasable, with the actual push to production
+being a deliberate decision.
 
-See [advanced volumes](http://crosbymichael.com/advanced-docker-volumes.html) for more details. [Container42](http://container42.com/2014/11/03/docker-indepth-volumes/) is also helpful.
-</b></details>
+**Continuous deployment** goes one step further: any change that passes every
+stage is released to production automatically, with no manual approval.
 
-<details>
-<summary> Difference between docker attach and docker exec
-.</code></summary><br><b>
+Docker's role is to make the build output an immutable artifact that every
+stage shares.
 
-* `docker attach` command allows you to attach to a running container using the container’s ID or name, either to view its ongoing output or to control it interactively. You can attach to the same contained process multiple times simultaneously, screen sharing style, or quickly view the progress of your detached process.
+Typical pipeline:
 
-command docker attach is for attaching to the existing process. So when you exit, you exit the existing process.
+1. **Build** the image once, tagged with the commit SHA. Never rebuild per
+   environment; a rebuild is a different artifact.
+2. **Unit tests** run against the code or inside the built image.
+3. **Image scan** and policy checks (no root user, no critical CVEs, size
+   budget).
+4. **Push** to the registry.
+5. **Deploy to staging** using that exact image digest.
+6. **Smoke test** as the gate: a small, fast, always-automated set of checks
+   that the deployment is fundamentally alive, for example the process is
+   serving, health endpoint returns 200, login works, a core page renders. It
+   runs in minutes and its only job is a go/no-go decision. If it fails, stop
+   the pipeline immediately instead of spending an hour on deeper suites.
+7. **Regression suite** after the smoke gate passes: the broad set that
+   verifies existing behaviour still works after the change, covering edge
+   cases and previously fixed bugs. It is slower and is what gives you the
+   confidence to refactor or bump base images.
+8. **Promote** the same image to production, then verify with the same health
+   checks and keep the previous tag available for rollback.
 
-If we use docker attach, we can use only one instance of shell. So if we want open new terminal with new instance of container’s shell, we just need run docker exec
+Pipeline practices:
 
-If the docker container was started using /bin/bash command, you can access it using attach, if not then you need to execute the command to create a bash instance inside the container using exec. Attach isn’t for running an extra thing in a container, it’s for attaching to the running process.
+- Cache layers between runs (registry cache or BuildKit cache mounts) and keep
+  the dependency layer stable to keep builds fast.
+- Build with BuildKit for parallel stages, secret mounts, and cache mounts.
+- Tag with the SHA and add human-friendly tags as aliases; never deploy
+  `latest`, since it makes the running version unknowable.
+- Prefer rootless builders or BuildKit over mounting the Docker socket into
+  build jobs.
 
-To stop a container, use CTRL-c. This key sequence sends SIGKILL to the container. If –sig-proxy is true (the default),CTRL-c sends a SIGINT to the container. You can detach from a container and leave it running using the CTRL-p CTRL-q key sequence.
+## Troubleshooting scenarios
 
-* `docker exec` is specifically for running new things in a already started container, be it a shell or some other process. The docker exec command runs a new command in a running container.
+Realistic failures, how to diagnose them, and what stops them recurring. Each
+scenario follows the pattern **symptom -> evidence -> cause -> fix ->
+prevention** and links back to the concept section it depends on.
 
-The command started using docker exec only runs while the container’s primary process (PID 1) is running, and it is not restarted if the container is restarted.
+Collect evidence before restarting anything. A `docker restart` destroys the
+writable layer state and the process list you needed, and often makes the
+failure unreproducible.
 
-exec command works only on already running container. If the container is currently stopped, you need to first run it. So now you can run any command in running container just knowing its ID (or name)
+### First-response triage
 
-</b></details>
+```bash
+docker ps -a                                   # is it running, exited, or restarting?
+docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}}' <c>
+docker logs --tail 200 --timestamps <c>        # what the process said before it stopped
+docker inspect -f '{{json .Config.Entrypoint}} {{json .Config.Cmd}}' <c>
+docker stats --no-stream                       # CPU, memory against limits
+docker system df                               # host disk pressure
+docker events --since 30m                      # daemon view: kills, OOM, health status
+journalctl -u docker.service --since '30 min ago'   # daemon-side errors
+```
 
-<details>
-<summary> What does docker run --network=none nginx do ?.</code></summary><br><b>
+Exit codes worth memorising:
 
-Disables all incoming and outgoing networking.
-</b></details>
+| Exit code | Meaning |
+| :--- | :--- |
+| 0 | The main process finished normally, so the container has nothing left to run |
+| 1 / 2 | Application error or shell usage error; read the logs |
+| 125 | The Docker daemon itself rejected the run command |
+| 126 | The command was found but is not executable |
+| 127 | The command was not found in the image |
+| 137 | `SIGKILL`: OOM-killed by the kernel, or `docker kill`, or a stop that timed out |
+| 139 | `SIGSEGV`: segmentation fault inside the container |
+| 143 | `SIGTERM`: graceful stop, and the process honoured it |
 
-<details>
-<summary> What is continuous Integration, Continuous Delivery & Continuous Deployment?.</code></summary><br><b>
+### 1. Container exits immediately with code 0
 
-`Continuous Integration (CI)` is a DevOps software development practice that enables the developers to merge their code changes in the central repository. That way, automated builds and tests can be run. The amendments by the developers are validated by creating a built and running an automated test against them.
-In the case of Continuous Integration, a tremendous amount of emphasis is placed on testing automation to check on the application. This is to know if it is broken whenever new commits are integrated into the main branch.
+**Symptom:** `docker run -d` returns an ID, but `docker ps` is empty and
+`docker ps -a` shows `Exited (0)` a second later.
 
-`Continuous Delivery (CD)` is a DevOps practice that refers to the building, testing, and delivering improvements to the software code. The phase is referred to as the extension of the Continuous Integration phase to make sure that new changes can be released to the customers quickly in a substantial manner. This can be simplified as, though you have automated testing, the release process is also automated, and any deployment can occur at any time with just one click of a button.
-Continuous Delivery gives you the power to decide whether to make the releases daily, weekly, or whenever the business requires it. The maximum benefits of Continuous Delivery can only be yielded if they release small batches, which are easy to troubleshoot if any glitch occurs.
+**Cause:** the container's main process finished, and a container lives exactly
+as long as PID 1. Common variants: the image's `CMD` is a one-shot command, the
+entrypoint script ends instead of `exec`ing the server, the service was started
+with a flag that daemonises it into the background, or an interactive shell was
+started without `-it` so it read EOF on stdin and exited.
 
-`Continuous Deployment (CD)` is the final stage in the pipeline that refers to the automatic releasing of any developer changes from the repository to the production.
-Continuous Deployment ensures that any change that passes through the stages of production is released to the end-users. There is absolutely no way other than any failure in the test that may stop the deployment of new changes to the output. This step is a great way to speed up the feedback loop with customers and is free from human intervention
+**Diagnose:**
 
-</b></details>
+```bash
+docker logs <c>
+docker inspect -f '{{json .Config.Entrypoint}} {{json .Config.Cmd}}' <c>
+docker run --rm -it <image> sh    # start a shell and run the command by hand
+```
 
-<details>
-<summary> Can a paused container be removed from Docker?.</code></summary><br><b>
+**Fix:** run the process in the foreground. For Nginx that is
+`nginx -g 'daemon off;'`, for Apache `httpd-foreground`. In an entrypoint
+script, finish with `exec "$@"` or `exec /usr/bin/myapp` so the real process
+becomes PID 1 rather than a child of a script that then exits. The forms are
+compared in [CMD vs ENTRYPOINT](#cmd-vs-entrypoint).
 
-No, it is not possible! A container MUST be in the stopped state before we can remove it.
-</b></details>
+**Prevent:** treat exit 0 as a design signal, not a bug: if the workload really
+is one-shot, run it as a job (`docker run --rm`) instead of `-d`, and do not
+attach a restart policy to it.
 
-<details>
-<summary> Write a Dockerfile using ubuntu as Base Image has nothing but sql install only?</code></summary><br><b>
+### 2. Container killed with exit code 137
 
-FROM ubuntu:22.04                      # Base image: Ubuntu 22.04
+**Symptom:** the container disappears under load. `docker inspect` shows
+`ExitCode: 137`. The application log ends mid-request with no error.
 
-ENV DEBIAN_FRONTEND=noninteractive     # Disable interactive apt prompts
+**Cause:** almost always the kernel OOM killer enforcing `--memory`, described
+in [Resource limits](#resource-limits). The two other sources of 137 are an
+explicit `docker kill` and a `docker stop` where the process ignored `SIGTERM`
+and was killed after the grace period.
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends sqlite3 && \
-    rm -rf /var/lib/apt/lists/*        # Install sqlite3 only + cleanup
+**Diagnose:**
 
-ENTRYPOINT ["/usr/bin/sqlite3"]        # Use sqlite3 as entrypoint (no shell)
+```bash
+docker inspect -f '{{.State.OOMKilled}}' <c>      # true means memory limit
+docker inspect -f '{{.HostConfig.Memory}}' <c>    # the limit in bytes, 0 means unlimited
+docker stats --no-stream <c>                      # usage against limit
+dmesg -T | grep -i -E 'killed process|oom'        # host kernel confirmation
+```
 
-CMD ["--help"]                         # Default argument on container start
+**Fix:** raise `--memory` if the limit is simply too low, or fix the memory
+consumption. For JVM and Node workloads, also set the runtime's own heap limit:
+a JVM without `-XX:MaxRAMPercentage` or `-Xmx` may size its heap from host
+memory and get killed long before it thinks it is full.
 
+**Prevent:** set both a container limit and a matching in-process limit, alert
+on `container_memory_working_set_bytes` approaching the limit rather than on
+restarts, and load-test at the configured limit instead of unlimited.
 
+### 3. Container in a restart loop
 
+**Symptom:** `docker ps` shows the status flipping between `Up 2 seconds` and
+`Restarting (1)`, and `RestartCount` climbs.
 
-</b></details>
+**Cause:** the process crashes at startup and `--restart=always` keeps
+relaunching it. Typical roots are a missing environment variable, an
+unreachable dependency (database not up yet), a bad config file mount, or a port
+conflict inside the container.
 
+**Diagnose:**
 
-<details>
-<summary> Deploy Minio.</code></summary><br><b>
+```bash
+docker inspect -f '{{.RestartCount}} {{.State.Error}}' <c>
+docker logs <c> 2>&1 | head -50           # the first failure is the informative one
+docker run --rm -it --entrypoint sh <image>   # inspect the image without the app
+```
 
-`docker run -d -p  9000:9000   -e "MINIO_ROOT_USER=admin"   -e "MINIO_ROOT_PASSWORD=123Dhiru!"   -v /mnt/data:/data   minio/minio server /data `
+**Fix:** correct the configuration. To debug interactively, stop the restart
+loop by starting the container with `--restart=no --entrypoint sh -it`, then run
+the real command by hand and read the error.
 
-`mc config host add local http://172.17.0.2:9000 admin 123Dhiru! --api S3v4 --lookup auto `
+**Prevent:** use `--restart=on-failure:5` rather than `always` so a permanently
+broken container stops instead of hiding the failure, add a `HEALTHCHECK`, and
+make the application retry dependencies with backoff instead of exiting on the
+first connection refusal.
 
-`mc find local/test --newer-than 2d0h0m --ignore '*.html'`
-</b></details>
+### 4. Port is already allocated
 
+**Symptom:** `docker run -p 8080:80` fails with
+`Bind for 0.0.0.0:8080 failed: port is already allocated` and exit code 125.
+
+**Cause:** another container already publishes that host port, or a host process
+outside Docker is listening on it. A stopped-but-not-removed container can also
+hold the mapping if it is restarting.
+
+**Diagnose:**
+
+```bash
+docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' | grep 8080
+sudo ss -ltnp | grep :8080         # host process holding the port
+```
+
+**Fix:** remove or re-map the conflicting container, or choose another host
+port. Publishing to a specific interface (`-p 127.0.0.1:8080:80`) also avoids
+clashing with a service bound to a different address.
+
+**Prevent:** in Compose, avoid fixed host ports for services that do not need
+host access; rely on the project network and the container port instead, as
+described in [Publishing ports](#publishing-ports).
+
+### 5. Published port is open but connections are refused
+
+**Symptom:** `docker ps` shows `0.0.0.0:8080->80/tcp`, but `curl localhost:8080`
+returns "connection reset" or "empty reply".
+
+**Cause:** the application inside the container listens on `127.0.0.1` instead
+of `0.0.0.0`. Traffic arrives in the container's network namespace, but nothing
+is listening on the container's external interface. The other common cause is a
+mapping to the wrong container port.
+
+**Diagnose:**
+
+```bash
+docker exec <c> ss -ltn                     # what address is it bound to?
+docker exec <c> curl -sv localhost:80       # does it answer from inside?
+docker port <c>                             # what did Docker actually map?
+```
+
+**Fix:** configure the application to bind `0.0.0.0` (or `::`) inside the
+container. Binding to loopback is correct on a VM and wrong in a container.
+
+**Prevent:** make the bind address a configuration value with `0.0.0.0` as the
+container default, and add a smoke test in the pipeline that curls the published
+port after start.
+
+### 6. One container cannot resolve another by name
+
+**Symptom:** the API container fails with "could not resolve host: db", while
+both containers are running on the same host.
+
+**Cause:** they are on the **default** `bridge` network, which has no embedded
+DNS for container names; see
+[Default bridge vs user-defined bridge](#default-bridge-vs-user-defined-bridge).
+Other variants: the containers are on two different user-defined networks, or
+the code uses the Compose service name while the container was started with
+`docker run` outside the project network.
+
+**Diagnose:**
+
+```bash
+docker inspect -f '{{json .NetworkSettings.Networks}}' api
+docker inspect -f '{{json .NetworkSettings.Networks}}' db     # same network?
+docker exec api getent hosts db
+docker exec api cat /etc/resolv.conf                          # expect nameserver 127.0.0.11
+docker network inspect app-net
+```
+
+**Fix:**
+
+```bash
+docker network create app-net
+docker network connect app-net db
+docker network connect app-net api
+docker exec api ping -c1 db
+```
+
+**Prevent:** never rely on the default bridge for multi-container work. Define
+an explicit network in Compose, and address services by service name rather
+than by IP, since container IPs change on every recreate.
+
+### 7. Container has no internet or DNS access
+
+**Symptom:** `docker exec <c> ping 8.8.8.8` works but
+`docker exec <c> ping example.com` fails, or neither works.
+
+**Cause:** if IP works and names do not, it is DNS: the container inherited a
+host resolver it cannot reach, or the daemon has no usable upstream DNS. If
+neither works, it is routing or NAT: IP forwarding disabled on the host,
+missing masquerade rules after an iptables or firewalld reload, or the
+container is on a `none` network.
+
+**Diagnose:**
+
+```bash
+docker exec <c> cat /etc/resolv.conf
+docker exec <c> nslookup example.com 8.8.8.8
+sysctl net.ipv4.ip_forward                       # must be 1
+sudo iptables -t nat -L DOCKER -n                # masquerade rules present?
+docker inspect -f '{{json .NetworkSettings.Networks}}' <c>
+```
+
+**Fix:** set working resolvers for the daemon in `/etc/docker/daemon.json`
+(`{"dns": ["10.0.0.2", "1.1.1.1"]}`) and restart the daemon; or enable
+forwarding with `sysctl -w net.ipv4.ip_forward=1`. Restarting the Docker daemon
+recreates its iptables chains after a firewall reload wiped them, but it also
+restarts every container without a restart policy, so treat it as a change with
+downtime rather than a quick retry.
+
+**Prevent:** persist the sysctl setting, and restart Docker as part of any
+firewall management change. On corporate networks, pin the daemon DNS instead of
+inheriting a VPN-specific resolver that disappears.
+
+### 8. No space left on device on the host
+
+**Symptom:** builds fail, containers cannot start, and the application logs I/O
+errors, while the application data itself is small.
+
+**Cause:** `/var/lib/docker` filled up. In order of likelihood: unrotated
+`json-file` container logs, accumulated build cache, dangling images from
+repeated CI builds, and orphaned volumes.
+
+**Diagnose:**
+
+```bash
+docker system df -v                        # reclaimable space per category
+du -sh /var/lib/docker/*
+du -sh /var/lib/docker/containers/*/*-json.log | sort -h | tail
+docker volume ls -f dangling=true
+df -h /var/lib/docker && df -i /var/lib/docker    # also check inodes
+```
+
+**Fix:** reclaim in the order of least risk, reviewing each list before pruning.
+Filtered prunes are safer than a blanket `docker system prune -a --volumes`,
+which also removes images and data volumes still in use elsewhere:
+
+```bash
+docker builder prune --filter 'until=168h'
+docker image prune -a --filter 'until=168h'
+docker container prune --filter 'until=24h'
+docker volume ls -f dangling=true          # review, then remove named volumes individually
+```
+
+Truncate a runaway log with `truncate -s 0 <logfile>` rather than deleting it,
+because deleting the open file frees nothing until the container restarts.
+
+**Prevent:** configure log rotation once, globally, in
+`/etc/docker/daemon.json`:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "10m", "max-file": "3" }
+}
+```
+
+Then put `/var/lib/docker` on its own volume, run a scheduled filtered prune as
+described in [Cleanup](#cleanup), and alert on disk usage rather than reacting
+to a full disk.
+
+### 9. Every build rebuilds everything
+
+**Symptom:** a one-line source change triggers a full dependency install, and
+builds take minutes in CI that took seconds locally.
+
+**Cause:** the layer that installs dependencies sits after the `COPY` of the
+whole source tree, so any source change invalidates it and every layer below.
+In CI there is an additional cause: a fresh runner has no local layer cache at
+all.
+
+**Diagnose:**
+
+```bash
+docker history <image>                     # size and instruction per layer
+DOCKER_BUILDKIT=1 docker build --progress=plain .   # shows CACHED lines
+```
+
+**Fix:** copy manifests first, install, then copy the source, following
+[Build practices that matter](#build-practices-that-matter):
+
+```dockerfile
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+```
+
+In CI, import and export cache explicitly:
+
+```bash
+docker buildx build \
+  --cache-from type=registry,ref=registry.example.com/app:buildcache \
+  --cache-to   type=registry,ref=registry.example.com/app:buildcache,mode=max \
+  -t registry.example.com/app:$GIT_SHA --push .
+```
+
+**Prevent:** add a `.dockerignore` so `.git`, `node_modules`, and test output
+never enter the context and never invalidate a layer, and keep the base image
+tag pinned so an upstream push does not invalidate the whole chain.
+
+### 10. Build succeeds but the file is missing at runtime
+
+**Symptom:** `COPY config/ /app/config/` builds fine, but the application
+reports the config file is not found; or the build fails with
+"COPY failed: file not found in build context".
+
+**Cause:** the path is relative to the **build context**, not to the Dockerfile,
+so `docker build -f docker/Dockerfile .` and `cd docker && docker build .` see
+different trees. Or `.dockerignore` excludes the path. Or a later `COPY` into
+the same directory, a `VOLUME` declaration, or a run-time mount shadows it.
+
+**Diagnose:**
+
+```bash
+docker build --progress=plain .            # confirm which files were transferred
+cat .dockerignore
+docker run --rm <image> ls -la /app/config
+docker inspect -f '{{json .Mounts}}' <c>   # is a mount hiding the image content?
+```
+
+**Fix:** make the context explicit and consistent
+(`docker build -f docker/Dockerfile .` from the repository root), correct the
+ignore rules, and remove the mount that shadows the baked-in path.
+
+**Prevent:** verify contents in the build itself with a `RUN ls -la` during
+development, and remember that a volume mounted over a directory hides
+everything the image put there.
+
+### 11. Permission denied on a mounted volume
+
+**Symptom:** the container cannot write to a bind-mounted host directory, or a
+database container fails at initialisation with a permissions error on its data
+directory.
+
+**Cause:** UID and GID are numeric and are not translated across the boundary.
+The container process runs as, say, UID 1000 or the `postgres` user, while the
+host directory is owned by a different UID. On SELinux hosts (RHEL, Fedora), the
+mount also needs the right label.
+
+**Diagnose:**
+
+```bash
+docker exec <c> id                          # UID/GID inside
+ls -ln /host/path                           # numeric owner outside
+docker inspect -f '{{json .Mounts}}' <c>
+getenforce                                  # SELinux enforcing?
+```
+
+**Fix:** align ownership rather than using `chmod 777`, which grants every local
+user write access to the data. Either `sudo chown -R 1000:1000 /host/path` to
+match the container UID, or run the container as the host owner with
+`--user "$(id -u):$(id -g)"`. Check the target path before any recursive
+`chown`. On SELinux hosts add `:z` (shared) or `:Z` (private) to the mount, for
+example `-v /host/path:/data:Z`; `:Z` relabels the host directory, so never
+apply it to a shared system path.
+
+**Prevent:** prefer named volumes for service state, since Docker initialises
+their ownership from the image, and reserve bind mounts for development source
+and read-only config (`--mount type=bind,...,readonly`). See
+[Bind mounts](#bind-mounts).
+
+### 12. Data disappeared after redeploy
+
+**Symptom:** a database container is recreated during a deploy and comes back
+empty.
+
+**Cause:** the data lived in the container's writable layer or in an anonymous
+volume. The writable layer is deleted with the container; an anonymous volume
+survives, but the new container gets a new one, so the old data is orphaned
+rather than destroyed.
+
+**Diagnose:**
+
+```bash
+docker volume ls                                  # any unnamed hex-ID volumes?
+docker inspect -f '{{json .Mounts}}' <old-c>      # Name empty means anonymous
+docker volume inspect <hex-id>                    # Mountpoint on the host
+```
+
+**Fix:** the old data may still be recoverable. Locate the orphaned volume,
+mount it into a temporary container, and copy the data into a properly named
+volume. Do not prune volumes until the copy is verified:
+
+```bash
+docker run --rm -v <hex-id>:/from -v pgdata:/to alpine \
+  sh -c 'cd /from && cp -a . /to'
+```
+
+**Prevent:** always mount a **named** volume for state
+(`-v pgdata:/var/lib/postgresql/data`), as in [Volumes](#volumes), never rely on
+`docker rm -v` semantics, and take backups from the volume rather than assuming
+the volume is the backup. Treat `docker compose down -v` as a destructive
+command.
+
+### 13. `docker stop` always takes ten seconds
+
+**Symptom:** every stop and every deploy pauses for the full grace period, and
+the container ends with exit code 137 rather than 143. In-flight requests are
+dropped.
+
+**Cause:** PID 1 is not receiving or not handling `SIGTERM`, the shell-form
+problem described in [CMD vs ENTRYPOINT](#cmd-vs-entrypoint). Alternatively, the
+application has no `SIGTERM` handler and only responds to `SIGINT` or `SIGQUIT`.
+
+**Diagnose:**
+
+```bash
+docker exec <c> ps -o pid,comm            # is PID 1 sh, or your process?
+docker inspect -f '{{json .Config.Cmd}} {{json .Config.Entrypoint}}' <c>
+time docker stop <c>
+docker inspect -f '{{.State.ExitCode}}' <c>    # 143 good, 137 means it was killed
+```
+
+**Fix:** use exec form so the real binary is PID 1:
+`CMD ["nginx", "-g", "daemon off;"]`. If a wrapper script is required, end it
+with `exec "$@"`. Where the process expects a different signal, declare it with
+`STOPSIGNAL SIGQUIT`.
+
+**Prevent:** exec form everywhere, implement a `SIGTERM` handler that drains
+connections, and set `--stop-timeout` slightly above the real drain time.
+
+### 14. Zombie processes accumulate inside a container
+
+**Symptom:** `docker exec <c> ps aux` shows a growing list of `<defunct>`
+entries; eventually the container hits its PID limit or the process table
+fills.
+
+**Cause:** the container's PID 1 is an application that does not reap orphaned
+children. On a normal system `init` adopts and reaps them, but inside a PID
+namespace that responsibility falls to PID 1.
+
+**Diagnose:**
+
+```bash
+docker exec <c> ps -eo pid,ppid,stat,comm | awk '$3 ~ /Z/'
+docker exec <c> sh -c 'ls /proc | grep -c "^[0-9]"'
+docker inspect -f '{{.HostConfig.PidsLimit}}' <c>
+```
+
+**Fix:** run with `docker run --init`, which inserts a minimal init process as
+PID 1 that reaps children and forwards signals. `tini` inside the image does
+the same job.
+
+**Prevent:** use `--init` for any image whose main process spawns subprocesses,
+particularly shell-wrapped and CI-agent style workloads, and set `--pids-limit`
+so a fork bomb cannot take the host down.
+
+### 15. Application is slow inside the container but fast on the host
+
+**Symptom:** the same binary is several times slower in a container, with CPU
+usage capped below the host's capacity and latency spikes at regular intervals.
+
+**Cause:** CPU quota throttling from `--cpus`, which enforces a quota per
+scheduling period and stalls threads once it is spent. A second cause is a
+runtime that sizes its thread or connection pools from `nproc`, which reports
+**host** cores rather than the quota, so the container creates far more threads
+than its quota can run.
+
+**Diagnose:**
+
+```bash
+docker stats --no-stream <c>
+docker inspect -f '{{.HostConfig.NanoCpus}} {{.HostConfig.CpuShares}}' <c>
+docker exec <c> cat /sys/fs/cgroup/cpu.stat        # nr_throttled and throttled_usec rising
+docker exec <c> nproc                              # what the runtime will believe
+```
+
+**Fix:** raise `--cpus` to match real demand, and pass the effective CPU count
+explicitly to the runtime (`GOMAXPROCS`, `-XX:ActiveProcessorCount`,
+`UV_THREADPOOL_SIZE`, worker counts). Reserve `--cpu-shares` for relative
+priority; it is not a limit and does nothing on an idle host.
+
+**Prevent:** size limits from measured load, alert on cgroup throttling rather
+than on CPU percentage, and keep write-heavy paths on volumes so the
+copy-on-write layer is not in the hot path.
+
+### 16. Works on my machine, fails on the server
+
+**Symptom:** the image runs locally but on the server fails with "exec format
+error", or a different application version starts.
+
+**Cause:** architecture mismatch, typically an `arm64` image built on an Apple
+Silicon laptop deployed to `amd64` servers. Or tag drift: both machines pulled
+`myapp:latest` at different times and got different content.
+
+**Diagnose:**
+
+```bash
+docker image inspect <image> -f '{{.Os}}/{{.Architecture}}'
+docker manifest inspect <image> | grep architecture
+docker inspect -f '{{.Image}}' <c>                 # the digest actually running
+uname -m                                            # on the server
+```
+
+**Fix:** build for the target platform, or publish a multi-architecture image:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t registry.example.com/app:1.4.0 --push .
+```
+
+**Prevent:** tag every image with the commit SHA, deploy by digest, never deploy
+`latest`, and build release images in CI on the target platform rather than on a
+developer laptop.
+
+### 17. `docker logs` returns nothing
+
+**Symptom:** the application is clearly working, but `docker logs <c>` is empty.
+
+**Cause:** either the application writes to a log file inside the container
+instead of stdout and stderr, or the container uses a shipping log driver for
+which `docker logs` is unsupported. Both cases are covered in
+[Logging](#logging).
+
+**Diagnose:**
+
+```bash
+docker inspect -f '{{.HostConfig.LogConfig.Type}}' <c>
+docker exec <c> ls -la /var/log/                   # log files inside?
+docker exec <c> ls -l /proc/1/fd/1 /proc/1/fd/2    # where PID 1's streams point
+```
+
+**Fix:** configure the application to log to stdout, or symlink its log file to
+`/dev/stdout` as official images do. With a shipping driver, read the logs in
+the destination system.
+
+**Prevent:** make "log to stdout, one event per line, structured" an image
+requirement. A log file in the writable layer is invisible to the platform and
+is deleted with the container.
+
+### 18. A secret was baked into an image
+
+**Symptom:** a scan or a code review finds an API key inside a published image,
+even though a later Dockerfile line deletes the file.
+
+**Cause:** layers are additive, so a `COPY` in one layer and an `rm` in a later
+layer leaves the original content in the earlier layer. The image configuration
+and build metadata are the second exposure route, described under
+[Build practices that matter](#build-practices-that-matter).
+
+**Diagnose:**
+
+```bash
+docker history --no-trunc <image>          # build args and commands
+docker image inspect <image> -f '{{json .Config.Env}}'
+docker image inspect <image> -f '{{json .Config.Labels}}'
+docker save <image> -o out.tar && tar -tf out.tar   # unpack layers and grep
+```
+
+**Fix:** rotate the credential first; the image is already published and must be
+assumed compromised. Then remove the affected tags from the registry and rebuild
+without the secret.
+
+**Prevent:** inject secrets at run time from a secrets manager, use BuildKit
+secret mounts (`RUN --mount=type=secret,id=npmrc ...`) for build-time
+credentials, keep credentials out of the build context with `.dockerignore`, and
+run a secret scanner in the pipeline. See
+[Security practices](#security-practices).
+
+### 19. Cannot debug a distroless or scratch container
+
+**Symptom:** `docker exec -it <c> sh` fails with "executable file not found",
+and the container has no shell, no `ps`, and no `curl`.
+
+**Cause:** minimal images intentionally contain only the application binary.
+That is the security benefit and the debugging cost. A stopped container cannot
+be `exec`ed into at all, whatever the image, as noted in
+[attach vs exec](#attach-vs-exec).
+
+**Diagnose and fix:** attach a debug container that shares the target's
+namespaces, so your tools see its processes, network, and filesystem:
+
+```bash
+docker run -it --rm --pid=container:<c> --network=container:<c> \
+  --cap-add=SYS_PTRACE nicolaka/netshoot
+```
+
+`--cap-add=SYS_PTRACE` lets the debug container inspect the target's memory and
+system calls, so use it only while investigating and prefer a dedicated debug
+image over adding the capability to the workload itself.
+
+For a container that has already exited, extract state instead:
+
+```bash
+docker logs <c>
+docker cp <c>:/path/to/file ./
+docker commit <c> debug-image && docker run --rm -it --entrypoint sh debug-image
+docker diff <c>                            # what the container wrote
+```
+
+**Prevent:** keep minimal runtime images and standardise on a sidecar debug
+image, so nobody is tempted to add a shell and a package manager to production
+images.
+
+### 20. Container clock or timezone is wrong
+
+**Symptom:** log timestamps are hours off, TLS certificate validation fails, or
+scheduled jobs fire at the wrong local time.
+
+**Cause:** containers use the host clock, so real drift is a host NTP problem,
+not a container problem. A wrong local time is almost always a missing timezone:
+minimal images default to UTC and may not even ship the tzdata database.
+
+**Diagnose:**
+
+```bash
+docker exec <c> date
+date                                   # compare to the host
+docker exec <c> cat /etc/timezone       # if present
+timedatectl status                      # host NTP synchronisation
+```
+
+**Fix:** fix host time synchronisation for actual drift. For local time, install
+`tzdata` in the image and set `ENV TZ=Asia/Kolkata`, or pass `-e TZ=...`.
+
+**Prevent:** run every service in UTC and convert only at presentation time, and
+monitor host clock offset. Never try to set the container clock directly; that
+requires `SYS_TIME` and would change the host clock.
+
+### 21. Cannot connect to the Docker daemon
+
+**Symptom:** `docker ps` fails with "Cannot connect to the Docker daemon at
+unix:///var/run/docker.sock. Is the docker daemon running?"
+
+**Cause:** the daemon is not running, the user is not in the `docker` group, or
+`DOCKER_HOST` points somewhere unreachable such as a stale remote context.
+
+**Diagnose:**
+
+```bash
+systemctl status docker
+id -nG "$USER" | tr ' ' '\n' | grep -x docker
+echo "$DOCKER_HOST"; docker context ls
+ls -l /var/run/docker.sock
+journalctl -u docker.service -n 50
+```
+
+**Fix:** start the service, add the user to the `docker` group and start a new
+login session, or select the right context with `docker context use default`.
+
+**Prevent:** remember that `docker` group membership is equivalent to root on
+the host, since the socket can mount any host path into a privileged container,
+as noted in [Components](#components). Grant it deliberately, and prefer
+rootless Docker or a remote builder for untrusted users.
+
+## Examples in this repository
+
+- `NginxDockerfile` in the parent directory: minimal Nginx image.
+- `docker-compose-diff-expose_&_ports.yaml` in the parent directory: `expose`
+  versus `ports`.
+
+### Running MinIO locally
+
+```bash
+docker run -d --name minio \
+  -p 9000:9000 -p 9001:9001 \
+  -e "MINIO_ROOT_USER=<access-key>" \
+  -e "MINIO_ROOT_PASSWORD=<secret-key>" \
+  -v minio-data:/data \
+  minio/minio server /data --console-address ":9001"
+
+mc alias set local http://localhost:9000 <access-key> <secret-key> --api S3v4
+mc mb local/test
+mc find local/test --newer-than 2d0h0m --ignore '*.html'
+```
+
+Pass credentials from your shell environment or a secrets file rather than
+literal values, so they do not end up in shell history or in
+`docker inspect` output that others can read.
+
+## Reference
+
+- [Dockerfile reference](https://docs.docker.com/reference/dockerfile/)
+- [Docker CLI reference](https://docs.docker.com/reference/cli/docker/)
+- [Storage overview](https://docs.docker.com/engine/storage/)
+- [Networking overview](https://docs.docker.com/engine/network/)

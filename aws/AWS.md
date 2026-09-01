@@ -1,666 +1,1039 @@
-<details>
-<summary> How many Subnets can you have per VPC?.</code></summary><br><b>
+# AWS
 
-`200 Subnets per VPC`
-</b></details>
+Interview notes on AWS services, VPC networking, and reliability practice.
+Protocol and OS fundamentals (OSI, TCP handshake, DNS resolution, CIDR
+arithmetic, HTTP status codes) are in
+[Linux.md](../linux/Linux.md#networking-fundamentals) rather than repeated here.
+Machine learning certification material is in [AWS_MLCA-01.md](AWS_MLCA-01.md).
 
-<details>
-<summary> 🌐 How Browsers Work: From URL to Render?.</code></summary><br><b>
+## Contents
 
-High-level sequence of events that occurs when you type a URL like `https://www.google.com` into your browser.
+- [Global infrastructure](#global-infrastructure)
+- [Cloud service models](#cloud-service-models)
+- [Serverless](#serverless)
+- [VPC networking](#vpc-networking)
+- [Security groups vs network ACLs](#security-groups-vs-network-acls)
+- [NAT gateway vs NAT instance](#nat-gateway-vs-nat-instance)
+- [VPC peering](#vpc-peering)
+- [VPC endpoints](#vpc-endpoints)
+- [Elastic Load Balancing](#elastic-load-balancing)
+- [EC2](#ec2)
+- [EBS vs EFS vs instance store](#ebs-vs-efs-vs-instance-store)
+- [Auto Scaling and launch templates](#auto-scaling-and-launch-templates)
+- [ECS vs EKS](#ecs-vs-eks)
+- [S3](#s3)
+- [SQS vs SNS vs EventBridge](#sqs-vs-sns-vs-eventbridge)
+- [CloudWatch](#cloudwatch)
+- [Route 53](#route-53)
+- [KMS](#kms)
+- [WAF vs Shield](#waf-vs-shield)
+- [RDS](#rds)
+- [Lambda](#lambda)
+- [Identity](#identity)
+- [Reliability and disaster recovery](#reliability-and-disaster-recovery)
+- [CI/CD on AWS](#cicd-on-aws)
 
-### 1. URL Parsing & HSTS Check
-*   **Parsing:** The browser breaks the URL into the **Protocol** (`https`), **Domain** (`www.google.com`), and **Resource** (`/`).
-*   **HSTS:** The browser checks its internal **HSTS (HTTP Strict Transport Security)** list. If the site is on the list, the browser automatically switches `http://` to `https://` before any network request is made.
+## Global infrastructure
 
-### 2. DNS Lookup (Finding the IP)
-Computers communicate via IP addresses, not names. The browser resolves the domain in this order:
-1.  **Browser Cache:** Checks recent DNS history.
-2.  **OS Cache:** Queries the local operating system.
-3.  **Router Cache:** Queries the local network gateway.
-4.  **ISP DNS Recursive Resolver:** If not found locally, a **Recursive Lookup** begins, querying **Root**, **TLD (.com)**, and **Authoritative** nameservers until the IP (e.g., `142.250.190.46`) is returned.
+A **Region** is a separate geographic area, for example `eu-west-1`. Regions are
+fully isolated from each other: nothing replicates between them unless you
+configure it, which is both the blast-radius boundary and the reason
+multi-region designs are expensive.
 
-### 3. TCP Three-Way Handshake
-Before sending data, a reliable connection must be established:
-*   **SYN:** Client sends a synchronization request.
-*   **SYN-ACK:** Server acknowledges and sends its own sync.
-*   **ACK:** Client confirms. The connection is now **ESTABLISHED**.
+An **Availability Zone** is one or more discrete data centres inside a Region
+with independent power, cooling, and networking, connected to the other zones by
+low-latency private links. Zones fail independently, so spreading instances
+across at least two is the baseline for high availability. Zone names are
+per-account aliases, so `us-east-1a` in two accounts is not necessarily the same
+physical zone; compare AZ IDs such as `use1-az1` instead.
 
-### 4. TLS Handshake (Security Layer)
-Since the protocol is HTTPS, a secure "tunnel" is created:
-*   **Cipher Negotiation:** Client and server agree on encryption algorithms.
-*   **Certificate Validation:** The server sends its **SSL/TLS Certificate** to prove its identity.
-*   **Key Exchange:** They generate a shared **Symmetric Session Key** to encrypt all future traffic.
+**Edge locations** are the CloudFront points of presence, far more numerous than
+Regions, used for caching and for terminating connections close to users.
 
-### 5. HTTP Request & Response
-*   **Request:** The browser sends an HTTP GET request (e.g., `GET / HTTP/1.1`).
-*   **Processing:** A web server (like **Nginx** or **Apache**) receives the request and passes it to the backend application.
-*   **Response:** The server sends back a `200 OK` status along with the HTML content.
+### Quotas worth knowing
 
-### 6. The Rendering Path
-The browser engine (e.g., Blink or WebKit) transforms code into visuals:
-1.  **DOM Tree:** HTML is parsed into the **Document Object Model**.
-2.  **CSSOM Tree:** CSS is parsed into the **CSS Object Model**.
-3.  **Render Tree:** DOM and CSSOM combine to identify visible elements.
-4.  **Layout:** The browser calculates the exact coordinates for every element.
-5.  **Painting:** The engine fills in pixels (text, colors, images) on the screen.
-
-## 📊 Summary Matrix
-
-| Stage | Protocol / Tool | Key Action |
+| Quota | Default | Adjustable |
 | :--- | :--- | :--- |
-| **Identity** | [DNS (UDP 53)](https://www.cloudflare.com) | Resolves Domain to IP |
-| **Transport** | [TCP](https://www.cloudflare.com) | Reliable packet delivery |
-| **Security** | [TLS 1.3](https://www.cloudflare.com) | Encrypts the communication |
-| **Content** | [HTTP/2](https://www.cloudflare.com) | Transfers the application data |
+| VPCs per Region | 5 | Yes |
+| Subnets per VPC | 200 | Yes |
+| IPv4 CIDR blocks per VPC | 5 | Yes, up to 50 |
+| VPC CIDR size | `/16` to `/28` | No |
+| Route tables per VPC | 200 | Yes |
+| Routes per route table | 50 | Yes, up to 1000 |
+| Security groups per network interface | 5 | Yes, up to 16 |
+| Rules per security group | 60 inbound, 60 outbound | Yes |
+| Elastic IPs per Region | 5 | Yes |
 
-## 💡
-*   **On DNS:** "DNS is the phonebook of the internet. Without it, we'd have to memorize 12-digit IP addresses for every website."
-*   **On Latency:** "Latency in this process usually happens at the **DNS** or **TLS Handshake** stages. Using a CDN or **TLS Session Resumption** can significantly speed this up."
-*   **On Rendering:** "The **Critical Rendering Path** is why CSS should be at the top of the HTML (to build the CSSOM early) and non-critical JS at the bottom (to avoid blocking the DOM construction)."
-</b></details>
+State whether a quota is a soft limit. "200 subnets per VPC" is a default that
+support can raise; "`/28` is the smallest subnet" is a hard protocol and
+platform constraint.
 
-<details>
-<summary> 🤝 TCP Three-Way Handshake .</code></summary><br><b>
+## Cloud service models
 
-The **Three-Way Handshake** is the process used by **TCP (Transmission Control Protocol)** to establish a reliable connection between a client and a server. It ensures that both parties are ready to communicate and have synchronized their **Sequence Numbers**.
+Think about how much of the stack you keep responsibility for.
 
-### 📥 The Process (Step-by-Step)
-
-#### **1. SYN (Synchronize)**
-*   **Sender:** Client ➡️ Server
-*   **Action:** The client sends a packet with the `SYN` flag set. It includes a random **Initial Sequence Number (ISN)**, let's call it `X`.
-*   **Goal:** The client informs the server it wants to start a connection.
-*   **Status:** Client enters `SYN-SENT` state.
-
-#### **2. SYN-ACK (Synchronize-Acknowledge)**
-*   **Sender:** Server ➡️ Client
-*   **Action:** The server responds with both `SYN` and `ACK` flags set.
-*   **Goal:** 
-    *   **ACK:** It acknowledges the client's request by sending `X + 1`.
-    *   **SYN:** It sends its own random Sequence Number, let's call it `Y`.
-*   **Status:** Server enters `SYN-RECEIVED` state.
-
-#### **3. ACK (Acknowledge)**
-*   **Sender:** Client ➡️ Server
-*   **Action:** The client sends the final packet with the `ACK` flag set.
-*   **Goal:** It acknowledges the server's sequence number by sending `Y + 1`.
-*   **Status:** Both sides move to the `ESTABLISHED` state.
-
-### 📊 Summary Matrix
-
-| Step | Flag | Direction | Seq No | Ack No | Analogy |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **SYN** | Client ➡️ Server | `X` | - | "Hey, can you hear me?" |
-| **2** | **SYN-ACK**| Server ➡️ Client | `Y` | `X + 1` | "Yes, I hear you! Can you hear me?" |
-| **3** | **ACK** | Client ➡️ Server | `X + 1` | `Y + 1` | "Yes, I hear you too! Let's talk." |
-
-### 🛠️ Production Troubleshooting Insights
-
-*   **SYN Flooding:** A common DDoS attack where an attacker sends thousands of `SYN` packets but never sends the final `ACK`. This exhausts the server's resources. Mitigation involves [TCP Syncookies](https://developers.cloudflare.com).
-*   **Retransmissions:** If a `SYN-ACK` is not received, the client will retry several times. High retransmission rates usually indicate **Firewall** interference (Security Groups dropping traffic) or **Network Congestion**.
-*   **MTU Issues:** While the handshake might succeed, actual data transfer can fail if the **Maximum Transmission Unit (MTU)** is mismatched across the network path.
-
-### 💡
-> "The Three-Way Handshake is what makes TCP **connection-oriented**. By exchanging and acknowledging sequence numbers, it guarantees that even if packets arrive out of order, the application can reassemble them into a perfect stream, which is why it's the backbone of the Web (HTTP/S)."
-</b></details>
-
-<details>
-<summary> 🌐  Networking Fundamentals: Core Protocols.</code></summary><br><b>
-
-## 🏗️ 1. TCP (Transmission Control Protocol)
-TCP is a **connection-oriented** protocol that ensures the **reliable**, ordered, and error-checked delivery of a stream of data.
-
-*   **Mechanism:** Uses the **Three-Way Handshake** (SYN, SYN-ACK, ACK) to establish a session.
-*   **Key Features:**
-    *   **Reliability:** Retransmits lost packets.
-    *   **Flow Control:** Ensures the sender doesn't overwhelm the receiver.
-    *   **Ordering:** Packets are reassembled in the correct sequence.
-*   **Best For:** Web browsing (HTTP/S), File transfers (FTP), SSH, and Database connections.
-
-## 🚀 2. UDP (User Datagram Protocol)
-UDP is a **connectionless**, "fire-and-forget" protocol. It sends data without establishing a formal connection.
-
-*   **Mechanism:** No handshaking; it simply pours data onto the network.
-*   **Key Features:**
-    *   **Low Latency:** No overhead for retransmissions or acknowledgments.
-    *   **Speed:** Extremely fast compared to TCP.
-    *   **Unreliable:** If a packet is lost, it stays lost.
-*   **Best For:** Video streaming (YouTube/Netflix), VoIP (Zoom/Teams), Online Gaming, and **DNS** (Port 53).
-
-## 📧 3. SMTP (Simple Mail Transfer Protocol)
-SMTP is the industry standard protocol for **sending** email messages across IP networks.
-
-*   **Mechanism:** Operates at the **Application Layer (Layer 7)** over TCP ports 25, 465, or 587.
-*   **Key Features:**
-    *   **Push Protocol:** Used only to "push" mail from a client to a server or between servers.
-    *   **Authentication:** Modern SMTP uses TLS to secure the transmission of credentials.
-*   **Best For:** Outbound email communication (Note: POP3 or IMAP are used for *receiving*).
-
-## 🔒 4. HTTPS (Hypertext Transfer Protocol Secure)
-HTTPS is the secure version of HTTP. It uses **TLS (Transport Layer Security)** to encrypt communication.
-
-*   **Mechanism:** Operates over **TCP Port 443**.
-*   **Key Features:**
-    *   **Encryption:** Protects data from eavesdropping.
-    *   **Data Integrity:** Prevents data from being tampered with during transit.
-    *   **Authentication:** Uses SSL/TLS Certificates to verify the server's identity.
-*   **Best For:** Any modern web application, API communication, and E-commerce.
-
-
-## 📁 5. FTP (File Transfer Protocol)
-FTP is a standard network protocol used to transfer files between a client and a server.
-
-*   **Mechanism:** Uses a **dual-channel** approach:
-    *   **Port 21 (Command):** For sending commands (login, list, delete).
-    *   **Port 20 (Data):** For the actual transfer of file data.
-*   **Key Features:**
-    *   **Stateful:** Maintains a session state.
-    *   **Modes:** Supports **Active** and **Passive** modes (Passive is preferred in modern cloud environments to avoid firewall issues).
-*   **Best For:** Bulk file uploads and website maintenance.
-*   **Note:** Standard FTP is **unsecured** (plaintext). In production, **SFTP** (FTP over SSH) or **FTPS** (FTP over SSL) is mandated.
-  
-###  **FTPS (FTP over SSL/TLS)**
-*   **The Approach:** It adds a layer of encryption (SSL/TLS) to the standard FTP protocol, similar to how HTTPS secures HTTP.
-*   **The Complexity:** Like FTP, it still uses multiple ports, making it difficult to configure behind a **Network Address Translation (NAT)** or strict Security Groups.
-
-### **SFTP (SSH File Transfer Protocol)**
-*   **The Approach:** This is **NOT** FTP. It is a completely separate protocol built as an extension of **SSH**.
-*   **The Advantage:** It is the "Gold Standard" for DevOps. Since it runs over Port 22, it is easy to secure. It supports **SSH Key-based Authentication**, which is essential for passwordless **CI/CD pipelines**.
-
-
-## 📊 Summary Comparison Matrix
-
-| Protocol | OSI Layer | Port | Reliability | Primary Strength |
-| :--- | :---: | :---: | :--- | :--- |
-| **TCP** | 4 (Transport) | Variable | **High** | Guaranteed Delivery |
-| **UDP** | 4 (Transport) | Variable | **Low** | Speed & Low Latency |
-| **SMTP** | 7 (Application) | 25/587 | **High** | Email Transmission |
-| **HTTPS** | 7 (Application) | 443 | **High** | Secure Communication |
-| **FTP** | 7 | 20 / 21 | **High** | File Transfers |
-
-## 💡
-
-*   **TCP vs. UDP:** "I use **TCP** when every single bit of data is critical, like a database transaction. I use **UDP** when a few dropped frames don't matter as much as real-time speed, like in a Zoom call."
-*   **On HTTPS:** "HTTPS is mandatory in modern DevOps; it provides the **Encryption** and **Trust** (via Certificates) necessary to protect user data from Man-in-the-Middle (MitM) attacks."
-*   **DNS & UDP:** "DNS traditionally uses UDP because it's fast. If a DNS query fails, the application just retries, which is more efficient than the overhead of a full TCP handshake."
-*   **On FTP Security:** "Standard FTP sends credentials in **plaintext**. In a secure DevOps pipeline, I would always advocate for **SFTP** to ensure data is encrypted via the SSH tunnel."
-*   **Passive vs. Active FTP:** "In AWS/Cloud environments, we use **Passive FTP** because it allows the client to initiate the data connection, which is more compatible with Security Groups and Firewalls."
-</b></details>
-
-<details>
-<summary> ☁️ Cloud Service Models: IaaS vs. PaaS vs. SaaS.</code></summary><br><b>
-
-📊 The "Pizza as a Service" Analogy
-To simplify the management levels, think of making a pizza:
-*   **IaaS (Infrastructure):** You buy the ingredients (flour, cheese, toppings). You have to bake it at home in your own oven.
-*   **PaaS (Platform):** You order a pizza for delivery. The shop prepares and bakes it; you just provide the table and eat it.
-*   **SaaS (Software):** You go to a restaurant. Everything is managed for you; you simply consume the meal.
-
-⚖️ Comparison Table
-
-| Feature | **IaaS** (Infrastructure As A Service) | **PaaS** (Platform As A Service) | **SaaS** (Software As A Service) |
+| | IaaS | PaaS | SaaS |
 | :--- | :--- | :--- | :--- |
-| **You Manage** | OS, Middleware, Data, Apps | **Code** and **Data** only | Nothing (User access only) |
-| **AWS Manages** | Virtualization, Servers, Disk | Runtime, OS, Hardware | The entire stack |
-| **Flexibility** | Highest | Moderate | Lowest |
-| **Complexity** | High (Maintenance heavy) | Low (Developer focused) | Zero (Consumer focused) |
+| You manage | OS, runtime, middleware, app, data | App code and data | Your data and users only |
+| AWS manages | Hardware, virtualisation, network | Everything below your code | The entire stack |
+| Flexibility | Highest | Moderate | Lowest |
+| Operational overhead | High | Low | None |
+| AWS examples | EC2, EBS, VPC | Elastic Beanstalk, App Runner, Lambda, RDS | Amazon Chime, Amazon WorkMail |
 
-**IaaS: [Amazon EC2](https://aws.amazon.com)**
-*   **Context:** You get a virtual machine. You are responsible for patching the Linux/Windows OS, installing the web server, and managing the security of the instance.
-*   **Other Examples:** [Amazon VPC](https://aws.amazon.com), [Amazon EBS](https://aws.amazon.com).
+The pizza analogy: IaaS is buying ingredients and baking at home, PaaS is
+delivery where someone else bakes and you supply the table, SaaS is eating at a
+restaurant.
 
-**PaaS: [AWS Elastic Beanstalk](https://aws.amazon.com)**
-*   **Context:** You upload your code (`.zip` or `.jar`). AWS handles the deployment, capacity provisioning, load balancing, and auto-scaling automatically.
-*   **Other Examples:** [AWS Lambda](https://aws.amazon.com) (Serverless PaaS), [Amazon RDS](https://aws.amazon.com).
+How to choose:
 
-**SaaS: [Gmail](https://www.gmail.com)**
-*   **Context:** Ready-to-use application for video conferencing. You don't manage any servers or code; you just manage your user account.
-*   **External Examples:** AWS Chime, Slack, Salesforce, Microsoft 365.
+- **IaaS** when you need a specific OS build, kernel modules, licensed software,
+  or a legacy application that managed platforms will not host.
+- **PaaS** for new services, so the team spends its time on business logic
+  rather than OS patching and capacity planning.
+- **SaaS** for anything that is not a differentiator, such as email and chat, to
+  cut total cost of ownership.
 
-💡
-When choosing between models, I consider the **Operational Overhead**. 
+Note that responsibility never fully disappears. Under the shared
+responsibility model AWS secures the cloud and you secure what you put in it:
+your data, your IAM policies, your patching where you own the OS, and your
+network configuration.
 
-I recommend **IaaS (EC2)** when the application requires a specific custom OS configuration or legacy software that isn't supported on managed platforms. 
+## Serverless
 
-I prefer **PaaS (Lambda/App Runner)** for new microservices because it allows the team to focus on **Business Logic** rather than OS patching and infrastructure maintenance. 
+Serverless means you deploy code or configuration and the provider handles
+provisioning, scaling, and patching of the compute underneath. Servers still
+exist; you no longer manage them.
 
-**SaaS** is my choice for non-core business functions like email or chat to reduce the total cost of ownership."
-</b></details>
+Characteristics: event-driven invocation, automatic scaling to demand, and
+billing by request and duration, so an idle function costs nothing. Examples are
+Lambda, Fargate, API Gateway, DynamoDB on-demand, SQS, SNS, EventBridge, and
+Step Functions.
 
+Trade-offs to raise in an interview: cold-start latency, per-invocation limits
+such as Lambda's 15-minute maximum, weaker local development and debugging
+story, potential vendor lock-in in the event and integration model, and cost
+that is excellent at spiky load but can exceed a reserved instance at high
+steady throughput.
 
-<details>
-<summary> ☁️ AWS RDS Troubleshooting Guide.</code></summary><br><b>
+## VPC networking
 
-🚀 Scenario 1: Connection Timeout (Network/Security)
-*   **The Problem:** The application returns "Connection Timeout" or "Host is unreachable."
-*   **Root Causes:** 
-    *   Missing **Security Group** inbound rules for the DB port (e.g., 3306 for MySQL, 5432 for Postgres).
-    *   The DB is in a private subnet while the app is in a different VPC without **VPC Peering**.
-    *   DB is not "Publicly Accessible" while the app is trying to connect from outside AWS.
-*   **The Solution:**
-    1.  **Trace Network:** Use the [VPC Reachability Analyzer](https://aws.amazon.com) to identify where the packet is dropped.
-    2.  **Verify SGs:** Ensure the DB Security Group allows traffic from the **Application's Security Group ID** (best practice) rather than a fixed IP.
-    3.  **Check NACLs:** Ensure Network ACLs for the subnet allow traffic on ephemeral ports.
+A **VPC** is a logically isolated network in one Region with a CIDR block you
+choose. Everything else hangs off it.
 
-📈 Scenario 2: 100% CPU Utilization
-*   **The Problem:** The database becomes unresponsive; CloudWatch alarms trigger for sustained high CPU.
-*   **Root Causes:** 
-    *   **Expensive Queries:** Large table scans due to missing indexes.
-    *   **Connection Bursts:** A sudden surge in application traffic.
-*   **The Solution:**
-    1.  **Analyze SQL:** Open [RDS Performance Insights](https://aws.amazon.com) to find the specific SQL queries contributing to the "Database Load."
-    2.  **Emergency Kill:** Identify the process ID and run `CALL mysql.rds_kill(process_id)` or the Postgres equivalent to stop runaway queries.
-    3.  **Optimization:** Add indexes or upgrade the [RDS Instance Class](https://aws.amazon.com) to a larger size.
-
-💾 Scenario 3: "Storage Full" (Instance in Read-Only)
-*   **The Problem:** The RDS instance status changes to `storage-full`. All write operations fail.
-*   **Root Causes:** 
-    *   Unexpected log file growth (General/Slow Query logs).
-    *   Application data growth exceeding the provisioned `AllocatedStorage`.
-*   **The Solution:**
-    1.  **Immediate Fix:** Modify the instance to increase storage (e.g., from 100GB to 120GB). Note: This may impact performance during the modification.
-    2.  **Proactive Fix:** Enable [RDS Storage Autoscaling](https://docs.aws.amazon.com) to let AWS increase space automatically.
-    3.  **Cleanup:** Use `rds_modify_db_parameter_group` to reduce log retention periods.
-
-🔄 Scenario 4: High Replication Lag
-*   **The Problem:** Read Replicas are not in sync with the Primary, causing users to see stale data.
-*   **Root Causes:** 
-    *   Single-threaded replication on the replica cannot keep up with heavy multi-threaded writes on the primary.
-    *   The Read Replica instance size is smaller than the Primary instance size.
-*   **The Solution:**
-    1.  **Monitor Metric:** Track the `ReplicaLag` metric in [Amazon CloudWatch](https://aws.amazon.com).
-    2.  **Balance Sizing:** Ensure the Read Replica has the same CPU/RAM as the Primary.
-    3.  **Optimize Writes:** Break down massive bulk updates/inserts into smaller batches to allow the replica to keep up.
-
-🛠️ Quick Reference for RDS Administrators
-| Task | AWS CLI Command / Action |
+| Component | Role |
 | :--- | :--- |
-| **Check Status** | `aws rds describe-db-instances --db-instance-identifier <name>` |
-| **Reboot Instance** | `aws rds reboot-db-instance --db-instance-identifier <name>` |
-| **Create Snapshot** | `aws rds create-db-snapshot --db-instance-identifier <name> --db-snapshot-identifier <backup-name>` |
-| **Modify Instance** | Use [RDS Console](https://console.aws.amazon.com) to change Instance Class/Storage |
+| Subnet | A CIDR range inside the VPC, bound to exactly one Availability Zone |
+| Route table | Decides where traffic leaving a subnet goes; a subnet has exactly one |
+| Internet gateway (IGW) | Region-level, highly available door to the internet for IPv4 and IPv6 |
+| Egress-only internet gateway | Outbound-only internet access for IPv6 |
+| NAT gateway | Lets private subnets reach the internet outbound over IPv4 |
+| Security group | Stateful firewall attached to network interfaces |
+| Network ACL | Stateless firewall attached to subnets |
+| VPC endpoint | Private access to AWS services without traversing the internet |
+| Virtual private gateway / Transit Gateway | Connectivity to on-premises networks and between VPCs at scale |
 
-</b></details>
+A **public subnet** is simply a subnet whose route table has a `0.0.0.0/0` route
+to an internet gateway, and whose instances have public or Elastic IP addresses.
+A **private subnet** has no route to the IGW; its `0.0.0.0/0` route points at a
+NAT gateway, or it has no default route at all.
 
-<details>
-<summary> ☁️ Impact of backups and replication on source RDS availability.</code></summary><br><b>
+Standard three-tier layout, repeated in each of at least two Availability Zones:
 
-📊 Quick Impact Matrix
+- Public subnet: load balancer, NAT gateway, and a bastion if you use one.
+- Private application subnet: EC2 instances, containers, Lambda ENIs.
+- Private data subnet: RDS and ElastiCache, with no default route to the
+  internet at all.
 
-| Feature | Single-AZ Impact | Multi-AZ Impact |
+Every subnet loses five addresses to AWS: the network address, the VPC router
+(`.1`), the DNS server (`.2`), one reserved for future use (`.3`), and the
+broadcast address. So a `/28` gives 11 usable addresses, not 14. Prefix
+arithmetic is in
+[Linux.md](../linux/Linux.md#ip-addressing-and-cidr).
+
+Plan CIDRs so nothing overlaps across VPCs, accounts, or on-premises ranges.
+Overlapping ranges make peering, VPN, and Transit Gateway attachment impossible
+and can only be fixed by renumbering, which is why this is the one design
+decision to get right at the start.
+
+## Security groups vs network ACLs
+
+Both filter traffic, at different layers and with different semantics. The
+difference interviewers look for is **stateful versus stateless**.
+
+| | Security group | Network ACL |
 | :--- | :--- | :--- |
-| **Automated Backups** | Brief I/O suspension (seconds to minutes). | **No impact.** Backups are taken from the standby instance. |
-| **Read Replica Creation** | Brief I/O suspension (~1 min) for the initial snapshot. | **No impact.** Initial snapshot is taken from the standby. |
-| **Ongoing Replication** | N/A (Asynchronous). | **Minimal.** Synchronous replication adds slight write latency. |
-| **Failover Events** | N/A (No standby exists). | **Brief Unavailability** (60–120s) during DNS retargeting. |
-| **Maintenance/Patches** | **Full Downtime.** Instance is unavailable during update. | **Minimal.** Limited to the duration of the failover. |
+| Attaches to | Elastic network interfaces, so effectively instances | Subnets |
+| State | Stateful: return traffic is automatically allowed | Stateless: return traffic needs its own rule |
+| Rule types | Allow only | Allow and deny |
+| Evaluation | All rules are evaluated; any match allows | Rules in ascending number order, first match wins |
+| Default behaviour | Deny all inbound, allow all outbound | Default NACL allows everything; a custom NACL denies everything until you add rules |
+| Rule sources | CIDR, prefix list, or another security group | CIDR only |
+| Scope | Only the interfaces it is attached to | Every resource in the subnet, with no exceptions |
+| Typical use | The primary control, per application tier | Coarse subnet-level guardrail, for example blocking an IP range |
 
-🔍 Detailed Operational States
+Consequences that matter in practice:
 
-**I/O Suspension**
-In **Single-AZ deployments**, RDS briefly freezes I/O to take a storage-level snapshot. While the instance status remains `Available` in the [Amazon RDS Console](https://console.aws.amazon.com), your application may experience connection timeouts or increased latency during this window.
+- Because a security group is **stateful**, allowing inbound 443 is enough; the
+  response leaves regardless of outbound rules.
+- Because a NACL is **stateless**, allowing inbound 443 is not enough. The
+  response leaves from an ephemeral source port, so the outbound rules must
+  allow `1024-65535`. Forgetting this is the classic "the security group is open
+  but nothing works" incident.
+- Security groups can reference **other security groups**, which is how you
+  express "the database accepts connections from the application tier" without
+  hardcoding IP addresses that change on every scale event. Do this rather than
+  allowing a CIDR.
+- A NACL applies to the whole subnet, including traffic between instances in it,
+  and cannot be overridden per instance. Keep NACL rules simple; complex NACLs
+  are difficult to debug because the first matching rule wins and denies are
+  silent.
+- Neither logs by itself. Enable **VPC Flow Logs** to see accepted and rejected
+  flows, and use **Reachability Analyzer** to find which hop drops a packet.
 
-**Synchronous vs. Asynchronous Replication**
-*   **Multi-AZ Deployment:** Uses **synchronous replication** to ensure zero data loss. The primary instance waits for the standby to acknowledge writes before confirming to the application.
-*   **Read Replicas:** Use **asynchronous replication**. The source database is never blocked waiting for the replica, but this can lead to [Replica Lag](https://docs.aws.amazon.com).
+Order of evaluation for inbound traffic: NACL inbound rules, then security group
+inbound rules, then the instance's own host firewall. Outbound is the reverse.
 
-**Maintenance Windows**
-During scheduled maintenance (e.g., OS patching):
-*   **Multi-AZ:** AWS patches the standby instance first, performs a failover, and then patches the old primary. This limits unavailability to the failover window (~60-120s).
-*   **Single-AZ:** The instance remains unavailable for the entire duration of the patching process.
+## NAT gateway vs NAT instance
 
-💡 Best Practices for High Availability
-1.  **Production Multi-AZ:** Always enable [Multi-AZ Deployments](https://aws.amazon.com) for production workloads to offload backup I/O and minimize maintenance downtime.
-2.  **Monitor Replica Lag:** Use [Amazon CloudWatch](https://aws.amazon.com) to track the `ReplicaLag` metric. Significant lag can indicate that the replica instance is underpowered compared to the primary.
-3.  **Optimize Backup Windows:** For Single-AZ instances, set the **Backup Window** to the lowest-traffic hours of the day to mitigate the impact of I/O suspension.
-4.  **Test Failovers:** Periodically use the [Reboot with Failover](https://docs.aws.amazon.com) feature to ensure your application's connection logic (e.g., connection pooling) handles DNS changes correctly.
-</b></details>
+Network address translation lets instances in a private subnet start outbound
+IPv4 connections to the internet while remaining unreachable from it. A **NAT
+gateway** is the managed AWS service; a **NAT instance** is an EC2 instance you
+configure to do the same job.
 
-<details>
-<summary> 🕒 Amazon RDS: Point-In-Time Recovery (PITR).</code></summary><br><b>
-
-PITR allows you to restore a database instance to any specific second within your retention period. This is the primary defense against **human error** (e.g., accidental `DROP TABLE` or `DELETE` without a `WHERE` clause).
-
-⚙️ 1. How PITR Works
-PITR relies on two critical components:
-1.  **Daily Snapshots:** Automated full backups of the entire DB instance.
-2.  **Transaction Logs (Binary Logs):** RDS uploads your transaction logs to S3 every 5 minutes.
-
-When you trigger a PITR, AWS identifies the **latest snapshot** before your requested time and then **replays the transaction logs** up to the exact second you specified.
-
-🛠️ 2. Step-by-Step Recovery Scenario
-*   **The Incident:** A developer accidentally ran a cleanup script that wiped the `users` table at **14:05:10 UTC**.
-*   **The Goal:** Restore the database to its state at **14:05:00 UTC**.
-
-Execution via [AWS Console](https://console.aws.amazon.com):
-1.  In the RDS dashboard, select the database.
-2.  Choose **Actions** -> **Restore to point in time**.
-3.  Select **Latest restorable time** or **Custom** (Set to 14:05:00).
-4.  Specify a **new DB instance identifier** (RDS always restores to a *new* instance; it never overwrites the existing one).
-</b></details>
-
-<details>
-<summary>  📉 RPO vs. RTO: Business Side of Disaster Recovery.</code></summary><br><b>
-
-In production environments, we measure the success of a Disaster Recovery (DR) strategy using two key metrics: **RPO** and **RTO**.
-
-**RPO (Recovery Point Objective)** — "How much data can we afford to lose?"
-*   **Definition:** The maximum targeted period in which data might be lost from an IT service due to a major incident.
-*   **Focus:** Data Loss and Backup Frequency.
-*   **Example:** If your RPO is **4 hours** and your last backup was at 12:00 PM, a crash at 3:59 PM is acceptable. A crash at 5:00 PM is a failure of the RPO.
-
-**RTO (Recovery Time Objective)** — "How quickly must we be back online?"
-*   **Definition:** The targeted duration of time and a service level within which a business process must be restored after a disaster.
-*   **Focus:** Downtime and Recovery Speed.
-*   **Example:** If your RTO is **1 hour**, your engineers must have the system fully operational within 60 minutes of the initial outage.
-
-📊 Comparison Table
-| Feature | RPO (Recovery Point Objective) | RTO (Recovery Time Objective) |
+| | NAT gateway | NAT instance |
 | :--- | :--- | :--- |
-| **Question** | "When was the last backup?" | "How long until we are back?" |
-| **Metric** | Amount of **Data/Time** | Amount of **Real-time/Clock** |
-| **Optimization** | Increase backup frequency (Snapshots/Logs) | Automate recovery (Failover/IaC) |
-| **Cost Factor** | More frequent backups = Higher Storage costs | Faster recovery = Higher Infrastructure costs |
+| Managed by | AWS | You: AMI, patching, monitoring |
+| Bandwidth | Starts at 5 Gbps, scales automatically to 100 Gbps | Bounded by the instance type |
+| Availability | Redundant within its Availability Zone | Single instance; you build failover yourself |
+| Security groups | Not supported; filter with NACLs and the source security groups | Supported |
+| Port forwarding, bastion use, custom software | Not possible | Possible |
+| Source/destination check | Not applicable | Must be disabled on the ENI |
+| Cost | Hourly charge plus per-GB data processing | Instance and data transfer cost only |
+| Maintenance | None | Yours |
 
-🛠️ Real-World Application
+Use a NAT gateway by default. A NAT instance is justified only when you need
+something a NAT gateway cannot do, such as port forwarding or acting as a
+bastion at the same time, or on a development account where a `t4g.nano` is
+cheaper than the gateway's hourly charge.
 
-**Scenario A: High-Frequency Trading (Critical)**
-*   **Goal:** Zero data loss, near-instant recovery.
-*   **Metrics:** RPO = 0 seconds | RTO = < 30 seconds.
-*   **Solution:** [Multi-Region Active-Active](https://aws.amazon.com) architecture with synchronous data replication.
+### How the traffic actually flows
 
-**Scenario B: Internal Reporting Tool (Non-Critical)**
-*   **Goal:** Cost-effective recovery.
-*   **Metrics:** RPO = 24 hours | RTO = 8 hours.
-*   **Solution:** Daily [RDS Snapshots](https://docs.aws.amazon.com) and a standard restore process from S3.
+1. An instance in a private subnet sends a packet to a public address. Its
+   subnet's route table has `0.0.0.0/0` pointing at the NAT gateway.
+2. The NAT gateway lives in a **public** subnet whose route table has
+   `0.0.0.0/0` pointing at the internet gateway. This placement is the part
+   people get wrong: a NAT gateway in a private subnet cannot work.
+3. The NAT gateway rewrites the packet's source to its own Elastic IP, records
+   the translation, and forwards it out through the internet gateway.
+4. The response arrives addressed to the Elastic IP. The gateway looks up the
+   translation entry and forwards the packet back to the private instance.
 
-💡
-1.  **The Cost Trade-off:**  "The lower the RPO and RTO, the higher the cost. As a DevOps engineer, I work with stakeholders to find the balance between 'Five Nines' availability and budget constraints."
-2.  **RPO is limited by Physics:** "In globally distributed systems, RPO is often limited by network latency. Synchronous replication (RPO=0) can slow down application performance due to the [CAP Theorem](https://en.wikipedia.org)."
-3.  **Automation is Key for RTO:** "To meet strict RTOs, I use Infrastructure as Code (Terraform) and automated failover scripts to ensure we aren't manually configuring servers during an outage."</b></details>
-</b></details>
+What this means:
 
-<details>
-<summary> Relation between the Availability Zone and Region?.</code></summary><br><b>
+- NAT is **outbound-initiated only**. Because a translation entry exists only
+  after an outbound packet, an unsolicited inbound connection has nothing to
+  match and is dropped. Inbound traffic needs a load balancer, or an instance in
+  a public subnet with a public IP.
+- Ordinary NAT gateway egress translates private **IPv4 to public IPv4**.
+  Native IPv6 does not need address translation; use an **egress-only internet
+  gateway** when IPv6 workloads need outbound-only access to IPv6 destinations.
+  A NAT gateway also has built-in **NAT64** for an IPv6-only client reaching an
+  IPv4-only destination. Enable DNS64 on the workload subnet so Route 53
+  Resolver synthesises an address under `64:ff9b::/96`, and route that prefix to
+  the NAT gateway. NAT64 is automatically available on the gateway; it is not a
+  feature you enable there.
+- Deploy **one NAT gateway per Availability Zone** and point each zone's private
+  route table at the gateway in its own zone. A single shared gateway both adds
+  cross-AZ data transfer charges and makes one zone's failure take down every
+  zone's egress.
+- NAT gateways charge per gigabyte processed. Traffic to S3, DynamoDB, ECR, and
+  other AWS services should go through **VPC endpoints** so it never touches the
+  NAT gateway. Pulling container images through NAT on every scale-out is a
+  common source of surprising bills.
+- A NAT gateway has no security group, so filtering has to happen on the source
+  instances or with subnet NACLs.
+- Typical failure signatures: instances have no internet access because the
+  private route table is missing the NAT route, or because the NAT gateway
+  itself sits in a subnet with no IGW route; and
+  `ErrorPortAllocation`/`IdleTimeoutCount` metrics rising, which means port
+  exhaustion from too many concurrent connections to a single destination.
 
-Each Region is a separate geographic area. 
+## VPC peering
 
-Availability Zones are multiple, isolated locations within each Region. 
-</b></details>
+A VPC peering connection is a private, one-to-one network link between two VPCs.
+Traffic stays on the AWS backbone, never traverses the internet, and needs no
+gateway, VPN, or physical hardware. It works across accounts and across Regions.
 
-<details>
-<summary> What does AMI include?.</code></summary><br><b>
+Setting one up takes three steps that all have to be done:
 
-An AMI includes the following things:
+1. Requester creates the peering connection; the accepter accepts it.
+2. **Both** VPCs add routes to the other VPC's CIDR with the peering connection
+   as the target.
+3. Security groups on both sides allow the other side's CIDR or, within a
+   Region, the other side's security group ID.
 
-* A template for the root volume for the instance.
+Constraints that are usually the point of the question:
 
-* Launch permissions to decide which AWS accounts can avail the AMI to launch instances.
+- **CIDRs must not overlap.** There is no NAT in a peering connection, so
+  overlapping ranges make the connection impossible.
+- **Peering is not transitive.** If A peers with B and B peers with C, A cannot
+  reach C. You need a direct A-to-C peering.
+- **No edge-to-edge routing.** You cannot use a peer's internet gateway, NAT
+  gateway, VPN connection, Direct Connect, or gateway VPC endpoint. Each VPC
+  provides its own egress.
+- **It does not scale.** Full mesh across n VPCs needs n(n-1)/2 connections and
+  a route entry per peer in every route table. Beyond a handful of VPCs, use a
+  **Transit Gateway**, which is a hub-and-spoke router that supports transitive
+  routing, route tables per attachment, and on-premises attachment through VPN
+  or Direct Connect.
+- **DNS resolution of private hostnames** across the peering is off by default;
+  enable it on both sides if you want private DNS names to resolve.
+- Same-Region peering has no per-GB charge for the peering itself, though
+  cross-AZ data transfer still applies. Inter-Region peering charges for data
+  transfer and is encrypted in transit by AWS.
 
-* A block device mapping that determines the volumes to attach to the instance when it is launched.
-</b></details>
+Choose peering for a small number of stable, point-to-point relationships.
+Choose Transit Gateway for a hub topology or once transitivity is needed. Choose
+**PrivateLink** when you only need to expose a single service to a consumer
+rather than connect two networks, since it avoids sharing routable address space
+altogether and works with overlapping CIDRs.
 
-<details>
-<summary> What does serverless mean to you ?.</code></summary><br><b>
+## VPC endpoints
 
-Serverless is a cloud-native development model that allows developers to build and run applications without having to manage servers.
+Endpoints give resources in a VPC private access to AWS services without an
+internet gateway or NAT gateway.
 
-There are still servers in serverless, but they are abstracted away from app development. A cloud provider handles the routine work of provisioning, maintaining, and scaling the server infrastructure. Developers can simply package their code in containers for deployment.
+| | Gateway endpoint | Interface endpoint (PrivateLink) |
+| :--- | :--- | :--- |
+| Supported services | S3 and DynamoDB only | Most AWS services, plus partner and your own services |
+| Mechanism | A route table entry with a prefix list | An ENI with a private IP in your subnet |
+| Cost | Free | Hourly per ENI plus per-GB |
+| Security control | Endpoint policy and route table | Endpoint policy and a security group |
+| Cross-Region or on-premises access | No | Yes, through VPN or Direct Connect |
 
-Once deployed, serverless apps respond to demand and automatically scale up and down as needed. Serverless offerings from public cloud providers are usually metered on-demand through an event-driven execution model. As a result, when a serverless function is sitting idle, it doesn’t cost anything.
-</b></details>
+Two reasons to use them: cost, because traffic bypasses NAT gateway data
+processing charges, and security, because an endpoint policy plus an
+`aws:SourceVpce` condition on the bucket policy lets you enforce that a bucket
+is reachable only from your VPC.
 
-<details>
-<summary> Different storage classes in AWS ?.</code></summary><br><b>
+## Elastic Load Balancing
 
-* `Amazon S3 Standard (S3 Standard)`
-* `Amazon S3 Intelligent-Tiering (S3 Intelligent-Tiering)`
-* `Amazon S3 Standard-Infrequent Access (S3 Standard-IA)`
-* `Amazon S3 One Zone-Infrequent Access (S3 One Zone-IA)`
-* `Amazon S3 Glacier (S3 Glacier)`
-* `Amazon S3 Glacier Deep Archive (S3 Glacier Deep Archive)`
-* `S3 Outposts storage class` : object storage to your on-premises AWS Outposts environment. Using the S3 APIs and features available in AWS Regions today, S3 on Outposts makes it easy to store and retrieve data on your Outpost, as well as secure the data, control access, tag, and report on it. S3 on Outposts provides a single Amazon S3 storage class, named S3 Outposts, which uses the S3 APIs, and is designed to durably and redundantly store data across multiple devices and servers on your Outposts.
-
-[AWS S3 Storage Classes](https://aws.amazon.com/s3/storage-classes/)
-</b></details>
-
-<details>
-<summary> AWS S3 Troubleshooting ?.</code></summary><br><b>
-
-# 🪣 AWS S3: Troubleshooting & Design
-
-### 1️⃣ Accidental Data Deletion
-*   **The Scenario:** A critical production folder was accidentally deleted from an S3 bucket.
-*   **Immediate Fix:** If [S3 Versioning](https://docs.aws.amazon.com) was enabled, simply remove the **Delete Marker** to restore the previous version.
-*   **Production Prevention:** 
-    1.  Enable **MFA Delete** to require a hardware token for permanent deletions.
-    2.  Implement **S3 Object Lock** (WORM model) for compliance data to prevent any deletion for a fixed duration.
-
-### 2️⃣ Cost Optimization (Massive Datasets)
-*   **The Scenario:** Monthly S3 storage costs have spiked. You have 100TB+ of data with varying access patterns.
-*   **The Solution:** 
-    1.  **S3 Storage Class Analysis:** Use this to identify objects that aren't being accessed.
-    2.  **S3 Lifecycle Policies:** Automate transitions (e.g., move to **S3 Glacier Deep Archive** after 90 days).
-    3.  **S3 Intelligent-Tiering:** Use this for data with unknown or changing access patterns to automatically save costs.
-
-### 3️⃣ Performance Bottlenecks (503 Slow Down)
-*   **The Scenario:** Your application is making 10,000+ requests per second and receiving `503 Slow Down` errors.
-*   **The Issue:** You have hit the partition limit (3,500 PUT/5,500 GET requests per second per prefix).
-*   **Production Solutions:**
-    1.  **Prefix Randomization:** Distribute high-volume traffic across multiple prefixes (folders).
-    2.  **S3 Transfer Acceleration:** Use AWS edge locations for faster global uploads.
-    3.  **CloudFront Integration:** Use [Amazon CloudFront](https://aws.amazon.com) to cache GET requests and reduce the direct load on the bucket.
-
-### 4️⃣ Secure Cross-Account Access
-*   **The Scenario:** An application in **Account A** needs to upload logs to a central bucket in **Account B**.
-*   **The Solution:** 
-    1.  **Bucket Policy:** Add a policy in Account B allowing `s3:PutObject` for the IAM Role in Account A.
-    2.  **Ownership:** Ensure Account A uploads with the `bucket-owner-full-control` ACL so Account B can actually manage the objects.
-    3.  **Access Points:** Use [S3 Access Points](https://aws.amazon.com) to simplify permissions for different cross-account teams.
-
-### 5️⃣ Public Access Prevention
-*   **The Scenario:** A security audit warns that several buckets might be accidentally exposed to the public.
-*   **The Solution:**
-    1.  **Block Public Access (BPA):** Enable this at the **Account Level** to override any individual bucket settings.
-    2.  **IAM Policies:** Use `Condition` keys to enforce that only traffic from your **VPC Endpoint** can access the bucket.
-    3.  **Amazon Macie:** Deploy [Amazon Macie](https://aws.amazon.com) to automatically discover and protect sensitive data (PII) at scale.
-
-## 📊 S3 Storage Class Quick-Reference
-
-| Storage Class | Durability | Min Duration | Ideal Use Case |
+| | Application Load Balancer | Network Load Balancer | Gateway Load Balancer |
 | :--- | :--- | :--- | :--- |
-| **Standard** | 11 9s | None | Active, frequently accessed data. |
-| **Intelligent-Tiering** | 11 9s | None | Changing or unknown access patterns. |
-| **Standard-IA** | 11 9s | 30 Days | Long-lived, infrequently accessed data. |
-| **Glacier Instant** | 11 9s | 90 Days | Archived data needing millisecond access. |
-| **Glacier Deep Archive** | 11 9s | 180 Days | 12-hour retrieval (Lowest cost/Compliance). |
+| Layer | 7 | 4 | 3 gateway plus GENEVE on port 6081 |
+| Protocols | HTTP, HTTPS, gRPC | TCP, TLS, UDP, TCP_UDP | IP packets |
+| Routing | Host, path, headers, query, method, weighted target groups | Destination port and connection flow | Routes all packets through virtual appliances |
+| Targets | Instances, IPs, Lambda | Instances, IPs, ALBs | Firewall and inspection appliances |
+| Client IP | In `X-Forwarded-For` | Preserved to the target | Preserved through encapsulation |
+| Static IP | No; use its DNS name | One static IP per AZ; Elastic IP supported | Endpoint service, reached through GWLB endpoints |
+| Choose it for | Web apps, APIs, redirects, authentication, content routing | Very high throughput, low latency, non-HTTP traffic, static allow-listed IPs | Transparent third-party firewalls, IDS/IPS, deep packet inspection |
 
-## 💡
-*   **On Data Protection:** "I always implement **Replication (CRR/SRR)** across accounts to protect against regional disasters or account compromises."
-*   **On Performance:** "S3 is horizontally scalable, but performance tuning starts with **Prefix Design** and **Multipart Uploads** for large files."
-*   **On Security:** "I prefer **S3 Access Points** over massive Bucket Policies to keep permissions manageable and auditable."
-</b></details>
+**ALB** understands requests, terminates TLS, can authenticate through
+OIDC/Cognito, and is the normal choice for HTTP services. **NLB** understands
+connections rather than URLs; choose it for databases, MQTT, UDP, source-IP
+preservation, or a fixed IP. **GWLB** is not an application frontend: it inserts
+a fleet of network appliances into a route path and scales them transparently.
 
+All are Regional and should have subnets in at least two Availability Zones.
+Cross-zone load balancing is always enabled for ALB and configurable for NLB
+and GWLB. Health checks decide whether new traffic reaches a target, so a
+shallow process-only check can send users to an application that cannot reach
+its database.
 
+## EC2
 
-<details>
-<summary>  Diff types of EC2 instances ?.</code></summary><br><b>
+### Instance families
 
-* `General Purpose`: The most popular; used for web servers, development environments, etc.
-* `Compute Optimized`: Good for compute-intensive applications such as some scientific modeling or high-performance web servers.
-* `Memory Optimized`: Used for anything that needs memory-intensive applications, such as real-time big data analytics, or running Hadoop or Spark.
-* `Accelerated Computing`: Include additional hardware (GPUs, FPGAs) to provide massive amounts of parallel processing for tasks such as graphics processing.
-* `Storage Optimized`: Ideal for tasks that require huge amounts of storage, specifically with sequential read-writes, such as log processing.
+| Family | Prefix | Optimised for | Typical workload |
+| :--- | :---: | :--- | :--- |
+| General purpose | `M` | Balanced CPU, memory, network | Application servers, small databases |
+| General purpose | `T` | Burstable, credit-based | Dev/test, low-traffic web |
+| Compute optimised | `C` | High CPU per unit of memory | Batch processing, encoding, high-performance web |
+| Memory optimised | `R` | High memory per vCPU | In-memory caches, Redis, analytics |
+| Memory optimised | `X`, `U` | Extreme memory | SAP HANA, large in-memory databases |
+| Storage optimised | `I` | Local NVMe IOPS | NoSQL, low-latency data stores |
+| Storage optimised | `D`, `H` | Dense HDD throughput | Hadoop, log and data warehouse processing |
+| Accelerated | `P` | GPU for training | Machine learning training, HPC |
+| Accelerated | `G` | GPU for inference and graphics | Inference, video encoding, 3D rendering |
+| Accelerated | `F` | FPGA | Hardware acceleration, genomics |
+| Accelerated | `Inf`, `Trn` | AWS custom silicon | Inference and training at lower cost |
 
-📊 Instance Family Quick-Reference
-Use the mnemonic **"FIGHT DR MCP X"** to remember the different families.
+Suffix letters carry information: `g` means an AWS Graviton (ARM) processor,
+which offers materially better price-performance but requires ARM-compatible
+builds and images; `a` means AMD; `i` means Intel; `d` means local NVMe storage;
+`n` means enhanced network bandwidth.
 
-| Family | Prefix | Definition | Memory Hook | Ideal Workload |
-| :--- | :---: | :--- | :--- | :--- |
-| **General Purpose** | **M** | Main / Balanced | "M" for **M**id-range | Small/Med Databases, App Servers. |
-| **General Purpose** | **T** | Turbo / Burstable | "T" for **T**iny / **T**emporary | Dev/Test, Low-traffic Web. |
-| **Compute Optimized** | **C** | Compute | "C" for **C**PU | Batch Processing, High-perf Web. |
-| **Memory Optimized** | **R** | RAM | "R" for **R**AM | In-memory DBs (Redis/SAP HANA). |
-| **Memory Optimized** | **X** | Xtreme RAM | "X" for **X**tra Large Memory | Massive Enterprise DBs. |
-| **Storage Optimized** | **I** | I/O Speed | "I" for **I**/O (NVMe) | NoSQL, Data Warehousing. |
-| **Storage Optimized** | **D** | Density | "D" for **D**ense HDD | Hadoop, Log Processing. |
-| **Accelerated** | **P** | Pictures (GPU) | "P" for **P**ixels / **P**ower | Machine Learning, AI Training. |
-| **Accelerated** | **G** | Graphics | "G" for **G**raphics | Video Encoding, 3D Rendering. |
-| **Accelerated** | **F** | FPGA | "F" for **F**ield Programmable | Hardware Acceleration, Genomics. |
+`T` instances earn and spend CPU credits. Once credits run out, performance
+drops to a low baseline, which appears in monitoring as unexplained latency.
+Either use `unlimited` mode and accept the surcharge, or pick `M` or `C` for
+production.
 
-💰 EC2 Pricing Models
+### Pricing models
 
-| Model | Cost Savings | Use Case | Commitment |
+| Model | Saving | Commitment | Use for |
 | :--- | :--- | :--- | :--- |
-| **On-Demand** | 0% (Base) | Short-term, unpredictable workloads. | None. |
-| **Reserved (RI)** | Up to 72% | Steady-state, predictable workloads. | 1 or 3 Years. |
-| **Spot Instances** | **Up to 90%** | Fault-tolerant, stateless batch jobs. | None (AWS can reclaim). |
+| On-Demand | Baseline | None | Short-lived, unpredictable workloads |
+| Savings Plans | Up to 72% | 1 or 3 years of hourly spend | Steady compute spend, flexible across family and Region |
+| Reserved Instances | Up to 72% | 1 or 3 years on specific attributes | Steady-state workloads, especially RDS |
+| Spot | Up to 90% | None; AWS can reclaim with 2 minutes' notice | Fault-tolerant, stateless, interruptible batch work |
+| Dedicated Hosts | Varies | Per host | Licensing that is bound to physical cores |
 
-💡Pro-Tip
+Prefer Savings Plans over Reserved Instances for EC2 now, because they apply
+across instance families and Regions. Spot works well for Kubernetes worker
+nodes when you run the AWS Node Termination Handler, which catches the
+interruption notice and drains pods before the node disappears; mix Spot with an
+On-Demand or Savings Plan baseline so a capacity event cannot take out the whole
+fleet.
 
-**The "g" Suffix (Graviton)**
-Mention that instances with a `g` (e.g., `M6g`) use [AWS Graviton Processors](https://aws.amazon.com). They offer up to **40% better price-performance** compared to Intel/AMD counterparts. This shows you are cost-conscious.
+### What an AMI contains
 
-**CPU Credits (T-Series)**
-Explain that `T` instances use a "credit" system. For production, you prefer `M` or `C` series because if a `T` instance runs out of [CPU Credits](https://docs.aws.amazon.com), its performance is throttled to a baseline, causing application latency.
+- A template for the root volume: the OS, and any pre-installed software and
+  configuration.
+- Launch permissions controlling which AWS accounts may launch from it.
+- A block device mapping specifying the volumes attached at launch, their sizes,
+  types, and delete-on-termination behaviour.
 
-**Spot Termination Handling**
-When using **Spot Instances** for Kubernetes nodes, always mention using the [AWS Node Termination Handler](https://github.com). It catches the 2-minute interruption notice and gracefully drains pods before the node is reclaimed.
+AMIs are Region-scoped, so a multi-Region deployment needs the AMI copied to
+each Region. Baking configuration into an AMI (with Packer or EC2 Image Builder)
+gives faster, more predictable launches than configuring at boot with user data,
+which is the "golden AMI" pattern.
 
-[EC2 Instance Types](https://aws.amazon.com/ec2/instance-types/)
-</b></details>
+## EBS vs EFS vs instance store
 
-<details>
-<summary> Reliability Metrics: SLI vs. SLO vs. SLA?.</code></summary><br><b>
+| | EBS | EFS | Instance store |
+| :--- | :--- | :--- | :--- |
+| Model | Network block device | Managed NFS file system | Local NVMe/SATA block device |
+| Scope | One Availability Zone | Regional, mounted from many AZs | One physical EC2 host |
+| Attachment | Normally one instance; supported volumes can use Multi-Attach | Many Linux clients concurrently | Only its owning instance |
+| Persistence | Survives stop and, unless configured otherwise, termination | Persists independently of clients | Data is lost on stop, terminate, or host failure |
+| Performance | Provisioned volume type, IOPS, and throughput | Elastic shared throughput with network latency | Lowest latency and highest local IOPS |
+| Best use | Boot volumes, databases, single-node durable state | Shared content, home directories, multi-instance file access | Cache, buffers, scratch, replicated data |
 
-| Metric | Full Name | Definition | Analogy | Who cares? |
+An EBS volume and its instance must be in the same AZ; snapshots are
+incremental backups stored by AWS and can create volumes in another AZ or
+Region. EFS removes the single-writer/AZ restriction but is a filesystem, not a
+drop-in replacement for a database block device. Instance store is safe only
+when the application can recreate or replicate every byte elsewhere.
+
+## Auto Scaling and launch templates
+
+An **EC2 Auto Scaling group (ASG)** maintains a desired instance count between
+minimum and maximum bounds, replaces unhealthy instances, and distributes them
+across Availability Zones. It is not the load balancer: the ASG controls
+capacity and lifecycle, while an ALB or NLB distributes traffic.
+
+A **launch template** is the versioned instance recipe used by the ASG: AMI,
+instance type, security groups, IAM instance profile, storage, metadata options,
+and user data. Prefer it over legacy launch configurations, which cannot be
+edited or versioned and do not support current features such as mixed instance
+policies.
+
+Scaling policies:
+
+- **Target tracking:** maintain a target such as 50% average CPU or a custom
+  requests-per-target metric; the default answer for ordinary workloads.
+- **Step scaling:** add different amounts of capacity at different alarm
+  thresholds.
+- **Scheduled scaling:** prepare for a predictable event before it begins.
+- **Predictive scaling:** forecast recurring demand and launch ahead of it.
+
+Scale-in is riskier than scale-out. Use instance warm-up so new instances do not
+distort metrics, a lifecycle hook to drain work or upload logs before
+termination, and termination protection for irreplaceable work. Feed ALB health
+checks into the ASG so a process that is alive but cannot serve is replaced.
+
+## ECS vs EKS
+
+| | ECS | EKS |
+| :--- | :--- | :--- |
+| Orchestrator | AWS-native | Managed Kubernetes control plane |
+| Workload object | Task definition, task, service | Pod, Deployment, StatefulSet, Service |
+| Learning and operations | Simpler, fewer components | Higher complexity; Kubernetes skills required |
+| Portability | AWS-specific API | Kubernetes API works across clouds and on-premises |
+| Compute | EC2 or Fargate | EC2 managed node groups, self-managed nodes, or Fargate |
+| Ecosystem | Tight AWS integration | Broad Kubernetes controllers, operators, Helm, service meshes |
+| Choose it for | AWS-only teams wanting the least operational overhead | Existing Kubernetes investment, portability, or ecosystem requirements |
+
+**Fargate is a compute option, not an orchestrator**: both ECS and EKS can use
+it to run Pods or tasks without managing nodes. With EC2 capacity you manage
+node patching and utilisation but gain daemon workloads, GPUs, and more control.
+For either service, give workloads task or Pod roles rather than the broad node
+role, publish images to ECR, and spread replicas across AZs.
+
+## S3
+
+### Storage classes
+
+| Class | Durability | Availability zones | Minimum duration | Use for |
 | :--- | :--- | :--- | :--- | :--- |
-| **SLI** | **Service Level Indicator** | specific metric used to measure performance | **Speedometer** | Engineers/SREs |
-| **SLO** | **Service Level Objective** | target value or range for an SLI | **Speed Limit** | Engineers + Product |
-| **SLA** | **Service Level Agreement** | legal contract with consequences for missing SLOs | **Traffic Fine** | Business + Customers |
+| Standard | 11 nines | 3 or more | None | Active, frequently accessed data |
+| Intelligent-Tiering | 11 nines | 3 or more | None | Unknown or changing access patterns |
+| Standard-IA | 11 nines | 3 or more | 30 days | Long-lived, infrequently accessed, needs immediate retrieval |
+| One Zone-IA | 11 nines in one zone | 1 | 30 days | Reproducible data where losing a zone is acceptable |
+| Express One Zone | 11 nines in one zone | 1 | 1 hour | Single-digit-millisecond latency, high request rates |
+| Glacier Instant Retrieval | 11 nines | 3 or more | 90 days | Archive that still needs millisecond access |
+| Glacier Flexible Retrieval | 11 nines | 3 or more | 90 days | Archive with minutes-to-hours retrieval |
+| Glacier Deep Archive | 11 nines | 3 or more | 180 days | Compliance archive, 12-hour retrieval, lowest cost |
+| S3 on Outposts | - | On-premises Outpost | None | Data that must stay on your own hardware, same S3 API |
 
-### 🔍 Deep Dive with Examples
-**SLI (Measurement)**
-The actual "raw data" you are tracking.
-*   **Examples:** Request Latency, Error Rate, System Throughput, Availability (Uptime).
-*   **Formula:** `(Successful Events / Total Events) * 100`
+Minimum duration is billed whether or not the object still exists, so moving
+small short-lived objects to Glacier costs more than leaving them in Standard.
+Retrieval and per-object overhead charges make lifecycle transitions of millions
+of tiny objects a frequent cost mistake; use Intelligent-Tiering when the
+pattern is genuinely unknown.
 
-**SLO (Internal Goal)**
-The target your team agrees to meet to keep users happy.
-*   **Example:** "99.9% of requests should have a latency < 200ms over a 30-day window."
-*   **Pro-Tip:** If you meet your SLO, your users are happy. If you miss it, you stop new feature work to fix reliability (the **Error Budget**).
+Reference: [S3 storage classes](https://aws.amazon.com/s3/storage-classes/)
 
-**SLA (External Promise)**
-The commitment made to customers.
-*   **Example:** "If availability drops below 99.5%, we will refund 10% of your monthly bill."
-*   **Rule of Thumb:** Your **SLO** should always be stricter than your **SLA**. (e.g., Internal SLO 99.9%, External SLA 99.5%).
-</b></details>
+### Accidental deletion
 
-<details>
-<summary>  Diff. between fault tolerance and Disaster recovery ?.</code></summary><br><b>
+With **versioning** enabled, a delete only writes a delete marker. Remove the
+marker to restore the object. Without versioning the object is gone.
 
-Fault tolerant design ensures that system is up and working even in faulty scenarios. When you app / business can afford some time otherwise High Availablity will be required if don’t want any downtime.
+Prevention: enable versioning before you need it, add **MFA Delete** so
+permanent deletion of a version requires a token, use **Object Lock** in
+compliance mode for data with a retention requirement, and replicate to a bucket
+in another account so a compromised account cannot destroy both copies.
 
-Disaster recovery ensures that in situation when there is damage beyond repair, system is able to preserve key data and bring up servers in same state. Disaster can be failure of components or entire physical infrastructure.
+### Cost growth on large datasets
 
-[fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
-</b></details>
+- Run **Storage Class Analysis** or S3 Storage Lens to see what is actually
+  being read.
+- Add **lifecycle policies** to transition and expire objects on age.
+- Use **Intelligent-Tiering** where access is unpredictable.
+- Expire incomplete multipart uploads with a lifecycle rule; abandoned parts are
+  invisible in the console but billed.
+- Check whether old **noncurrent versions** are the real cost, and expire them
+  too.
 
-<details>
-<summary>  Diff. between Service Principal and Managed Identity ?.</code></summary><br><b>
+### 503 Slow Down under high request rates
 
-Service principal is a security identity used by user-created apps, services, and automation tools to access specific Azure resources. 
+S3 scales to about 3,500 write and 5,500 read requests per second **per
+prefix**, and partitions split automatically as load grows, but the split takes
+time. A sudden ramp against one prefix produces `503 Slow Down`.
 
-- SP's are created manually by users/administrators through Azure portal, Azure CLI, PowerShell, or Azure SDKs.
+Fixes: spread keys across multiple prefixes so the load lands on more
+partitions, ramp traffic gradually rather than instantly, retry with exponential
+backoff and jitter (the SDKs do this by default), put CloudFront in front of read
+traffic, and use multipart upload plus Transfer Acceleration for large objects.
 
-- SP's are typically used in scenarios where an application needs to access Azure resources. They can be assigned roles and permissions, enabling applications to interact with Azure services securely.
+### Cross-account access
 
-- SP's are authenticated using either a client secret (a password) or a certificate. They can authenticate without the need for interactive sign-ins.
+An application in account A writes to a bucket in account B:
 
-Managed identities for Azure resources, also known as Managed Service Identity (MSI), are a feature in Azure Active Directory that allow services to authenticate to cloud services (e.g., Azure Key Vault) without needing to insert credentials into the code.
+1. A bucket policy in B allows `s3:PutObject` for the IAM role in A.
+2. Set `BucketOwnerEnforced` object ownership on the bucket, which disables ACLs
+   and makes B the owner of everything uploaded. On older buckets that still use
+   ACLs, A must upload with `bucket-owner-full-control`, otherwise B cannot read
+   its own bucket's objects.
+3. Use **S3 Access Points** to give each consumer its own named endpoint and
+   policy instead of growing one bucket policy past readability.
 
-- MI's are created directly on Azure resources (like Virtual Machines, App Services, Functions, etc.). There's no need for manual creation or management.
+### Preventing public exposure
 
-- MI's are used in scenarios where an Azure resource needs to access other Azure resources securely. The identity is automatically managed by Azure and doesn’t require explicit management by users.
+- Enable **Block Public Access at the account level**, which overrides
+  individual bucket settings.
+- Require encryption and private access in bucket policies with `Condition`
+  keys, for example `aws:SecureTransport` and `aws:SourceVpce`.
+- Use **IAM Access Analyzer** to find buckets reachable from outside the account,
+  and **Amazon Macie** to discover sensitive data at scale.
+- Serve public content through CloudFront with Origin Access Control rather than
+  by making the bucket public.
 
-- MI's use the Azure AD authentication flow. When enabled, Azure automatically handles the authentication process for the resource using the identity.
+## SQS vs SNS vs EventBridge
 
-##Key Differences:
+| | SQS | SNS | EventBridge |
+| :--- | :--- | :--- | :--- |
+| Pattern | Queue: pull and buffer | Topic: push and fan out | Event bus: route matching events |
+| Consumers | One consumer processes each message; competing consumers scale work | Every subscription receives a copy | Every matching rule can send a copy to one or more targets |
+| Retention | Up to 14 days | No retention after delivery | Optional archive and replay; otherwise routes immediately |
+| Filtering | Consumer decides; limited queue-side controls | Subscription filter policies | Rich rules over event structure and content |
+| Ordering | Standard is best effort; FIFO preserves per-group order | Standard or FIFO topic | Best effort; no strict global order |
+| Typical use | Decouple and absorb bursts, work queues, retries and DLQs | Notifications and simple fan-out to SQS, Lambda, HTTP, email | Domain events, AWS service events, SaaS integration, schedules |
 
-1.Creation and Management:
-- Service Principal: Created manually and requires explicit management by the user.
-- Managed Identity: Created directly on Azure resources, and Azure handles the management automatically.
+Choose **SQS** when work must wait safely until a consumer is ready. Choose
+**SNS** when one publisher must immediately notify many known subscribers.
+Choose **EventBridge** when producers and consumers should be loosely coupled by
+event schema and routing rules. A common reliable fan-out is SNS or EventBridge
+to one SQS queue per consumer, so each subscriber gets independent buffering,
+retries, and a dead-letter queue.
 
-2.Scope:
-- Service Principal: Can be created for various scenarios and doesn’t have a specific scope in Azure.
-- Managed Identity: Tied to a specific Azure resource and can only be used by that resource and its child resources.
+All three can deliver more than once, so consumers must be idempotent. SQS
+visibility timeout hides a message while it is being processed; if the consumer
+does not delete it before the timeout, another consumer receives it. Set the
+timeout longer than normal processing and use a DLQ with a finite redrive count.
 
-3.Authentication:
-- Service Principal: Requires manual configuration of authentication methods (client secret or certificate).
-- Managed Identity: Authentication is automatically handled by Azure AD.
+## CloudWatch
 
-4.Use Cases:
-- Service Principal: Typically used for broader scenarios where applications or services need to access various Azure resources.
-- Managed Identity: Ideal for scenarios where a specific Azure resource (e.g., a VM or an App Service) needs secure access to other Azure resources.
+CloudWatch is AWS's native observability service:
 
-[fault tolerance and Disaster recovery](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
-</b></details>
+- **Metrics** are time-series numbers. AWS service metrics arrive by default;
+  application and OS metrics require custom publication or the CloudWatch
+  agent. Choose dimensions carefully because every unique dimension set is a
+  separate custom metric and cost.
+- **Logs** stores log groups and streams, supports Logs Insights queries,
+  subscription filters to Lambda, Firehose, or OpenSearch, and metric filters.
+  Set retention explicitly; the default is never expire.
+- **Alarms** evaluate a metric or metric-math expression and can notify SNS,
+  invoke Auto Scaling actions, or drive rollback. A composite alarm reduces
+  noise by combining several symptoms.
+- **Container Insights and Application Signals** add curated workload metrics,
+  traces, and service-level views. **X-Ray** supplies distributed traces.
+- **EventBridge** is the service for event routing; the old CloudWatch Events
+  product was renamed and expanded into EventBridge.
 
+Monitor user-facing symptoms first: availability, latency, error rate, and
+traffic, then resource saturation. Alarm on sustained periods and configure
+missing-data treatment deliberately; `notBreaching` can hide a dead metric
+publisher, while `breaching` can page during a planned shutdown.
 
-<details>
-<summary> ⚡ AWS Lambda: Production Troubleshooting & Design.</code></summary><br><b>
+## Route 53
 
-Managing Lambda in production requires a deep understanding of concurrency, cold starts, and asynchronous event processing.
+Route 53 provides authoritative DNS, domain registration, health checks, and
+Resolver for VPC and hybrid DNS. An **alias record** is AWS-specific: it can be
+used at the zone apex, points to supported AWS resources such as ALB,
+CloudFront, API Gateway, and S3 websites, and does not add a DNS query charge
+for the alias lookup. A `CNAME` cannot exist at the apex.
 
-1️⃣ Addressing High Latency (Cold Starts)
-*   **The Scenario:** Users report that the first request after a period of inactivity is significantly slower than subsequent ones.
-*   **The Issue:** A **Cold Start** occurs when AWS must initialize a new execution environment (load runtime, load code) because no "warm" environments are available.
-*   **Production Solutions:**
-    1.  **Provisioned Concurrency:** Pre-warms a specified number of environments to ensure immediate response (best for latency-sensitive APIs).
-    2.  **SnapStart (Java):** Specifically for Java runtimes, it snapshots the initialized environment to reduce startup time by up to 10x.
-    3.  **Code Optimization:** Reduce package size, lazy-load dependencies, and choose lightweight runtimes like **Go, Python, or Node.js**.
+| Routing policy | Choose it for |
+| :--- | :--- |
+| Simple | One endpoint or several unordered answers |
+| Weighted | Canary releases, A/B tests, or controlled traffic migration |
+| Latency | Send users to the AWS Region with the lowest measured latency |
+| Failover | Active/passive service using Route 53 health checks |
+| Geolocation | Route by the user's geographic origin for localisation or compliance |
+| Geoproximity | Route by resource location with optional traffic bias |
+| Multi-value answer | Up to eight healthy records returned; lightweight distribution, not a load balancer |
+| IP-based | Route known client CIDR ranges to selected endpoints |
 
-2️⃣ Handling Throttling (429 Too Many Requests)
-*   **The Scenario:** During a traffic spike, Lambda stops executing and returns `429` errors.
-*   **The Issue:** You have hit the **Regional Concurrency Limit** (default 1,000).
-*   **Production Solutions:**
-    1.  **Reserved Concurrency:** Dedicate a specific portion of your limit to critical functions so they aren't starved by other functions in the account.
-    2.  **Quota Increase:** Request a service quota increase from AWS Support for your region.
-    3.  **Upstream Buffering:** Use **Amazon SQS** to buffer incoming requests and process them at a controlled rate via Lambda triggers.
+DNS failover is not instant: recursive resolvers cache answers until TTL expiry,
+and clients may cache longer. Lower the TTL before a planned migration, but use
+an ALB/NLB health check for fast target removal inside one Region.
 
-3️⃣ Timeouts & Resource Optimization
-*   **The Scenario:** A function processing S3 files or large datasets fails intermittently with "Task timed out."
-*   **The Issue:** The function exceeds its maximum configured **Timeout** (max 15 mins) or runs out of **Memory**.
-*   **Production Solutions:**
-    1.  **Power Tuning:** Use [AWS Lambda Power Tuning](https://github.com) to find the "sweet spot" where memory and cost are balanced (more memory = more CPU).
-    2.  **Orchestration:** If a task takes >15 mins, use [AWS Step Functions](https://aws.amazon.com) to break the process into smaller, stateful steps.
-    3.  **API Gateway Limits:** Remember that API Gateway has a **29-second** timeout limit, even if the Lambda is configured for longer.
+## KMS
 
-4️⃣ Error Handling & Retries
-*   **The Scenario:** An SQS-triggered Lambda fails, and the same message keeps retrying, blocking the queue (Poison Pill).
-*   **The Issue:** Unhandled exceptions lead to infinite loops or wasted execution time.
-*   **Production Solutions:**
-    1.  **Dead Letter Queues (DLQ):** Route failed events to an SQS queue or SNS topic after `X` retries for manual debugging.
-    2.  **Report Batch Item Failures:** For SQS, return only the IDs of failed messages so that successful ones are deleted and only failed ones are retried.
-    3.  **Idempotency:** Ensure code can run multiple times with the same input without side effects (crucial because Lambda guarantees *at-least-once* delivery).
+AWS KMS creates and controls encryption keys and performs cryptographic
+operations; services such as S3, EBS, RDS, and Secrets Manager use it for
+envelope encryption. KMS encrypts the small **data key**; the service encrypts
+bulk data locally with that data key and stores the encrypted data key beside
+the ciphertext. KMS does not receive the bulk payload.
 
-5️⃣ VPC Networking & Internet Access
-*   **The Scenario:** Your Lambda needs to access a private RDS database *and* a public 3rd party API (like Stripe).
-*   **The Issue:** When a Lambda is attached to a **VPC**, it loses default internet access.
-*   **Production Solutions:**
-    1.  **NAT Gateway:** Route outbound traffic through a NAT Gateway in a public subnet.
-    2.  **VPC Endpoints:** Use **PrivateLink** for AWS services (S3, DynamoDB, Secrets Manager) to keep traffic inside the AWS network and save NAT costs.
-    3.  **Security Groups:** Apply strict Inbound/Outbound rules to the Lambda's ENI (Elastic Network Interface).
+- An **AWS owned key** is invisible and fully managed by the service. An **AWS
+  managed key** is visible but has a fixed policy. A **customer managed key**
+  gives you policy, grants, aliases, rotation, cross-account use, and disable or
+  deletion control, with a monthly cost.
+- Both the caller's IAM policy **and** the KMS key policy must permit use. An S3
+  `AccessDenied` on an SSE-KMS object often means `kms:Decrypt` or the key policy,
+  not the bucket policy.
+- Automatic rotation for symmetric customer managed keys is configurable;
+  rotation changes backing key material but the key ARN stays stable. Imported
+  material and asymmetric keys require manual rotation to a new key.
+- Deletion has a mandatory 7-to-30-day waiting period because deleting a key
+  makes every remaining ciphertext permanently unrecoverable. Disable first,
+  observe for use, then schedule deletion.
+- Use a multi-Region key only when an application must decrypt the same
+  ciphertext in another Region; ordinary KMS keys are Regional.
 
-📊 Summary Cheat Sheet
+Do not confuse KMS with Secrets Manager: KMS protects cryptographic keys;
+Secrets Manager stores and rotates credentials, using KMS underneath.
 
-| Symptom | Primary Solution | CloudWatch Metric |
+## WAF vs Shield
+
+| | AWS WAF | AWS Shield Standard | AWS Shield Advanced |
+| :--- | :--- | :--- | :--- |
+| Protects against | Layer 7 request attacks: SQL injection, XSS, bad bots, abusive rates | Common layer 3/4 DDoS attacks | Larger and sophisticated layer 3/4 and layer 7 DDoS attacks |
+| Control | Web ACL rules, managed rule groups, IP/reputation lists, rate rules | Automatic, no rules to manage | Automatic detection plus advanced visibility and response |
+| Attach to | CloudFront, ALB, API Gateway, AppSync, Cognito and supported resources | Included automatically for AWS resources | Enrolled resources such as CloudFront, Route 53, ALB/NLB, EIP |
+| Cost | Per Web ACL, rule, and request | Included | Subscription plus data-processing charges |
+
+Use **WAF** to inspect HTTP requests and block application-layer patterns.
+**Shield Standard** is already active and handles routine infrastructure DDoS
+events. **Shield Advanced** adds the DDoS Response Team, cost-protection
+credits, richer diagnostics, and application-layer automatic mitigation with
+WAF. They complement rather than replace security groups, which filter ports
+and sources but do not understand HTTP payloads.
+
+## RDS
+
+### Connection timeouts
+
+The application cannot reach the database and the error is a timeout rather than
+a refusal.
+
+Causes: the DB security group has no inbound rule for the database port (3306
+MySQL, 5432 PostgreSQL); the application is in another VPC with no peering,
+Transit Gateway, or PrivateLink path; a subnet NACL blocks the ephemeral return
+ports because NACLs are stateless; or the instance is not publicly accessible
+while the client is outside AWS.
+
+Fixes: allow the application's **security group ID** rather than an IP range,
+verify the NACL allows `1024-65535` outbound, and use
+[VPC Reachability Analyzer](https://aws.amazon.com/vpc/) to identify the exact
+hop that drops the packet. A timeout means the packet never arrived; "connection
+refused" means it arrived and nothing was listening, which is a different
+problem.
+
+### Sustained 100% CPU
+
+Causes: expensive queries doing full table scans because an index is missing, a
+sudden connection surge, or an under-provisioned instance class.
+
+Fixes: open **Performance Insights** to identify the SQL contributing most to
+database load, kill a runaway query (`CALL mysql.rds_kill(<id>)` on MySQL,
+`SELECT pg_terminate_backend(<pid>)` on PostgreSQL), then add the missing index
+or rewrite the query. Scale the instance class only after you know it is a
+capacity problem, and put a connection pooler such as RDS Proxy in front if
+connection churn is the driver.
+
+### Storage full
+
+The instance status becomes `storage-full` and all writes fail.
+
+Causes: data growth past `AllocatedStorage`, unbounded log growth from general
+or slow query logs, or a large temporary table or long-running transaction
+retaining space.
+
+Fixes: modify the instance to increase storage, which can be done online but
+affects performance while it runs; then enable **storage autoscaling** so AWS
+grows the volume automatically, reduce log retention in the parameter group, and
+alarm on `FreeStorageSpace` well before exhaustion. Note that storage can be
+increased but never decreased, so oversizing to fix an incident is permanent.
+
+### Replication lag
+
+Read replicas fall behind the primary, so users see stale data.
+
+Causes: replica apply is largely single-threaded while the primary accepts
+parallel writes, a replica smaller than the primary, large bulk operations, or a
+long-running query on the replica blocking apply.
+
+Fixes: alarm on the `ReplicaLag` CloudWatch metric, size replicas at least as
+large as the primary, break bulk writes into batches, and route only queries
+that tolerate staleness to replicas. Where zero lag is required, use Aurora,
+whose shared storage layer keeps replica lag in the low milliseconds.
+
+### Backup and replication impact on the source
+
+| Operation | Single-AZ | Multi-AZ |
 | :--- | :--- | :--- |
-| **High Initial Latency** | Provisioned Concurrency | `ProvisionedConcurrencySpilloverInvocations` |
-| **Throttling (429)** | Reserved Concurrency / Quota Increase | `Throttles` |
-| **Out of Memory** | Increase RAM (Scale vertically) | `Errors` |
-| **Slow Integration** | SQS Buffering / Step Functions | `Duration` |
-| **Connectivity Issues** | NAT Gateway / VPC Endpoints | `NetworkInterface` metrics |
-</b></details>
+| Automated backup | Brief I/O suspension, seconds to minutes | No impact; the snapshot is taken from the standby |
+| Creating a read replica | Brief I/O suspension for the initial snapshot | No impact; taken from the standby |
+| Ongoing replica replication | Asynchronous, no blocking of the source | Asynchronous, no blocking of the source |
+| Standby replication | Not applicable | Synchronous, adds a small write latency |
+| Failover | Not applicable, no standby | 60 to 120 seconds of unavailability during DNS retargeting |
+| OS or engine patching | Full downtime for the whole patch | Limited to a failover window |
 
+**Synchronous versus asynchronous** is the key distinction: a Multi-AZ standby
+acknowledges every write before the primary confirms it, which gives an RPO of
+zero at the cost of write latency. A read replica is asynchronous, so the source
+is never blocked, but the replica can lag and is not a zero-data-loss target.
+
+Multi-AZ is a **high availability** feature, not a read-scaling feature: the
+standby serves no traffic. Read replicas scale reads but are not automatic
+failover, though a replica can be promoted manually.
+
+Practices: enable Multi-AZ for production so backups and patching stop causing
+downtime, set Single-AZ backup windows to the quietest hours, test failover with
+**reboot with failover** so you know the application's connection pool actually
+re-resolves the endpoint, and always connect by DNS endpoint rather than IP.
+
+### Point-in-time recovery
+
+PITR restores to any second within the retention window (1 to 35 days). It is
+the defence against human error such as a `DELETE` with no `WHERE` clause.
+
+It works from two pieces: automated daily snapshots, and transaction logs
+uploaded to S3 roughly every five minutes. A restore takes the latest snapshot
+before the target time and replays logs up to the requested second.
+
+Recovery of a table wiped at 14:05:10 UTC: choose **Actions**, then **Restore to
+point in time**, set a custom time of 14:05:00, and give a new instance
+identifier. RDS always restores into a **new instance** and never overwrites the
+existing one, so recovery means restoring alongside, copying or verifying the
+data, and then repointing the application. Build that repointing step into the
+runbook, because the restore itself can take a long time on a large database and
+is what dominates your RTO.
+
+Quick reference:
+
+```bash
+aws rds describe-db-instances --db-instance-identifier <name>
+aws rds reboot-db-instance --db-instance-identifier <name> --force-failover
+aws rds create-db-snapshot --db-instance-identifier <name> --db-snapshot-identifier <backup>
+aws rds describe-events --source-identifier <name> --source-type db-instance
+```
+
+## Lambda
+
+### Cold starts
+
+The first request after idle time is slow because AWS must create an execution
+environment, load the runtime, and run your initialisation code.
+
+Fixes: **Provisioned Concurrency** keeps a set number of environments warm, which
+is the answer for latency-sensitive APIs; **SnapStart** snapshots an initialised
+JVM or .NET environment; and code-level work, meaning a smaller deployment
+package, lazy-loaded dependencies, clients created outside the handler, and a
+lightweight runtime. Note that attaching a Lambda to a VPC no longer adds
+significant cold-start time, since ENIs are now shared, so old advice about
+avoiding VPCs for this reason is out of date.
+
+### Throttling with 429
+
+You have hit the account's regional concurrency limit, 1,000 by default.
+
+Fixes: set **Reserved Concurrency** on critical functions so they cannot be
+starved by noisy neighbours in the same account, request a quota increase, and
+buffer bursts through **SQS** so Lambda consumes at a controlled rate instead of
+rejecting requests. Watch the `Throttles` and `ConcurrentExecutions` metrics.
+
+### Timeouts and sizing
+
+Causes: exceeding the configured timeout, which is 15 minutes maximum, or
+running out of memory.
+
+Fixes: memory and CPU are allocated together in Lambda, so raising memory also
+raises CPU and often reduces both duration and cost. Use Lambda Power Tuning to
+find the optimum rather than guessing. If the work genuinely needs more than 15
+minutes, orchestrate it with **Step Functions** or move it to Fargate or a
+container. API Gateway's default integration timeout is 29 seconds. For
+**Regional and private REST APIs**, that maximum can be raised through a quota
+request, potentially in exchange for a lower regional throttle quota.
+**Edge-optimised REST APIs** remain capped at 29 seconds, and **HTTP APIs** have
+a hard 30-second integration limit. A long-running Lambda still needs an
+asynchronous pattern such as returning a job ID and polling or publishing the
+result, rather than holding the client connection open.
+
+### Errors and retries
+
+An SQS-triggered function fails, and the same message is redelivered
+indefinitely, blocking the queue. This is the poison-pill problem.
+
+Fixes: configure a **dead-letter queue** so a message that fails the maximum
+receive count is moved aside for inspection; use
+`ReportBatchItemFailures` so only the failed message IDs are retried and
+successful ones are deleted; and make handlers **idempotent**, because Lambda
+guarantees at-least-once delivery, so the same event can arrive twice.
+
+### VPC attachment and internet access
+
+A Lambda attached to a VPC has no default internet access, so a function that
+needs both a private RDS instance and a public third-party API fails on the
+public call.
+
+Fixes: route outbound traffic through a **NAT gateway** in a public subnet, and
+use **VPC endpoints** for AWS services such as S3, DynamoDB, and Secrets Manager
+so that traffic stays inside AWS and avoids NAT charges. Apply a security group
+to the function's ENI and reference it from the database's security group.
+
+### Symptom to action
+
+| Symptom | First action | Metric |
+| :--- | :--- | :--- |
+| High latency on first request | Provisioned Concurrency | `InitDuration` |
+| `429` throttling | Reserved Concurrency or quota increase | `Throttles` |
+| Killed on memory | Raise memory allocation | `MaxMemoryUsed` in logs |
+| Timeouts on long work | Step Functions or Fargate | `Duration` |
+| Cannot reach the internet | NAT gateway or VPC endpoint | Error logs from the SDK |
+| Queue stuck on one message | Dead-letter queue, batch item failures | `ApproximateAgeOfOldestMessage` |
+
+## Identity
+
+Prefer temporary, role-based credentials over long-lived keys everywhere.
+
+- **IAM user with access keys:** long-lived credentials. Avoid for workloads;
+  keys leak and are rarely rotated. Human access should go through IAM Identity
+  Center with federated single sign-on.
+- **IAM role:** a set of permissions with no permanent credentials, assumed to
+  get short-lived STS credentials. This is the default answer for almost every
+  "how should this authenticate" question.
+- **Instance profile:** how an EC2 instance assumes a role, with credentials
+  delivered through the instance metadata service. Enforce IMDSv2, since IMDSv1
+  is vulnerable to server-side request forgery.
+- **IRSA / EKS Pod Identity:** how a Kubernetes pod assumes a role, so
+  permissions are scoped per service account rather than per node.
+- **Resource-based policy:** attached to the resource, for example an S3 bucket
+  policy or SQS queue policy, and the mechanism for cross-account access.
+
+### Equivalents in Azure
+
+Interviews often ask for the mapping, because the concepts have different names.
+
+| Concept | AWS | Azure |
+| :--- | :--- | :--- |
+| Identity for an application, created and managed by you | IAM role plus an IAM user or external identity provider | Service principal |
+| Identity attached automatically to a platform resource | IAM role via instance profile, IRSA, or task role | Managed identity (system-assigned or user-assigned) |
+| Credential material | Assumed-role STS tokens, short-lived | Client secret or certificate for a service principal; none for a managed identity |
+| Scoping | Trust policy plus permission policy | Role assignment at a resource scope |
+
+An **Azure service principal** is created explicitly through the portal, CLI, or
+SDK, and authenticates with a client secret or certificate that you have to store
+and rotate. A **managed identity** is created on the Azure resource itself, and
+Azure handles the credential lifecycle entirely, so nothing is stored in code or
+configuration. Managed identity is tied to the resource it belongs to; a service
+principal can be used from anywhere.
+
+The AWS parallel is direct: an IAM role assumed through an instance profile or
+IRSA is the managed-identity pattern, and an IAM user with access keys is the
+service-principal-with-secret pattern. In both clouds, prefer the platform-managed
+option and reserve explicit credentials for systems outside the cloud, ideally
+through OIDC federation so even those need no stored secret.
+
+### Diagnosing an unexpected `AccessDenied`
+
+Start by proving which identity made the request; do not assume the workload is
+using the role you intended:
+
+```bash
+aws sts get-caller-identity
+```
+
+For a Pod, run that command inside the affected container and verify its
+ServiceAccount annotation or EKS Pod Identity association. For EC2, verify the
+instance profile and IMDS credentials. Then:
+
+1. capture the exact denied action, resource ARN, Region, and request time;
+2. use CloudTrail to find the event and confirm the principal;
+3. evaluate identity policies, permission boundaries, session policies, service
+   control policies, and the resource policy;
+4. check explicit denies first because they override every allow;
+5. inspect KMS key policies when an encrypted S3 object or secret is involved;
+6. test the smallest policy correction, then deploy it through code review.
+
+A role trust policy controls who may assume the role; its permission policy
+controls what the assumed role may do. IRSA failures commonly come from an OIDC
+issuer or `sub`/`aud` condition mismatch, not from the S3 policy itself.
+
+Prevent recurrence with least-privilege roles per workload, short-lived
+credentials, policy validation in CI, CloudTrail alerts for critical denied
+operations, and change history for IAM and Organizations policies.
+
+## Reliability and disaster recovery
+
+### High availability, fault tolerance, and disaster recovery
+
+- **High availability** minimises downtime through redundancy and fast failover.
+  Some interruption is accepted, for example a 60-second RDS Multi-AZ failover.
+- **Fault tolerance** keeps the system fully working through a component
+  failure, with no visible interruption. It is stricter and costs more, for
+  example an Auto Scaling group behind a load balancer across three zones with
+  capacity to spare.
+- **Disaster recovery** is what you do after damage beyond repair: recover data
+  and bring the system back, usually elsewhere, accepting measured data loss and
+  downtime.
+
+The distinction to state: high availability and fault tolerance prevent an
+outage, disaster recovery recovers from one, and you need both because
+redundancy does not protect against deletion, corruption, a bad deployment, or a
+compromised account.
+
+Reference:
+[disaster recovery, high availability, and fault tolerance](https://www.nakivo.com/blog/disaster-recovery-vs-high-availability-vs-fault-tolerance/)
+
+### RPO and RTO
+
+**RPO (Recovery Point Objective)** answers "how much data can we afford to
+lose". It is a measure of data, set by backup and replication frequency. With an
+RPO of 4 hours and a backup at 12:00, a failure at 15:59 is within target and a
+failure at 17:00 is not.
+
+**RTO (Recovery Time Objective)** answers "how quickly must we be back". It is a
+measure of clock time, driven by how automated recovery is. An RTO of one hour
+means the system is serving traffic again within 60 minutes of the outage
+starting.
+
+| | RPO | RTO |
+| :--- | :--- | :--- |
+| Question | How much data loss is acceptable? | How long may we be down? |
+| Unit | Data, expressed as time since the last recoverable point | Elapsed time to restore service |
+| Lever | Backup and replication frequency | Automation, warm capacity, runbooks |
+| Cost driver | Storage and replication bandwidth | Standby infrastructure |
+
+Mapped to AWS DR strategies, cheapest to most expensive:
+
+| Strategy | RPO | RTO | What runs in the second Region |
+| :--- | :--- | :--- | :--- |
+| Backup and restore | Hours | Hours to a day | Nothing; restore from snapshots and S3 |
+| Pilot light | Minutes | Tens of minutes | Data replicated, core services off |
+| Warm standby | Seconds to minutes | Minutes | A scaled-down but working copy |
+| Multi-Region active-active | Near zero | Near zero | Full capacity serving traffic |
+
+Worked examples: a trading platform needs RPO near zero and RTO under 30
+seconds, so active-active with synchronous or near-synchronous replication. An
+internal reporting tool can take RPO 24 hours and RTO 8 hours, so daily
+snapshots and a documented restore are sufficient and far cheaper.
+
+Points worth making:
+
+- Cost rises steeply as both targets approach zero, so agree them with the
+  business rather than assuming the strictest.
+- RPO of zero across long distances is limited by physics and by the CAP
+  theorem: synchronous replication across Regions adds the round-trip latency to
+  every write.
+- RTO is met by automation. Infrastructure as code plus tested failover
+  automation is the difference between a documented RTO and a real one, and an
+  untested DR plan should be assumed not to work.
+
+### SLI, SLO, and SLA
+
+| Term | Meaning | Analogy | Audience |
+| :--- | :--- | :--- | :--- |
+| SLI, Service Level Indicator | A measured metric of service behaviour | Speedometer | Engineers |
+| SLO, Service Level Objective | The internal target for an SLI | Speed limit | Engineers and product |
+| SLA, Service Level Agreement | A contractual commitment with consequences | Speeding fine | Business and customers |
+
+An **SLI** is the raw measurement: request latency, error rate, availability,
+throughput, usually as `successful events / total events`.
+
+An **SLO** is the target, for example "99.9% of requests complete in under 200 ms
+over a rolling 30 days". The useful mechanism attached to it is the **error
+budget**: the 0.1% you are allowed to fail. While budget remains you can ship;
+when it is exhausted, reliability work takes priority over features.
+
+An **SLA** is the external promise, for example "if monthly availability falls
+below 99.5%, we credit 10% of the bill". Keep the SLO stricter than the SLA, so
+you detect and respond before you owe anyone money.
+
+## CI/CD on AWS
+
+A typical AWS-native pipeline, and the equivalent choices if you use GitHub
+Actions or GitLab instead.
+
+| Stage | AWS service | Purpose |
+| :--- | :--- | :--- |
+| Source | CodeCommit, or GitHub/GitLab via connection | Trigger on push, pull request, or tag |
+| Build and test | CodeBuild | Compile, run tests, build the container image |
+| Artifact store | ECR for images, S3 for archives | Immutable versioned artifacts |
+| Orchestration | CodePipeline or Step Functions | Stage ordering, approvals, rollback |
+| Deploy | CodeDeploy, ECS/EKS rolling update, CloudFormation, Terraform | Apply the change |
+| Verify | CloudWatch alarms, synthetic canaries | Automatic rollback on regression |
+
+Practices that come up in interviews:
+
+- **Build once, promote the artifact.** Build the image in the pipeline, tag it
+  with the commit SHA, and deploy that exact digest to every environment. A
+  rebuild per environment means you are not shipping what you tested.
+- **No long-lived credentials in the pipeline.** Use OIDC federation from GitHub
+  Actions or GitLab into an IAM role, so the pipeline gets short-lived STS
+  credentials and there is no access key to leak or rotate.
+- **Least privilege per stage.** The build role can push to ECR but not deploy;
+  the deploy role can update the service but not read production data.
+- **Deployment strategy chosen for the blast radius:** rolling update for
+  ordinary changes; blue/green through CodeDeploy or two target groups when you
+  need instant rollback; canary with a weighted listener rule or ALB weighted
+  target groups when you want to expose a small percentage first.
+- **Automated rollback.** Wire CodeDeploy or the deployment controller to
+  CloudWatch alarms on error rate and latency so a bad release reverts without a
+  human deciding.
+- **Infrastructure through the same pipeline.** Terraform or CloudFormation
+  changes should be planned, reviewed, and applied by the pipeline, with drift
+  detection, rather than changed in the console.
+- **Environment isolation by account.** Separate AWS accounts for development,
+  staging, and production under Organizations, with the pipeline assuming a role
+  into each. This is the strongest available blast-radius boundary.
+
+## Reference
+
+- [AWS S3 storage classes](https://aws.amazon.com/s3/storage-classes/)
+- [EC2 instance types](https://aws.amazon.com/ec2/instance-types/)
+- [VPC documentation](https://docs.aws.amazon.com/vpc/latest/userguide/)
+- [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
