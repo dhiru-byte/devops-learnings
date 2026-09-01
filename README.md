@@ -77,7 +77,7 @@ from the core DevOps interview path.
 
 ## Repository scope
 
-Markdown files under the topic directories are study notes. YAML, JSON,
-scripts, images, PDFs, and lab directories are runnable or reference artifacts;
-review them before using them in a real environment because example values and
-credentials are not production configuration.
+Markdown files under `docs/` are study notes. YAML, JSON, scripts, PDFs, and
+lab directories are runnable or reference artifacts; review them before using
+them in a real environment because example values and credentials are not
+production configuration.

@@ -16,9 +16,28 @@ Sections in this file:
 <details>
 <summary>ML Problem Framing: The ML Lifecycle</summary><br><b>
 
-<p align="center">
-<img src="../images/ML_LifeCycle.png" width="800" height="300" />
-</p>
+Four phases, with feature stores and a model registry in the middle.
+
+| Phase | What happens |
+| :--- | :--- |
+| Process data | Collect data, then prepare it: preprocess and engineer features |
+| Develop model | Train, tune, and evaluate using features fetched from the stores |
+| Deploy | Fetch versioned artifacts from the model registry and serve them |
+| Monitor | Watch live quality; alarm on drift; feed results back into data prep and retraining |
+
+Feature stores split **offline** (batch training and batch inference) from
+**online** (low-latency real-time inference used by the application). Features
+engineered during preparation are written to both; the online store can copy
+into the offline store.
+
+The **model registry** stores trained artifacts. Deploy fetches a specific
+version; a scheduler can retrain or roll forward from that registry.
+
+Two feedback loops:
+
+- **Performance feedback:** monitor results change how you preprocess data.
+- **Active learning:** monitor results send new labelled examples back into
+  train, tune, and evaluate.
 
 </b></details>
 
